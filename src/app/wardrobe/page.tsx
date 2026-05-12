@@ -72,6 +72,7 @@ export default function WardrobePage() {
 
   function onCameraCapture(dataUrl: string) {
     setShowCamera(false);
+    setShowModal(true);
     analyzePhoto(dataUrl);
   }
 
@@ -259,7 +260,7 @@ export default function WardrobePage() {
               {/* Camera button */}
               {!preview && (
                 <button
-                  onClick={() => { setShowModal(false); setShowCamera(true); }}
+                  onClick={() => { setShowCamera(true); setShowModal(false); }}
                   className="w-full py-3 rounded-xl flex items-center justify-center gap-2 text-sm font-semibold transition-all hover:opacity-90"
                   style={{
                     background: 'var(--accent-muted)',

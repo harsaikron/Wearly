@@ -1,12 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import CameraCapture from '@/components/Camera';
 import { useWardrobeStore } from '@/store/wardrobe';
-import { stripDataPrefix } from '@/lib/image-utils';
-import { Camera, Shirt, Sparkles, Send, Loader } from 'lucide-react';
+import { stripDataPrefix, compressImage } from '@/lib/image-utils';
+import { Camera, Shirt, Sparkles, Send, Loader, ImageIcon, X } from 'lucide-react';
 
 interface AISuggestion {
   message: string;
@@ -17,12 +17,13 @@ interface AISuggestion {
 export default function HomePage() {
   const { items } = useWardrobeStore();
 
-  const [showCamera, setShowCamera] = useState(false);
-  const [photo, setPhoto]           = useState<string | null>(null);
-  const [question, setQuestion]     = useState('');
-  const [suggestion, setSuggestion] = useState<AISuggestion | null>(null);
-  const [loading, setLoading]       = useState(false);
-  const [error, setError]           = useState('');
+  const [showCamera, setShowCamera]   = useState(false);
+  const [photo, setPhoto]             = useState<string | null>(null);
+  const [question, setQuestion]       = useState('');
+  const [suggestion, setSuggestion]   = useState<AISuggestion | null>(null);
+  const [loading, setLoading]         = useState(false);
+  const [error, setError]             = useState('');
+  const fileInputRef                  = useRef<HTMLInputElement>(null);
 
   async function askAI(q: string, capturedPhoto?: string) {
     const query = q || 'What outfit should I wear today in Singapore?';
@@ -61,6 +62,22 @@ export default function HomePage() {
     askAI('What do you think of this outfit? Give me styling advice.', dataUrl);
   }
 
+  async function onFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // reset so same file can be re-selected
+    e.target.value = '';
+    const compressed = await compressImage(file);
+    setPhoto(compressed);
+    askAI('What do you think of this outfit? Give me styling advice.', compressed);
+  }
+
+  function clearPhoto() {
+    setPhoto(null);
+    setSuggestion(null);
+    setError('');
+  }
+
   const QUICK = [
     'What to wear for office today?',
     'Best outfit for Singapore heat?',
@@ -77,11 +94,11 @@ export default function HomePage() {
           Your AI <span className="accent-text">Wardrobe</span>
         </h1>
         <p className="text-sm" style={{ color: 'var(--muted)' }}>
-          Powered by Gemma — running on your Mac.
+          Powered by Gemma 4 — running on your Mac.
         </p>
       </div>
 
-      {/* Camera / photo area */}
+      {/* Photo area */}
       <div
         className="rounded-2xl overflow-hidden mb-4"
         style={{
@@ -91,6 +108,7 @@ export default function HomePage() {
         }}
       >
         {photo ? (
+          /* ── Photo preview ── */
           <div className="relative">
             <Image
               src={photo} alt="captured"
@@ -99,38 +117,75 @@ export default function HomePage() {
               style={{ maxHeight: 300 }}
             />
             <button
-              onClick={() => { setPhoto(null); setSuggestion(null); }}
-              className="absolute top-3 right-3 px-3 py-1.5 rounded-xl text-xs font-semibold"
+              onClick={clearPhoto}
+              className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-all hover:scale-105"
               style={{
                 background: 'rgba(255,255,255,0.92)',
-                color: 'var(--foreground)',
                 border: '1px solid var(--card-border)',
                 boxShadow: 'var(--shadow-sm)',
+                color: 'var(--foreground)',
               }}
             >
-              Clear
+              <X size={14} />
             </button>
           </div>
         ) : (
-          <button
-            onClick={() => setShowCamera(true)}
-            className="w-full py-14 flex flex-col items-center gap-3 transition-all hover:bg-[var(--muted-bg)]"
-          >
+          /* ── Upload prompt ── */
+          <div className="py-10 px-6 flex flex-col items-center gap-5">
             <div
               className="w-16 h-16 rounded-full flex items-center justify-center"
               style={{ background: 'var(--accent-muted)' }}
             >
               <Camera size={28} style={{ color: 'var(--accent)' }} />
             </div>
-            <div>
+
+            <div className="text-center">
               <p className="font-semibold text-sm" style={{ color: 'var(--foreground)' }}>
-                Take a photo
+                Add a photo for instant AI style advice
               </p>
-              <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>
-                Use your camera — AI gives instant style advice
+              <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>
+                Take a live photo or upload from your gallery
               </p>
             </div>
-          </button>
+
+            {/* Two action buttons */}
+            <div className="flex gap-3 w-full max-w-xs">
+              <button
+                onClick={() => setShowCamera(true)}
+                className="flex-1 flex flex-col items-center gap-1.5 py-3 rounded-xl font-medium text-sm transition-all hover:opacity-90"
+                style={{
+                  background: 'linear-gradient(135deg, #6366f1, #818cf8)',
+                  color: '#fff',
+                  boxShadow: '0 2px 8px rgba(99,102,241,0.25)',
+                }}
+              >
+                <Camera size={18} />
+                <span className="text-xs">Camera</span>
+              </button>
+
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="flex-1 flex flex-col items-center gap-1.5 py-3 rounded-xl font-medium text-sm transition-all hover:opacity-90"
+                style={{
+                  background: 'var(--muted-bg)',
+                  border: '1px solid var(--card-border)',
+                  color: 'var(--foreground)',
+                }}
+              >
+                <ImageIcon size={18} style={{ color: 'var(--accent)' }} />
+                <span className="text-xs">Gallery</span>
+              </button>
+            </div>
+
+            {/* Hidden file input — works on Mac and mobile gallery */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={onFileSelect}
+            />
+          </div>
         )}
 
         {/* AI loading */}
@@ -140,7 +195,7 @@ export default function HomePage() {
             style={{ borderTop: '1px solid var(--card-border)' }}
           >
             <Loader size={16} className="animate-spin shrink-0" style={{ color: 'var(--accent)' }} />
-            <p className="text-sm" style={{ color: 'var(--muted)' }}>Gemma is thinking…</p>
+            <p className="text-sm" style={{ color: 'var(--muted)' }}>Gemma 4 is thinking…</p>
           </div>
         )}
 
@@ -148,10 +203,7 @@ export default function HomePage() {
         {error && (
           <div
             className="px-4 py-3"
-            style={{
-              borderTop: '1px solid var(--card-border)',
-              background: 'rgba(239,68,68,0.04)',
-            }}
+            style={{ borderTop: '1px solid var(--card-border)', background: 'rgba(239,68,68,0.04)' }}
           >
             <p className="text-sm" style={{ color: '#ef4444' }}>{error}</p>
             <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>
@@ -180,7 +232,6 @@ export default function HomePage() {
                   background: 'var(--accent-muted)',
                   padding: '8px 12px',
                   borderRadius: 10,
-                  marginTop: 12,
                 }}
               >
                 💡 {suggestion.style_tip}
