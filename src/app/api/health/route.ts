@@ -1,23 +1,25 @@
 import { NextResponse } from 'next/server';
-import { isOllamaRunning, MODEL, OLLAMA_HOST } from '@/lib/ollama-client';
+import { detectBackend, OLLAMA_HOST } from '@/lib/ai-client';
 
 export async function GET() {
-  const ollamaUp = await isOllamaRunning();
+  const backend = await detectBackend();
 
   let modelReady = false;
-  if (ollamaUp) {
+  if (backend === 'ollama') {
     try {
       const res = await fetch(`${OLLAMA_HOST}/api/tags`);
       const data = await res.json() as { models: { name: string }[] };
-      modelReady = data.models?.some((m) => m.name.startsWith(MODEL.split(':')[0])) ?? false;
+      modelReady = data.models?.some((m) => m.name.startsWith('gemma3')) ?? false;
     } catch {
       modelReady = false;
     }
+  } else if (backend === 'groq') {
+    modelReady = true;
   }
 
   return NextResponse.json({
-    ollama: ollamaUp,
-    model: MODEL,
+    backend,
+    model: backend === 'ollama' ? 'gemma3:4b (local)' : backend === 'groq' ? 'gemma2-9b (Groq cloud)' : 'none',
     model_ready: modelReady,
     supabase_url: process.env.NEXT_PUBLIC_SUPABASE_URL,
     city: process.env.NEXT_PUBLIC_DEFAULT_CITY ?? 'Singapore',

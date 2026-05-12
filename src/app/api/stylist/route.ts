@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { chat, isOllamaRunning } from '@/lib/ollama-client';
+import { aiChat, safeParseJSON } from '@/lib/ai-client';
 
-const SYSTEM_PROMPT = `You are Wearly's AI Stylist — a sharp, concise fashion advisor for men.
+const SYSTEM_PROMPT = `You are Wearly's AI Stylist — a sharp, concise fashion advisor for men in Singapore.
 You have access to the user's wardrobe. Suggest specific outfits with colour codes.
-You must reply ONLY with valid JSON in this exact shape, nothing else:
+Reply ONLY with valid JSON in this exact shape, nothing else:
 {
   "message": "conversational reply with outfit suggestion",
   "outfit": {
@@ -22,14 +22,6 @@ You must reply ONLY with valid JSON in this exact shape, nothing else:
 Valid occasion values: office, casual, date_night, weekend, smart_casual, minimal, luxury, travel, festive, gym.`;
 
 export async function POST(request: NextRequest) {
-  const running = await isOllamaRunning();
-  if (!running) {
-    return NextResponse.json(
-      { error: 'Ollama is not running. Start it with: brew services start ollama' },
-      { status: 503 }
-    );
-  }
-
   try {
     const body = await request.json();
     const { query, wardrobe, weather } = body as {
@@ -44,31 +36,17 @@ export async function POST(request: NextRequest) {
 
     const weatherNote = weather
       ? `Current weather in ${weather.city}: ${weather.temperature}°C, ${weather.description} (${weather.condition}).`
-      : '';
+      : 'Weather: warm and humid, Singapore.';
 
-    const userMessage = `${weatherNote}
+    const userMessage = `${weatherNote}\n\nUser wardrobe:\n${wardrobeList}\n\nUser query: ${query}\n\nReply with JSON only.`;
 
-User wardrobe:
-${wardrobeList}
+    const { text, backend } = await aiChat(SYSTEM_PROMPT, userMessage);
+    const parsed = safeParseJSON(text);
 
-User query: ${query}
-
-Reply with JSON only.`;
-
-    const raw = await chat(SYSTEM_PROMPT, userMessage, 'json');
-
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(raw);
-    } catch {
-      // Gemma sometimes wraps JSON in markdown — strip fences
-      const cleaned = raw.replace(/```json\n?|```\n?/g, '').trim();
-      parsed = JSON.parse(cleaned);
-    }
-
-    return NextResponse.json(parsed);
+    return NextResponse.json({ ...parsed as object, _backend: backend });
   } catch (err) {
-    console.error('Stylist route error:', err);
-    return NextResponse.json({ error: 'AI Stylist failed. Is Ollama running with gemma3:4b?' }, { status: 500 });
+    const msg = err instanceof Error ? err.message : 'AI failed';
+    console.error('Stylist error:', msg);
+    return NextResponse.json({ error: msg }, { status: 503 });
   }
 }
