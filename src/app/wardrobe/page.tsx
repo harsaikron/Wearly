@@ -3,11 +3,12 @@
 import { useState, useCallback } from 'react';
 import ClothingCard from '@/components/ClothingCard';
 import UploadZone from '@/components/UploadZone';
+import CameraCapture from '@/components/Camera';
 import { useWardrobeStore } from '@/store/wardrobe';
 import { ClothingItem, ClothingCategory, OccasionTag } from '@/types';
 import { categoryLabel, occasionLabel } from '@/lib/utils';
 import { compressImage, stripDataPrefix } from '@/lib/image-utils';
-import { Plus, X, Search, Shirt, Loader, Sparkles, Trash2 } from 'lucide-react';
+import { Plus, X, Search, Shirt, Loader, Sparkles, Trash2, Camera } from 'lucide-react';
 
 const CATEGORIES: ClothingCategory[] = [
   'shirt','formal_shirt','tshirt','pants','jeans','shorts',
@@ -26,6 +27,7 @@ export default function WardrobePage() {
   const [filter, setFilter]           = useState<FilterCat>('all');
   const [search, setSearch]           = useState('');
   const [showModal, setShowModal]     = useState(false);
+  const [showCamera, setShowCamera]   = useState(false);
   const [preview, setPreview]         = useState('');       // data URL
   const [analyzing, setAnalyzing]     = useState(false);
   const [form, setForm] = useState({
@@ -44,33 +46,39 @@ export default function WardrobePage() {
     return matchCat && matchSearch;
   });
 
-  const handleFile = useCallback(async (file: File, _url: string) => {
+  async function analyzePhoto(dataUrl: string) {
+    setPreview(dataUrl);
     setAnalyzing(true);
     try {
-      const compressed = await compressImage(file);
-      setPreview(compressed);
-
-      // AI analysis
       const res = await fetch('/api/analyze-clothing', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image_base64: stripDataPrefix(compressed) }),
+        body: JSON.stringify({ image_base64: stripDataPrefix(dataUrl) }),
       });
       if (res.ok) {
         const data = await res.json();
         setForm({
-          name:      data.suggested_name ?? '',
-          category:  data.category       ?? 'shirt',
-          color_hex: data.color_hex      ?? '#FFFFFF',
-          color_name:data.color_name     ?? 'White',
-          tags:      data.tags           ?? [],
+          name:       data.suggested_name ?? '',
+          category:   data.category       ?? 'shirt',
+          color_hex:  data.color_hex      ?? '#FFFFFF',
+          color_name: data.color_name     ?? 'White',
+          tags:       data.tags           ?? [],
         });
       }
-    } catch {
-      // Keep blank form if analysis fails
-    } finally {
+    } catch { /* keep blank form */ } finally {
       setAnalyzing(false);
     }
+  }
+
+  function onCameraCapture(dataUrl: string) {
+    setShowCamera(false);
+    analyzePhoto(dataUrl);
+  }
+
+  const handleFile = useCallback(async (file: File, _url: string) => {
+    const compressed = await compressImage(file);
+    analyzePhoto(compressed);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function toggleTag(tag: OccasionTag) {
@@ -210,6 +218,13 @@ export default function WardrobePage() {
       )}
 
       {/* Add Item Modal */}
+      {showCamera && (
+        <CameraCapture
+          onCapture={onCameraCapture}
+          onClose={() => setShowCamera(false)}
+        />
+      )}
+
       {showModal && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -231,8 +246,18 @@ export default function WardrobePage() {
             </div>
 
             <div className="p-5 flex flex-col gap-4 max-h-[75vh] overflow-y-auto">
+              {/* Camera / upload choice */}
+              {!preview && (
+                <button
+                  onClick={() => setShowCamera(true)}
+                  className="w-full py-3 rounded-xl flex items-center justify-center gap-2 text-sm font-medium transition-all hover:opacity-90"
+                  style={{ background: 'linear-gradient(135deg, #c9a84c22, #e8c96a11)', border: '1px solid rgba(201,168,76,0.4)', color: 'var(--accent)' }}
+                >
+                  <Camera size={16} /> Use Camera
+                </button>
+              )}
               {/* Upload zone */}
-              <UploadZone onFile={handleFile} preview={preview} label="Drop a clothing photo — AI will detect it" />
+              <UploadZone onFile={handleFile} preview={preview} label="Or drop / click to upload a photo" />
 
               {/* AI analyzing indicator */}
               {analyzing && (
