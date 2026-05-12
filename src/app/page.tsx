@@ -26,6 +26,13 @@ interface AISuggestion {
   occasion?: string;
   search_query?: string;
 }
+interface InspirationImage {
+  url: string;
+  thumb: string;
+  alt: string;
+  credit: string;
+  credit_url: string;
+}
 interface Weather {
   temperature: number;
   feels_like: number;
@@ -53,15 +60,17 @@ function getContrastHex(hex: string) {
 export default function HomePage() {
   const { items } = useWardrobeStore();
 
-  const [showCamera, setShowCamera]   = useState(false);
-  const [photo, setPhoto]             = useState<string | null>(null);
-  const [question, setQuestion]       = useState('');
-  const [suggestion, setSuggestion]   = useState<AISuggestion | null>(null);
-  const [loading, setLoading]         = useState(false);
-  const [error, setError]             = useState('');
-  const [weather, setWeather]         = useState<Weather | null>(null);
-  const [now, setNow]                 = useState(new Date());
-  const fileInputRef                  = useRef<HTMLInputElement>(null);
+  const [showCamera, setShowCamera]         = useState(false);
+  const [photo, setPhoto]                   = useState<string | null>(null);
+  const [question, setQuestion]             = useState('');
+  const [suggestion, setSuggestion]         = useState<AISuggestion | null>(null);
+  const [loading, setLoading]               = useState(false);
+  const [error, setError]                   = useState('');
+  const [weather, setWeather]               = useState<Weather | null>(null);
+  const [now, setNow]                       = useState(new Date());
+  const [inspirationImgs, setInspirationImgs] = useState<InspirationImage[]>([]);
+  const [imgLoading, setImgLoading]         = useState(false);
+  const fileInputRef                        = useRef<HTMLInputElement>(null);
 
   // Fetch weather on mount
   useEffect(() => {
@@ -107,7 +116,19 @@ export default function HomePage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? 'AI error');
-      setSuggestion(data as AISuggestion);
+      const s = data as AISuggestion;
+      setSuggestion(s);
+
+      // Fetch outfit inspiration images
+      if (s.search_query) {
+        setInspirationImgs([]);
+        setImgLoading(true);
+        fetch(`/api/images?q=${encodeURIComponent(s.search_query)}`)
+          .then((r) => r.json())
+          .then((d) => setInspirationImgs(d.images ?? []))
+          .catch(() => setInspirationImgs([]))
+          .finally(() => setImgLoading(false));
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'AI unavailable.');
     } finally {
@@ -133,17 +154,8 @@ export default function HomePage() {
   function clearPhoto() {
     setPhoto(null);
     setSuggestion(null);
+    setInspirationImgs([]);
     setError('');
-  }
-
-  // Build Unsplash inspiration image URLs from search query
-  function inspirationImages(query: string) {
-    const q = encodeURIComponent(query);
-    return [
-      `https://source.unsplash.com/featured/320x420/?${q},men,fashion`,
-      `https://source.unsplash.com/featured/320x420/?${q},outfit,style`,
-      `https://source.unsplash.com/featured/320x420/?${q},menswear,look`,
-    ];
   }
 
   function pinterestUrl(q: string) {
@@ -379,24 +391,78 @@ export default function HomePage() {
             {suggestion.search_query && (
               <div>
                 <p className="text-xs font-semibold mb-2" style={{ color: 'var(--muted)' }}>OUTFIT INSPIRATION</p>
-                <div className="grid grid-cols-3 gap-2 mb-3">
-                  {inspirationImages(suggestion.search_query).map((url, i) => (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      key={i}
-                      src={url}
-                      alt={`Outfit inspiration ${i + 1}`}
-                      className="w-full rounded-xl object-cover"
-                      style={{ aspectRatio: '3/4', background: 'var(--muted-bg)' }}
-                      loading="lazy"
-                    />
-                  ))}
-                </div>
+
+                {/* Loading skeleton */}
+                {imgLoading && (
+                  <div className="grid grid-cols-3 gap-2 mb-3">
+                    {[0, 1, 2].map((i) => (
+                      <div
+                        key={i}
+                        className="w-full rounded-xl shimmer"
+                        style={{ aspectRatio: '3/4' }}
+                      />
+                    ))}
+                  </div>
+                )}
+
+                {/* Real images from Pexels / Pixabay */}
+                {!imgLoading && inspirationImgs.length > 0 && (
+                  <div className="grid grid-cols-3 gap-2 mb-3">
+                    {inspirationImgs.map((img, i) => (
+                      <a
+                        key={i}
+                        href={img.credit_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block relative rounded-xl overflow-hidden group"
+                        style={{ aspectRatio: '3/4', background: 'var(--muted-bg)' }}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={img.url}
+                          alt={img.alt}
+                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          loading="lazy"
+                        />
+                        <div
+                          className="absolute bottom-0 left-0 right-0 px-2 py-1 text-xs truncate opacity-0 group-hover:opacity-100 transition-opacity"
+                          style={{ background: 'rgba(0,0,0,0.55)', color: '#fff' }}
+                        >
+                          {img.credit}
+                        </div>
+                      </a>
+                    ))}
+                  </div>
+                )}
+
+                {/* Colour palette fallback — shown when no API key is configured */}
+                {!imgLoading && inspirationImgs.length === 0 && suggestion.outfit_items && suggestion.outfit_items.length > 0 && (
+                  <div className="rounded-xl p-4 mb-3" style={{ background: 'var(--muted-bg)', border: '1px solid var(--card-border)' }}>
+                    <p className="text-xs mb-3" style={{ color: 'var(--muted)' }}>
+                      Outfit colour palette — add <code className="px-1 rounded" style={{ background: 'var(--card-border)', fontSize: 10 }}>PEXELS_API_KEY</code> to Vercel for real photos
+                    </p>
+                    <div className="flex gap-3 flex-wrap">
+                      {suggestion.outfit_items.map((item, i) => (
+                        <div key={i} className="flex flex-col items-center gap-1.5">
+                          <div
+                            className="w-12 h-12 rounded-xl border"
+                            style={{ background: item.color_hex, borderColor: 'rgba(0,0,0,0.1)' }}
+                          />
+                          <p className="text-xs text-center" style={{ color: 'var(--muted)', maxWidth: 56, lineHeight: 1.2 }}>
+                            {item.piece.split(' ').slice(-1)[0]}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* External search links */}
                 <div className="flex gap-2">
                   <a
                     href={pinterestUrl(suggestion.search_query)}
                     target="_blank" rel="noopener noreferrer"
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold transition-all hover:opacity-90"
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold transition-all hover:opacity-90"
                     style={{ background: '#e60023', color: '#fff' }}
                   >
                     <ExternalLink size={12} /> Pinterest
@@ -404,7 +470,7 @@ export default function HomePage() {
                   <a
                     href={googleImagesUrl(suggestion.search_query)}
                     target="_blank" rel="noopener noreferrer"
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold transition-all hover:opacity-90"
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold transition-all hover:opacity-90"
                     style={{ background: 'var(--muted-bg)', border: '1px solid var(--card-border)', color: 'var(--foreground)' }}
                   >
                     <ExternalLink size={12} /> Google Images
