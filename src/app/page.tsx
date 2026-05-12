@@ -9,7 +9,7 @@ import { stripDataPrefix, compressImage } from '@/lib/image-utils';
 import {
   Camera, Shirt, Sparkles, Send, Loader,
   ImageIcon, X, Thermometer, Wind, Droplets,
-  ExternalLink, Sun, CloudRain, Cloud, TrendingUp, CalendarDays,
+  ExternalLink, Sun, CloudRain, Cloud, TrendingUp, CalendarDays, Gem,
 } from 'lucide-react';
 
 interface SGEvent {
@@ -93,6 +93,8 @@ export default function HomePage() {
   const [inspirationImgs, setInspirationImgs] = useState<InspirationImage[]>([]);
   const [imgLoading, setImgLoading]         = useState(false);
   const [events, setEvents]                 = useState<EventsData | null>(null);
+  const [trendCards, setTrendCards]         = useState<{ term: string; img: InspirationImage | null }[]>([]);
+  const [trendLoading, setTrendLoading]     = useState(false);
   const fileInputRef                        = useRef<HTMLInputElement>(null);
 
   // Fetch weather on mount
@@ -112,6 +114,31 @@ export default function HomePage() {
     const t = setInterval(() => setNow(new Date()), 60000);
     return () => clearInterval(t);
   }, []);
+
+  // Fetch one photo per trending style when events load
+  useEffect(() => {
+    if (!events) return;
+    const terms = events.season.trending.slice(0, 4);
+    setTrendLoading(true);
+    setTrendCards([]);
+    let cancelled = false;
+    (async () => {
+      const results: { term: string; img: InspirationImage | null }[] = [];
+      for (const term of terms) {
+        if (cancelled) break;
+        try {
+          const r = await fetch(`/api/images?q=${encodeURIComponent(term + ' Singapore men outfit')}`);
+          const d = await r.json();
+          results.push({ term, img: (d.images ?? [])[0] ?? null });
+          if (!cancelled) setTrendCards([...results]);
+        } catch {
+          results.push({ term, img: null });
+        }
+      }
+      if (!cancelled) setTrendLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [events]);
 
   const sgTime = now.toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Singapore' });
   const sgDay  = now.toLocaleDateString('en-SG', { weekday: 'long', timeZone: 'Asia/Singapore' });
@@ -192,6 +219,13 @@ export default function HomePage() {
     return `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(q + ' men outfit Singapore')}`;
   }
 
+  function seasonEmoji(name: string) {
+    if (name.includes('National')) return '🇸🇬';
+    if (name.includes('Festive')) return '🎊';
+    if (name.includes('Q4') || name.includes('Festival')) return '🎆';
+    return '🌿';
+  }
+
   const QUICK = [
     'What to wear for office today?',
     'Best outfit for Singapore heat?',
@@ -246,116 +280,226 @@ export default function HomePage() {
         )}
       </div>
 
-      {/* ── Events + Trends ───────────────────────────────────── */}
+      {/* ── Season Discovery + Trends ─────────────────────────── */}
       {events && (
-        <div className="mb-6 flex flex-col gap-3">
+        <div className="mb-6 flex flex-col gap-4">
 
-          {/* Today's event highlight (daysAway === 0) */}
+          {/* ① Today's event banner */}
           {events.upcoming[0]?.daysAway === 0 && (
             <div
-              className="rounded-2xl px-4 py-3 flex items-start gap-3"
+              className="rounded-2xl px-4 py-4 flex items-start gap-3"
               style={{ background: 'linear-gradient(135deg, #6366f1 0%, #818cf8 100%)', color: '#fff' }}
             >
-              <span style={{ fontSize: 28, lineHeight: 1 }}>{events.upcoming[0].emoji}</span>
+              <span style={{ fontSize: 32, lineHeight: 1 }}>{events.upcoming[0].emoji}</span>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-0.5">
-                  <span className="text-xs font-bold uppercase tracking-wide opacity-80">Today</span>
-                  <span
-                    className="text-xs px-2 py-0.5 rounded-full font-semibold"
-                    style={{ background: 'rgba(255,255,255,0.2)' }}
-                  >
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xs font-bold uppercase tracking-wide" style={{ opacity: 0.8 }}>Today</span>
+                  <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: 'rgba(255,255,255,0.2)' }}>
                     {events.upcoming[0].dress_code}
                   </span>
                 </div>
-                <p className="font-bold text-base leading-tight">{events.upcoming[0].name}</p>
-                <p className="text-xs opacity-90 mt-0.5 leading-snug">{events.upcoming[0].outfit_tip}</p>
-                <div className="flex gap-1.5 mt-2">
+                <p className="font-bold text-lg leading-tight">{events.upcoming[0].name}</p>
+                <p className="text-xs mt-1 leading-relaxed" style={{ opacity: 0.9 }}>{events.upcoming[0].outfit_tip}</p>
+                <div className="flex gap-2 mt-2.5">
                   {events.upcoming[0].colors.map((c, i) => (
-                    <div
-                      key={i}
-                      className="w-5 h-5 rounded-full border-2"
-                      style={{ background: c, borderColor: 'rgba(255,255,255,0.5)' }}
-                      title={events.upcoming[0].color_names[i]}
-                    />
+                    <div key={i} className="flex items-center gap-1.5">
+                      <div className="w-5 h-5 rounded-full border-2" style={{ background: c, borderColor: 'rgba(255,255,255,0.5)' }} />
+                      <span className="text-xs font-medium" style={{ opacity: 0.85 }}>{events.upcoming[0].color_names[i]}</span>
+                    </div>
                   ))}
                 </div>
               </div>
             </div>
           )}
 
-          {/* Upcoming events row */}
-          <div
-            className="rounded-2xl p-4"
-            style={{ background: 'var(--card)', border: '1px solid var(--card-border)', boxShadow: 'var(--shadow-sm)' }}
-          >
-            <div className="flex items-center gap-2 mb-3">
-              <CalendarDays size={14} style={{ color: 'var(--accent)' }} />
-              <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
-                {events.season.season}
+          {/* ② Season Spotlight */}
+          <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--card)', border: '1px solid var(--card-border)', boxShadow: 'var(--shadow-sm)' }}>
+            <div className="px-4 pt-4 pb-3" style={{ background: 'linear-gradient(135deg, rgba(99,102,241,0.06) 0%, rgba(233,30,140,0.04) 100%)' }}>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <span style={{ fontSize: 20 }}>{seasonEmoji(events.season.season)}</span>
+                  <p className="text-xs font-bold uppercase tracking-widest" style={{ color: 'var(--accent)' }}>
+                    {events.season.season}
+                  </p>
+                </div>
+                <span className="text-xs px-2 py-0.5 rounded-full font-medium"
+                  style={{ background: 'rgba(99,102,241,0.1)', color: 'var(--accent)', border: '1px solid rgba(99,102,241,0.2)' }}>
+                  🇸🇬 Singapore
+                </span>
+              </div>
+              <p className="text-sm font-semibold leading-snug" style={{ color: 'var(--foreground)' }}>
+                {events.season.tip}
               </p>
             </div>
-
-            {/* Event pills */}
-            <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
-              {events.upcoming
-                .filter((e) => e.daysAway > 0)
-                .map((ev) => (
-                  <div
-                    key={ev.date}
-                    className="shrink-0 flex flex-col items-center gap-1.5 px-3 py-2 rounded-xl text-center"
-                    style={{ background: 'var(--muted-bg)', border: '1px solid var(--card-border)', minWidth: 80 }}
-                    title={ev.outfit_tip}
-                  >
-                    <span style={{ fontSize: 22 }}>{ev.emoji}</span>
-                    <p className="text-xs font-semibold leading-tight" style={{ color: 'var(--foreground)' }}>
-                      {ev.name.split(' ').slice(0, 2).join(' ')}
-                    </p>
-                    <span
-                      className="text-xs px-1.5 py-0.5 rounded-full font-semibold"
-                      style={{
-                        background: ev.daysAway <= 7 ? 'rgba(99,102,241,0.12)' : 'var(--card-border)',
-                        color: ev.daysAway <= 7 ? 'var(--accent)' : 'var(--muted)',
-                      }}
-                    >
-                      {ev.daysAway === 1 ? 'Tomorrow' : `${ev.daysAway}d`}
-                    </span>
-                  </div>
+            <div className="px-4 py-3" style={{ borderTop: '1px solid var(--card-border)' }}>
+              <p className="text-xs font-semibold mb-2.5" style={{ color: 'var(--muted)' }}>WHAT TO WEAR THIS SEASON</p>
+              <div className="flex flex-wrap gap-2">
+                {events.season.trending.map((t) => (
+                  <span key={t} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium"
+                    style={{ background: 'var(--muted-bg)', border: '1px solid var(--card-border)', color: 'var(--foreground)' }}>
+                    <span style={{ color: 'var(--accent)', fontSize: 9 }}>✦</span> {t}
+                  </span>
                 ))}
+              </div>
             </div>
-
-            {/* Season tip */}
-            <p className="text-xs mt-3 leading-relaxed" style={{ color: 'var(--muted)' }}>
-              {events.season.tip}
-            </p>
           </div>
 
-          {/* Social trends */}
-          <div
-            className="rounded-2xl px-4 py-3"
-            style={{ background: 'var(--card)', border: '1px solid var(--card-border)', boxShadow: 'var(--shadow-sm)' }}
-          >
+          {/* ③ Trending Looks — Insta snaps */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <TrendingUp size={15} style={{ color: '#e91e8c' }} />
+                <p className="text-sm font-bold" style={{ color: 'var(--foreground)' }}>
+                  Trending Looks &mdash; {now.toLocaleDateString('en-SG', { month: 'long', timeZone: 'Asia/Singapore' })}
+                </p>
+              </div>
+              <a
+                href={`https://www.pinterest.com/search/pins/?q=${encodeURIComponent(events.season.trending[0] + ' men outfit Singapore')}`}
+                target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-1 text-xs font-semibold transition-opacity hover:opacity-70"
+                style={{ color: '#e91e8c' }}
+              >
+                Pinterest <ExternalLink size={10} />
+              </a>
+            </div>
+
+            <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
+              {/* Shimmer cards while loading */}
+              {trendLoading && trendCards.length === 0 && [0, 1, 2, 3].map((i) => (
+                <div key={i} className="shrink-0 rounded-2xl shimmer" style={{ width: 130, height: 175 }} />
+              ))}
+
+              {/* Photo cards */}
+              {trendCards.map(({ term, img }) => (
+                <a
+                  key={term}
+                  href={`https://www.pinterest.com/search/pins/?q=${encodeURIComponent(term + ' men outfit')}`}
+                  target="_blank" rel="noopener noreferrer"
+                  className="shrink-0 relative rounded-2xl overflow-hidden group block"
+                  style={{ width: 130, height: 175, background: 'var(--muted-bg)', border: '1px solid var(--card-border)', flexShrink: 0 }}
+                >
+                  {img ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={img.url} alt={img.alt}
+                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center gap-2">
+                      <ImageIcon size={22} style={{ color: 'var(--muted)' }} />
+                    </div>
+                  )}
+                  <div className="absolute bottom-0 left-0 right-0 px-2.5 py-2.5"
+                    style={{ background: 'linear-gradient(transparent, rgba(0,0,0,0.72))' }}>
+                    <p className="text-white font-semibold leading-tight" style={{ fontSize: 10 }}>{term}</p>
+                    {img && <p style={{ fontSize: 9, opacity: 0.7, color: '#fff' }}>{img.credit}</p>}
+                  </div>
+                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.9)' }}>
+                      <ExternalLink size={10} style={{ color: '#e91e8c' }} />
+                    </div>
+                  </div>
+                </a>
+              ))}
+
+              {/* "More" card */}
+              {trendCards.length > 0 && (
+                <a
+                  href={`https://www.pinterest.com/search/pins/?q=${encodeURIComponent('men outfit Singapore ' + events.season.season)}`}
+                  target="_blank" rel="noopener noreferrer"
+                  className="shrink-0 rounded-2xl flex flex-col items-center justify-center gap-2 transition-all hover:opacity-80"
+                  style={{ width: 100, height: 175, background: 'linear-gradient(135deg, rgba(233,30,140,0.06), rgba(99,102,241,0.06))', border: '1px dashed rgba(233,30,140,0.3)', flexShrink: 0 }}
+                >
+                  <ExternalLink size={18} style={{ color: '#e91e8c' }} />
+                  <p className="text-xs font-semibold text-center" style={{ color: '#e91e8c', maxWidth: 72, lineHeight: 1.3 }}>
+                    More on Pinterest
+                  </p>
+                </a>
+              )}
+            </div>
+
+            {/* Also check Google Images */}
+            <div className="flex gap-2 mt-2">
+              <a
+                href={`https://www.google.com/search?tbm=isch&q=${encodeURIComponent(events.season.trending.slice(0, 2).join(' ') + ' men Singapore outfit')}`}
+                target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all hover:opacity-80"
+                style={{ background: 'var(--card)', border: '1px solid var(--card-border)', color: 'var(--muted)', boxShadow: 'var(--shadow-sm)' }}
+              >
+                <ExternalLink size={10} /> Google Images
+              </a>
+              <a
+                href={`https://www.instagram.com/explore/tags/${encodeURIComponent(events.season.trending[0].replace(/\s+/g, ''))}/`}
+                target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all hover:opacity-80"
+                style={{ background: 'var(--card)', border: '1px solid var(--card-border)', color: 'var(--muted)', boxShadow: 'var(--shadow-sm)' }}
+              >
+                <span style={{ fontSize: 11 }}>📸</span> Instagram
+              </a>
+            </div>
+          </div>
+
+          {/* ④ Trending on Social — clickable hashtags */}
+          <div className="rounded-2xl px-4 py-3" style={{ background: 'var(--card)', border: '1px solid var(--card-border)', boxShadow: 'var(--shadow-sm)' }}>
             <div className="flex items-center gap-2 mb-2.5">
-              <TrendingUp size={14} style={{ color: '#e91e8c' }} />
+              <Gem size={13} style={{ color: '#e91e8c' }} />
               <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
-                Trending Now
+                Trending on Social
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              {events.trends.map((t) => (
-                <span
+              {events.trends.map((t, i) => (
+                <a
                   key={t}
-                  className="px-3 py-1 rounded-full text-xs font-medium"
+                  href={`https://www.pinterest.com/search/pins/?q=${encodeURIComponent(t + ' men')}`}
+                  target="_blank" rel="noopener noreferrer"
+                  className="px-3 py-1 rounded-full text-xs font-medium transition-all hover:opacity-80"
                   style={{
-                    background: 'linear-gradient(135deg, rgba(233,30,140,0.08), rgba(99,102,241,0.08))',
-                    border: '1px solid rgba(233,30,140,0.15)',
-                    color: 'var(--foreground)',
+                    background: i % 2 === 0
+                      ? 'linear-gradient(135deg, rgba(233,30,140,0.08), rgba(233,30,140,0.04))'
+                      : 'linear-gradient(135deg, rgba(99,102,241,0.08), rgba(99,102,241,0.04))',
+                    border: `1px solid ${i % 2 === 0 ? 'rgba(233,30,140,0.2)' : 'rgba(99,102,241,0.2)'}`,
+                    color: i % 2 === 0 ? '#c2185b' : 'var(--accent)',
                   }}
                 >
-                  # {t}
-                </span>
+                  #{t.toLowerCase().replace(/[\s/]+/g, '')}
+                </a>
               ))}
             </div>
           </div>
+
+          {/* ⑤ Upcoming Events — compact horizontal strip */}
+          <div className="rounded-2xl px-4 py-3" style={{ background: 'var(--card)', border: '1px solid var(--card-border)', boxShadow: 'var(--shadow-sm)' }}>
+            <div className="flex items-center gap-2 mb-2.5">
+              <CalendarDays size={13} style={{ color: 'var(--accent)' }} />
+              <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>Upcoming Events</p>
+            </div>
+            <div className="flex gap-2 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+              {events.upcoming.filter((e) => e.daysAway >= 0).map((ev) => (
+                <div
+                  key={ev.date}
+                  className="shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl"
+                  style={{
+                    background: ev.daysAway === 0 ? 'rgba(99,102,241,0.08)' : 'var(--muted-bg)',
+                    border: `1px solid ${ev.daysAway === 0 ? 'rgba(99,102,241,0.25)' : 'var(--card-border)'}`,
+                  }}
+                  title={ev.outfit_tip}
+                >
+                  <span style={{ fontSize: 18 }}>{ev.emoji}</span>
+                  <div>
+                    <p className="text-xs font-semibold whitespace-nowrap" style={{ color: 'var(--foreground)', lineHeight: 1.2 }}>
+                      {ev.name.split(' ').slice(0, 2).join(' ')}
+                    </p>
+                    <p className="text-xs whitespace-nowrap" style={{ color: ev.daysAway === 0 ? 'var(--accent)' : 'var(--muted)' }}>
+                      {ev.daysAway === 0 ? 'Today 🎉' : ev.daysAway === 1 ? 'Tomorrow' : `in ${ev.daysAway}d`}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
         </div>
       )}
 
