@@ -58,21 +58,28 @@ export async function aiChat(
   }
 
   if (backend === 'groq') {
-    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-    const res = await groq.chat.completions.create({
-      model: GROQ_TEXT_MODEL,
-      messages: [
-        { role: 'system', content: system + '\n\nIMPORTANT: Reply with valid JSON only, no markdown fences.' },
-        { role: 'user',   content: userMessage },
-      ],
-      temperature: options?.temperature ?? 0.7,
-      max_tokens:  options?.maxTokens  ?? 1200,
-      response_format: { type: 'json_object' },
-    });
-    return { text: res.choices[0].message.content ?? '{}', backend };
+    try {
+      const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+      const res = await groq.chat.completions.create({
+        model: GROQ_TEXT_MODEL,
+        messages: [
+          { role: 'system', content: system + '\n\nIMPORTANT: Reply with valid JSON only, no markdown fences.' },
+          { role: 'user',   content: userMessage },
+        ],
+        temperature: options?.temperature ?? 0.7,
+        max_tokens:  options?.maxTokens  ?? 1200,
+        response_format: { type: 'json_object' },
+      });
+      return { text: res.choices[0].message.content ?? '{}', backend };
+    } catch (e: unknown) {
+      const status = (e as { status?: number }).status;
+      if (status === 401) throw new Error('GROQ_API_KEY is invalid or not set. Add it in Vercel → Project Settings → Environment Variables.');
+      if (status === 429) throw new Error('Groq rate limit reached. Try again in a moment.');
+      throw e;
+    }
   }
 
-  throw new Error('No AI backend available. Run Ollama locally or set GROQ_API_KEY.');
+  throw new Error('AI offline. Add GROQ_API_KEY to Vercel environment variables, or run Ollama locally.');
 }
 
 // ─── Long-form text (no JSON constraint) ─────────────────────────────────────
@@ -98,20 +105,27 @@ export async function aiChatText(
   }
 
   if (backend === 'groq') {
-    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-    const res = await groq.chat.completions.create({
-      model: GROQ_TEXT_MODEL,
-      messages: [
-        { role: 'system', content: system },
-        { role: 'user',   content: userMessage },
-      ],
-      temperature: options?.temperature ?? 0.6,
-      max_tokens:  options?.maxTokens  ?? 2000,
-    });
-    return { text: res.choices[0].message.content ?? '', backend };
+    try {
+      const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+      const res = await groq.chat.completions.create({
+        model: GROQ_TEXT_MODEL,
+        messages: [
+          { role: 'system', content: system },
+          { role: 'user',   content: userMessage },
+        ],
+        temperature: options?.temperature ?? 0.6,
+        max_tokens:  options?.maxTokens  ?? 2000,
+      });
+      return { text: res.choices[0].message.content ?? '', backend };
+    } catch (e: unknown) {
+      const status = (e as { status?: number }).status;
+      if (status === 401) throw new Error('GROQ_API_KEY is invalid or not set. Add it in Vercel → Project Settings → Environment Variables.');
+      if (status === 429) throw new Error('Groq rate limit reached. Try again in a moment.');
+      throw e;
+    }
   }
 
-  throw new Error('No AI backend available. Run Ollama locally or set GROQ_API_KEY.');
+  throw new Error('AI offline. Add GROQ_API_KEY to Vercel environment variables, or run Ollama locally.');
 }
 
 // ─── Vision (image) chat ──────────────────────────────────────────────────────
@@ -138,26 +152,33 @@ export async function aiChatWithImage(
   }
 
   if (backend === 'groq') {
-    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-    const res = await groq.chat.completions.create({
-      model: GROQ_VISION_MODEL,
-      messages: [
-        { role: 'system', content: system + '\n\nIMPORTANT: Reply with valid JSON only, no markdown fences.' },
-        {
-          role: 'user',
-          content: [
-            { type: 'text', text: userMessage },
-            { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${imageBase64}` } },
-          ],
-        },
-      ],
-      temperature: 0.3,
-      max_tokens: 400,
-    });
-    return { text: res.choices[0].message.content ?? '{}', backend };
+    try {
+      const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+      const res = await groq.chat.completions.create({
+        model: GROQ_VISION_MODEL,
+        messages: [
+          { role: 'system', content: system + '\n\nIMPORTANT: Reply with valid JSON only, no markdown fences.' },
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: userMessage },
+              { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${imageBase64}` } },
+            ],
+          },
+        ],
+        temperature: 0.3,
+        max_tokens: 400,
+      });
+      return { text: res.choices[0].message.content ?? '{}', backend };
+    } catch (e: unknown) {
+      const status = (e as { status?: number }).status;
+      if (status === 401) throw new Error('GROQ_API_KEY is invalid or not set. Add it in Vercel → Project Settings → Environment Variables.');
+      if (status === 429) throw new Error('Groq rate limit reached. Try again in a moment.');
+      throw e;
+    }
   }
 
-  throw new Error('No AI backend available. Run Ollama locally or set GROQ_API_KEY.');
+  throw new Error('AI offline. Add GROQ_API_KEY to Vercel environment variables, or run Ollama locally.');
 }
 
 // ─── JSON parse helper ────────────────────────────────────────────────────────

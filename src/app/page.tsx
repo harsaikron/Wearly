@@ -202,15 +202,24 @@ export default function HomePage() {
         {/* Error */}
         {error && (
           <div
-            className="px-4 py-3"
+            className="px-4 py-4 flex flex-col gap-2"
             style={{ borderTop: '1px solid var(--card-border)', background: 'rgba(239,68,68,0.04)' }}
           >
-            <p className="text-sm" style={{ color: '#ef4444' }}>{error}</p>
-            <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>
-              Run: <code
-                className="px-1.5 py-0.5 rounded-lg"
-                style={{ background: 'var(--muted-bg)', fontSize: 11 }}
-              >brew services start ollama</code>
+            <p className="text-sm font-medium" style={{ color: '#dc2626' }}>
+              {error.includes('GROQ_API_KEY') || error.includes('Invalid API Key') || error.includes('invalid_api_key')
+                ? 'AI not connected — Groq API key missing'
+                : error.includes('AI offline')
+                  ? 'AI offline'
+                  : 'Could not get a response'}
+            </p>
+            <p className="text-xs" style={{ color: 'var(--muted)' }}>
+              {error.includes('GROQ_API_KEY') || error.includes('Invalid API Key') || error.includes('invalid_api_key')
+                ? 'Go to Vercel → Project Settings → Environment Variables and add your GROQ_API_KEY (free at console.groq.com)'
+                : error.includes('rate limit') || error.includes('429')
+                  ? 'Rate limit hit. Wait a few seconds and try again.'
+                  : error.includes('Ollama') || error.includes('ollama')
+                    ? 'Make sure Ollama is running: brew services start ollama'
+                    : error}
             </p>
           </div>
         )}
