@@ -1,0 +1,9 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
+  "env": {
+    "NEXT_PUBLIC_SUPABASE_URL": "https://acvxtgmqglkdwsapxkfm.supabase.co",
+    "NEXT_PUBLIC_DEFAULT_CITY": "Singapore"
+  }
+}
