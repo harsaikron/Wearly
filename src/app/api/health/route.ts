@@ -5,23 +5,27 @@ export async function GET() {
   const backend = await detectBackend();
 
   let modelReady = false;
+  let modelName  = 'none';
+
   if (backend === 'ollama') {
     try {
-      const res = await fetch(`${OLLAMA_HOST}/api/tags`);
+      const res  = await fetch(`${OLLAMA_HOST}/api/tags`);
       const data = await res.json() as { models: { name: string }[] };
-      modelReady = data.models?.some((m) => m.name.startsWith('gemma3')) ?? false;
+      const model = data.models?.find((m) => m.name.startsWith('gemma4') || m.name.startsWith('gemma3'));
+      modelReady = !!model;
+      modelName  = model?.name ?? 'gemma4:e4b (local)';
     } catch {
       modelReady = false;
     }
   } else if (backend === 'groq') {
     modelReady = true;
+    modelName  = 'llama-3.3-70b (Groq cloud)';
   }
 
   return NextResponse.json({
     backend,
-    model: backend === 'ollama' ? 'gemma3:4b (local)' : backend === 'groq' ? 'gemma2-9b (Groq cloud)' : 'none',
+    model: modelName,
     model_ready: modelReady,
-    supabase_url: process.env.NEXT_PUBLIC_SUPABASE_URL,
     city: process.env.NEXT_PUBLIC_DEFAULT_CITY ?? 'Singapore',
   });
 }

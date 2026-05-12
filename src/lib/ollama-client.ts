@@ -1,13 +1,13 @@
 import { Ollama } from 'ollama';
 
-export const MODEL = 'gemma3:4b';
+export const MODEL       = 'gemma4:e4b';
 export const OLLAMA_HOST = process.env.OLLAMA_HOST ?? 'http://localhost:11434';
 
 export const ollama = new Ollama({ host: OLLAMA_HOST });
 
 export async function isOllamaRunning(): Promise<boolean> {
   try {
-    const res = await fetch(`${OLLAMA_HOST}/api/tags`, { signal: AbortSignal.timeout(1000) });
+    const res = await fetch(`${OLLAMA_HOST}/api/tags`, { signal: AbortSignal.timeout(1500) });
     return res.ok;
   } catch {
     return false;
@@ -23,7 +23,7 @@ export async function chat(
     model: MODEL,
     messages: [
       { role: 'system', content: system },
-      { role: 'user', content: userMessage },
+      { role: 'user',   content: userMessage },
     ],
     ...(format === 'json' ? { format: 'json' } : {}),
     options: { temperature: 0.7 },
@@ -40,11 +40,7 @@ export async function chatWithImage(
     model: MODEL,
     messages: [
       { role: 'system', content: system },
-      {
-        role: 'user',
-        content: userMessage,
-        images: [imageBase64],
-      },
+      { role: 'user', content: userMessage, images: [imageBase64] },
     ],
     format: 'json',
     options: { temperature: 0.3 },
