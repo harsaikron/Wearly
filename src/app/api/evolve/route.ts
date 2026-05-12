@@ -114,12 +114,6 @@ async function createPR(
 
 export async function POST(req: NextRequest) {
   const token = process.env.GITHUB_TOKEN;
-  if (!token) {
-    return NextResponse.json(
-      { error: 'GITHUB_TOKEN not set. Add it to your .env.local file.' },
-      { status: 500 }
-    );
-  }
 
   const { feedback } = await req.json() as { feedback: string };
   if (!feedback?.trim()) {
@@ -127,46 +121,60 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    // 1. Read current source files from GitHub (always gets the committed state)
+    // 1. Read source files — from GitHub if token available, else import local files
     const fileContents: Record<string, string> = {};
-    await Promise.allSettled(
-      READABLE_FILES.map(async (f) => {
-        try {
-          const { content } = await getFile(f, token);
-          fileContents[f] = content;
-        } catch { /* skip inaccessible files */ }
-      })
-    );
 
-    const codeContext = Object.entries(fileContents)
-      .map(([path, code]) => `=== ${path} ===\n${code}`)
-      .join('\n\n');
+    if (token) {
+      await Promise.allSettled(
+        READABLE_FILES.map(async (f) => {
+          try {
+            const { content } = await getFile(f, token);
+            fileContents[f] = content;
+          } catch { /* skip */ }
+        })
+      );
+    }
+    // In preview mode (no token) we proceed with an empty fileContents;
+    // the AI is prompted with the app description instead of actual code.
 
-    // 2. Ask Gemma 4 to analyze feedback and generate code changes
+    const APP_DESCRIPTION = `Wearly is an AI wardrobe portal for men in Singapore.
+Stack: Next.js 16 App Router, TypeScript, Tailwind CSS, Zustand, lucide-react icons.
+CSS variables: --background #f5f6fa, --card #ffffff, --card-border #e4e7ef, --accent #6366f1, --muted #8b93a7, --accent-muted rgba(99,102,241,0.08), --muted-bg #f0f2f8, --shadow-sm, --shadow-md.
+Pages: / (home — weather strip, events widget, AI stylist chat), /wardrobe (clothing grid), /stylist (detailed chat), /evolve (this page).
+Components: Navbar.tsx, ClothingCard.tsx, Camera.tsx, OllamaStatus.tsx.
+Store: useWardrobeStore() with items array of { id, name, category, color_hex, color_name, tags }.`;
+
+    const codeContext = Object.keys(fileContents).length > 0
+      ? Object.entries(fileContents)
+          .map(([p, code]) => `=== ${p} ===\n${code.slice(0, 3000)}`)
+          .join('\n\n')
+      : `App description (no source access in preview mode):\n${APP_DESCRIPTION}`;
+
+    // 2. Ask AI to analyze feedback and plan code changes
     const analysisSystem = `You are an expert Next.js/React developer working on "Wearly" — an AI wardrobe portal.
-You must analyze user feedback and output precise, working code changes.
-The app uses: Next.js App Router, TypeScript, Tailwind CSS, Zustand, CSS variables for theming.
+Analyze user feedback and output precise, working code changes.
+App stack: Next.js App Router, TypeScript, Tailwind CSS, Zustand, CSS variables for theming.
 Color scheme: background #f5f6fa, card #ffffff, accent #6366f1 (indigo), muted #8b93a7.
 
-IMPORTANT: Output valid JSON only. No markdown. No explanations outside the JSON.
-Output format:
+IMPORTANT: Output valid JSON only. No markdown fences. No explanations outside JSON.
 {
   "pr_title": "short imperative title under 60 chars",
   "pr_description": "markdown description of what changed and why",
-  "files_changed": ["path/to/file.tsx"],
+  "files_changed": ["src/path/to/file.tsx"],
   "changes": [
     {
       "file": "src/app/...",
-      "new_content": "complete updated file content — must be valid TypeScript/CSS"
+      "summary": "one sentence: what changes in this file",
+      "new_content": "complete updated file content — valid TypeScript/CSS"
     }
   ]
 }
 
 Rules:
-- Only modify files from this list: ${READABLE_FILES.join(', ')}
-- Maximum 2 files per PR to keep changes focused
-- Preserve all existing imports, types, and functionality unless explicitly asked to remove them
-- Keep the same code style and CSS variable references
+- Only modify files: ${READABLE_FILES.join(', ')}
+- Maximum 2 files per PR
+- Preserve imports/types/functionality unless explicitly asked to change
+- Keep same code style and CSS variable references
 - new_content must be the COMPLETE file, not a snippet`;
 
     const analysisMessage = `User feedback: "${feedback}"
@@ -174,7 +182,7 @@ Rules:
 Current codebase:
 ${codeContext}
 
-Analyze the feedback and generate precise code changes to improve the portal.`;
+Generate precise code changes.`;
 
     const { text: analysisRaw } = await aiChat(analysisSystem, analysisMessage, {
       temperature: 0.3,
@@ -185,7 +193,7 @@ Analyze the feedback and generate precise code changes to improve the portal.`;
       pr_title: string;
       pr_description: string;
       files_changed: string[];
-      changes: { file: string; new_content: string }[];
+      changes: { file: string; summary: string; new_content: string }[];
     };
 
     try {
@@ -199,40 +207,50 @@ Analyze the feedback and generate precise code changes to improve the portal.`;
 
     if (!analysis.changes?.length) {
       return NextResponse.json(
-        { error: 'AI could not determine what to change for this feedback.' },
+        { error: 'AI could not determine what to change for this feedback. Try being more specific.' },
         { status: 422 }
       );
     }
 
-    // 3. Ask Gemma 4 to write a technical review of the proposed changes
-    const reviewSystem = `You are a senior code reviewer for the Wearly portal. Write a concise but thorough PR review.
-Cover: what was changed, why it's a good solution, any edge cases to watch, overall approval.
-Keep it under 200 words. Write in a professional but friendly tone.`;
+    // 3. AI review comment
+    const reviewSystem = `You are a senior code reviewer for the Wearly app. Write a concise PR review.
+Cover: what changed, why it's a good solution, edge cases to watch.
+Under 150 words. Professional but friendly.`;
 
     const { text: reviewComment } = await aiChatText(
       reviewSystem,
-      `PR title: ${analysis.pr_title}\n\nChanges made:\n${analysis.changes.map((c) => `- ${c.file}`).join('\n')}\n\nUser's original request: "${feedback}"\n\nWrite your code review:`,
-      { temperature: 0.5, maxTokens: 300 }
+      `PR: ${analysis.pr_title}\nFiles: ${analysis.changes.map((c) => c.file).join(', ')}\nRequest: "${feedback}"\n\nWrite review:`,
+      { temperature: 0.5, maxTokens: 250 }
     );
 
-    // 4. Get current HEAD of main
+    // ── Preview mode (no GitHub token) ───────────────────────────────────────
+    if (!token) {
+      return NextResponse.json({
+        preview: {
+          pr_title:        analysis.pr_title,
+          files_changed:   analysis.files_changed ?? analysis.changes.map((c) => c.file),
+          review_comment:  reviewComment,
+          preview_changes: analysis.changes.map((c) => ({ file: c.file, summary: c.summary ?? 'updated' })),
+        },
+      });
+    }
+
+    // ── Full PR mode ─────────────────────────────────────────────────────────
     const refData = await ghGet('git/ref/heads/main', token);
     const headSha = refData.object.sha as string;
 
-    // 5. Create branch name from PR title
     const branchName = `evolve/${Date.now()}-${analysis.pr_title
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .slice(0, 40)}`;
 
-    // 6. Create the PR
     const { url: prUrl, number: prNumber } = await createPR(
       token,
       headSha,
       branchName,
       analysis.changes.map((c) => ({ file: c.file, newContent: c.new_content })),
       analysis.pr_title,
-      `## Summary\n\n${analysis.pr_description}\n\n---\n> 🤖 Auto-generated by **Wearly AI Evolution** powered by Gemma 4\n> \n> **User feedback:** "${feedback}"`,
+      `## Summary\n\n${analysis.pr_description}\n\n---\n> 🤖 Auto-generated by **Wearly AI Evolution**\n>\n> **User feedback:** "${feedback}"`,
       reviewComment
     );
 

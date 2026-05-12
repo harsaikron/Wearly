@@ -27,5 +27,6 @@ export async function GET() {
     model: modelName,
     model_ready: modelReady,
     city: process.env.NEXT_PUBLIC_DEFAULT_CITY ?? 'Singapore',
+    github_token: !!process.env.GITHUB_TOKEN,
   });
 }

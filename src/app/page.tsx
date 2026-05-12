@@ -9,8 +9,30 @@ import { stripDataPrefix, compressImage } from '@/lib/image-utils';
 import {
   Camera, Shirt, Sparkles, Send, Loader,
   ImageIcon, X, Thermometer, Wind, Droplets,
-  ExternalLink, Sun, CloudRain, Cloud,
+  ExternalLink, Sun, CloudRain, Cloud, TrendingUp, CalendarDays,
 } from 'lucide-react';
+
+interface SGEvent {
+  name: string;
+  emoji: string;
+  date: string;
+  type: string;
+  outfit_tip: string;
+  colors: string[];
+  color_names: string[];
+  dress_code: string;
+  daysAway: number;
+}
+interface SeasonContext {
+  season: string;
+  tip: string;
+  trending: string[];
+}
+interface EventsData {
+  upcoming: SGEvent[];
+  season: SeasonContext;
+  trends: string[];
+}
 
 interface OutfitItem {
   piece: string;
@@ -70,6 +92,7 @@ export default function HomePage() {
   const [now, setNow]                       = useState(new Date());
   const [inspirationImgs, setInspirationImgs] = useState<InspirationImage[]>([]);
   const [imgLoading, setImgLoading]         = useState(false);
+  const [events, setEvents]                 = useState<EventsData | null>(null);
   const fileInputRef                        = useRef<HTMLInputElement>(null);
 
   // Fetch weather on mount
@@ -77,6 +100,10 @@ export default function HomePage() {
     fetch('/api/weather?city=Singapore')
       .then((r) => r.json())
       .then(setWeather)
+      .catch(() => null);
+    fetch('/api/events')
+      .then((r) => r.json())
+      .then(setEvents)
       .catch(() => null);
   }, []);
 
@@ -218,6 +245,119 @@ export default function HomePage() {
           </div>
         )}
       </div>
+
+      {/* ── Events + Trends ───────────────────────────────────── */}
+      {events && (
+        <div className="mb-6 flex flex-col gap-3">
+
+          {/* Today's event highlight (daysAway === 0) */}
+          {events.upcoming[0]?.daysAway === 0 && (
+            <div
+              className="rounded-2xl px-4 py-3 flex items-start gap-3"
+              style={{ background: 'linear-gradient(135deg, #6366f1 0%, #818cf8 100%)', color: '#fff' }}
+            >
+              <span style={{ fontSize: 28, lineHeight: 1 }}>{events.upcoming[0].emoji}</span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-0.5">
+                  <span className="text-xs font-bold uppercase tracking-wide opacity-80">Today</span>
+                  <span
+                    className="text-xs px-2 py-0.5 rounded-full font-semibold"
+                    style={{ background: 'rgba(255,255,255,0.2)' }}
+                  >
+                    {events.upcoming[0].dress_code}
+                  </span>
+                </div>
+                <p className="font-bold text-base leading-tight">{events.upcoming[0].name}</p>
+                <p className="text-xs opacity-90 mt-0.5 leading-snug">{events.upcoming[0].outfit_tip}</p>
+                <div className="flex gap-1.5 mt-2">
+                  {events.upcoming[0].colors.map((c, i) => (
+                    <div
+                      key={i}
+                      className="w-5 h-5 rounded-full border-2"
+                      style={{ background: c, borderColor: 'rgba(255,255,255,0.5)' }}
+                      title={events.upcoming[0].color_names[i]}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Upcoming events row */}
+          <div
+            className="rounded-2xl p-4"
+            style={{ background: 'var(--card)', border: '1px solid var(--card-border)', boxShadow: 'var(--shadow-sm)' }}
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <CalendarDays size={14} style={{ color: 'var(--accent)' }} />
+              <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
+                {events.season.season}
+              </p>
+            </div>
+
+            {/* Event pills */}
+            <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+              {events.upcoming
+                .filter((e) => e.daysAway > 0)
+                .map((ev) => (
+                  <div
+                    key={ev.date}
+                    className="shrink-0 flex flex-col items-center gap-1.5 px-3 py-2 rounded-xl text-center"
+                    style={{ background: 'var(--muted-bg)', border: '1px solid var(--card-border)', minWidth: 80 }}
+                    title={ev.outfit_tip}
+                  >
+                    <span style={{ fontSize: 22 }}>{ev.emoji}</span>
+                    <p className="text-xs font-semibold leading-tight" style={{ color: 'var(--foreground)' }}>
+                      {ev.name.split(' ').slice(0, 2).join(' ')}
+                    </p>
+                    <span
+                      className="text-xs px-1.5 py-0.5 rounded-full font-semibold"
+                      style={{
+                        background: ev.daysAway <= 7 ? 'rgba(99,102,241,0.12)' : 'var(--card-border)',
+                        color: ev.daysAway <= 7 ? 'var(--accent)' : 'var(--muted)',
+                      }}
+                    >
+                      {ev.daysAway === 1 ? 'Tomorrow' : `${ev.daysAway}d`}
+                    </span>
+                  </div>
+                ))}
+            </div>
+
+            {/* Season tip */}
+            <p className="text-xs mt-3 leading-relaxed" style={{ color: 'var(--muted)' }}>
+              {events.season.tip}
+            </p>
+          </div>
+
+          {/* Social trends */}
+          <div
+            className="rounded-2xl px-4 py-3"
+            style={{ background: 'var(--card)', border: '1px solid var(--card-border)', boxShadow: 'var(--shadow-sm)' }}
+          >
+            <div className="flex items-center gap-2 mb-2.5">
+              <TrendingUp size={14} style={{ color: '#e91e8c' }} />
+              <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
+                Trending Now
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {events.trends.map((t) => (
+                <span
+                  key={t}
+                  className="px-3 py-1 rounded-full text-xs font-medium"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(233,30,140,0.08), rgba(99,102,241,0.08))',
+                    border: '1px solid rgba(233,30,140,0.15)',
+                    color: 'var(--foreground)',
+                  }}
+                >
+                  # {t}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Hero ──────────────────────────────────────────────── */}
       <div className="text-center mb-6">

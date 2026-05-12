@@ -1,450 +1,384 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Sparkles, GitPullRequest, Loader, CheckCircle2, XCircle, FileCode, MessageSquare, ExternalLink, ChevronDown, ChevronUp, Zap } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import {
+  Sparkles, GitPullRequest, Loader, CheckCircle2, XCircle,
+  FileCode, ExternalLink, Zap, Send, ChevronDown, ChevronUp,
+  Code2, MessageSquare,
+} from 'lucide-react';
 
-interface PRRecord {
+type Role = 'user' | 'assistant' | 'system';
+
+interface ChatMessage {
   id: string;
-  feedback: string;
-  pr_title: string;
-  pr_url: string;
-  pr_number: number;
-  files_changed: string[];
-  review_comment: string;
-  created_at: string;
-  status: 'open' | 'merged' | 'error';
+  role: Role;
+  text: string;
+  ts: number;
+  result?: PRResult;
+  preview?: PreviewResult;
+  loading?: boolean;
 }
 
-type Step = 'idle' | 'reading' | 'generating' | 'creating_pr' | 'reviewing' | 'done' | 'error';
+interface PRResult {
+  pr_url: string;
+  pr_number: number;
+  pr_title: string;
+  files_changed: string[];
+  review_comment: string;
+  branch: string;
+}
 
-const STEP_LABELS: Record<Step, string> = {
-  idle:        '',
-  reading:     'Reading current codebase…',
-  generating:  'Gemma 4 is generating code changes…',
-  creating_pr: 'Creating GitHub Pull Request…',
-  reviewing:   'Gemma 4 is reviewing the PR…',
-  done:        'Done!',
-  error:       'Something went wrong',
-};
+interface PreviewResult {
+  pr_title: string;
+  files_changed: string[];
+  review_comment: string;
+  preview_changes: { file: string; summary: string }[];
+}
 
 const EXAMPLES = [
   'Add a dark mode toggle to the navbar',
-  'Make the wardrobe grid show item colors more prominently',
-  'Add a "most worn" badge to clothing cards',
-  'Improve the stylist chat with typing indicators',
-  'Add a greeting message with today\'s date to the home page',
-  'Make quick prompt buttons wrap better on mobile',
+  'Show last worn date on clothing cards',
+  'Add typing indicator to the AI stylist chat',
+  'Improve mobile layout of the wardrobe grid',
+  'Add a greeting with today\'s date on the home page',
+  'Make quick prompt buttons more colourful',
 ];
 
-export default function EvolvePage() {
-  const [feedback, setFeedback]     = useState('');
-  const [step, setStep]             = useState<Step>('idle');
-  const [error, setError]           = useState('');
-  const [latest, setLatest]         = useState<PRRecord | null>(null);
-  const [history, setHistory]       = useState<PRRecord[]>([]);
-  const [expanded, setExpanded]     = useState<string | null>(null);
+function uid() { return Math.random().toString(36).slice(2); }
 
-  useEffect(() => {
-    const saved = localStorage.getItem('wearly-evolve-history');
-    if (saved) setHistory(JSON.parse(saved));
-  }, []);
-
-  function saveHistory(records: PRRecord[]) {
-    setHistory(records);
-    localStorage.setItem('wearly-evolve-history', JSON.stringify(records));
-  }
-
-  async function handleSubmit() {
-    if (!feedback.trim() || step !== 'idle') return;
-
-    setError('');
-    setLatest(null);
-
-    setStep('reading');
-    await delay(600);
-    setStep('generating');
-
-    let result: {
-      pr_url: string; pr_number: number; pr_title: string;
-      files_changed: string[]; review_comment: string;
-    } | null = null;
-
-    try {
-      const res = await fetch('/api/evolve', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ feedback }),
-      });
-
-      setStep('creating_pr');
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? 'Evolution failed');
-
-      result = data;
-      setStep('reviewing');
-      await delay(400);
-
-      const record: PRRecord = {
-        id:             crypto.randomUUID(),
-        feedback,
-        pr_title:       result!.pr_title,
-        pr_url:         result!.pr_url,
-        pr_number:      result!.pr_number,
-        files_changed:  result!.files_changed,
-        review_comment: result!.review_comment,
-        created_at:     new Date().toISOString(),
-        status:         'open',
-      };
-
-      setLatest(record);
-      saveHistory([record, ...history]);
-      setStep('done');
-      setFeedback('');
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Unknown error');
-      setStep('error');
-    }
-
-    setTimeout(() => setStep('idle'), 3000);
-  }
-
-  const isRunning = !['idle', 'done', 'error'].includes(step);
+function CodeCard({
+  files,
+  review,
+  previews,
+}: {
+  files: string[];
+  review: string;
+  previews?: { file: string; summary: string }[];
+}) {
+  const [open, setOpen] = useState(false);
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-10 animate-fade-in">
-
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
-          <div
-            className="w-10 h-10 rounded-xl flex items-center justify-center"
-            style={{ background: 'linear-gradient(135deg, #6366f1, #818cf8)' }}
-          >
-            <Zap size={20} style={{ color: '#fff' }} />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight" style={{ color: 'var(--foreground)' }}>
-              App Evolution
-            </h1>
-          </div>
-        </div>
-        <p className="text-sm leading-relaxed mt-2" style={{ color: 'var(--muted)', maxWidth: 520 }}>
-          Describe what you&apos;d like to improve. <strong style={{ color: 'var(--foreground)' }}>Gemma 4</strong> reads
-          the codebase, writes the code changes, opens a GitHub Pull Request, and then reviews its own work.
-        </p>
-      </div>
-
-      {/* Feedback form */}
-      <div
-        className="rounded-2xl overflow-hidden mb-6"
-        style={{ background: 'var(--card)', border: '1px solid var(--card-border)', boxShadow: 'var(--shadow-sm)' }}
+    <div
+      className="rounded-xl overflow-hidden mt-2"
+      style={{ background: 'var(--muted-bg)', border: '1px solid var(--card-border)' }}
+    >
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between px-3 py-2.5 text-left"
       >
-        <div className="p-5">
-          <label className="block text-xs font-semibold mb-2" style={{ color: 'var(--muted)' }}>
-            YOUR FEEDBACK
-          </label>
-          <textarea
-            value={feedback}
-            onChange={(e) => setFeedback(e.target.value)}
-            placeholder="e.g. Add a dark mode toggle, show last worn date more clearly, improve mobile layout…"
-            rows={4}
-            disabled={isRunning}
-            className="w-full bg-transparent outline-none text-sm resize-none disabled:opacity-50"
-            style={{ color: 'var(--foreground)', lineHeight: 1.6 }}
-          />
+        <div className="flex items-center gap-2">
+          <Code2 size={13} style={{ color: 'var(--accent)' }} />
+          <span className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>
+            {files.length} file{files.length !== 1 ? 's' : ''} to change
+          </span>
         </div>
+        {open ? <ChevronUp size={13} style={{ color: 'var(--muted)' }} /> : <ChevronDown size={13} style={{ color: 'var(--muted)' }} />}
+      </button>
 
-        {/* Examples */}
-        <div className="px-5 pb-4">
-          <p className="text-xs mb-2" style={{ color: 'var(--muted)' }}>Try an example:</p>
-          <div className="flex flex-wrap gap-2">
-            {EXAMPLES.map((ex) => (
-              <button
-                key={ex}
-                onClick={() => setFeedback(ex)}
-                disabled={isRunning}
-                className="px-3 py-1 rounded-full text-xs font-medium transition-all hover:opacity-80 disabled:opacity-40"
-                style={{
-                  background: 'var(--muted-bg)',
-                  border: '1px solid var(--card-border)',
-                  color: 'var(--muted)',
-                }}
-              >
-                {ex}
-              </button>
-            ))}
+      {open && (
+        <div className="px-3 pb-3 flex flex-col gap-2">
+          {files.map((f) => (
+            <div key={f} className="flex items-center gap-2">
+              <FileCode size={12} style={{ color: 'var(--accent)' }} />
+              <code className="text-xs" style={{ color: 'var(--foreground)' }}>{f}</code>
+              {previews?.find((p) => p.file === f) && (
+                <span className="text-xs ml-auto" style={{ color: 'var(--muted)' }}>
+                  {previews.find((p) => p.file === f)?.summary}
+                </span>
+              )}
+            </div>
+          ))}
+          <div className="mt-1 pt-2" style={{ borderTop: '1px solid var(--card-border)' }}>
+            <div className="flex items-center gap-2 mb-1">
+              <MessageSquare size={11} style={{ color: 'var(--accent)' }} />
+              <span className="text-xs font-semibold" style={{ color: 'var(--accent)' }}>AI Review</span>
+            </div>
+            <p className="text-xs leading-relaxed" style={{ color: 'var(--foreground)' }}>{review}</p>
           </div>
-        </div>
-
-        {/* Submit */}
-        <div
-          className="px-5 py-4 flex items-center justify-between"
-          style={{ borderTop: '1px solid var(--card-border)' }}
-        >
-          <p className="text-xs" style={{ color: 'var(--muted)' }}>
-            Gemma 4 will create a GitHub PR you can review before merging.
-          </p>
-          <button
-            onClick={handleSubmit}
-            disabled={!feedback.trim() || isRunning}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm disabled:opacity-40 transition-all hover:opacity-90"
-            style={{ background: 'linear-gradient(135deg, #6366f1, #818cf8)', color: '#fff', boxShadow: '0 2px 8px rgba(99,102,241,0.3)' }}
-          >
-            {isRunning ? <Loader size={15} className="animate-spin" /> : <Sparkles size={15} />}
-            {isRunning ? 'Evolving…' : 'Evolve with AI'}
-          </button>
-        </div>
-      </div>
-
-      {/* Progress steps */}
-      {step !== 'idle' && (
-        <div
-          className="rounded-2xl p-5 mb-6"
-          style={{
-            background: step === 'error' ? 'rgba(239,68,68,0.04)' : 'var(--accent-muted)',
-            border: `1px solid ${step === 'error' ? 'rgba(239,68,68,0.2)' : 'rgba(99,102,241,0.2)'}`,
-          }}
-        >
-          {step === 'done' ? (
-            <div className="flex items-center gap-3">
-              <CheckCircle2 size={20} style={{ color: '#16a34a' }} />
-              <p className="font-semibold text-sm" style={{ color: '#16a34a' }}>
-                Pull Request created — Gemma 4 reviewed it below!
-              </p>
-            </div>
-          ) : step === 'error' ? (
-            <div className="flex items-start gap-3">
-              <XCircle size={20} className="shrink-0 mt-0.5" style={{ color: '#dc2626' }} />
-              <div>
-                <p className="font-semibold text-sm" style={{ color: '#dc2626' }}>Evolution failed</p>
-                <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>{error}</p>
-                {error.includes('GITHUB_TOKEN') && (
-                  <p className="text-xs mt-2 font-medium" style={{ color: '#6366f1' }}>
-                    Add GITHUB_TOKEN to your .env.local file. Get it at github.com → Settings → Developer Settings → Personal Access Tokens.
-                  </p>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-3">
-              {(['reading', 'generating', 'creating_pr', 'reviewing'] as Step[]).map((s, i) => {
-                const steps: Step[] = ['reading', 'generating', 'creating_pr', 'reviewing'];
-                const idx  = steps.indexOf(step);
-                const thisIdx = i;
-                const done = thisIdx < idx;
-                const active = thisIdx === idx;
-                return (
-                  <div key={s} className="flex items-center gap-3">
-                    <div
-                      className="w-6 h-6 rounded-full flex items-center justify-center shrink-0"
-                      style={{
-                        background: done ? '#16a34a' : active ? 'var(--accent)' : 'var(--card-border)',
-                      }}
-                    >
-                      {done ? (
-                        <CheckCircle2 size={14} style={{ color: '#fff' }} />
-                      ) : active ? (
-                        <Loader size={13} className="animate-spin" style={{ color: '#fff' }} />
-                      ) : (
-                        <span className="text-xs font-bold" style={{ color: 'var(--muted)' }}>{i + 1}</span>
-                      )}
-                    </div>
-                    <p
-                      className="text-sm"
-                      style={{
-                        color: done ? '#16a34a' : active ? 'var(--foreground)' : 'var(--muted)',
-                        fontWeight: active ? 600 : 400,
-                      }}
-                    >
-                      {STEP_LABELS[s]}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Latest PR result */}
-      {latest && (
-        <div
-          className="rounded-2xl overflow-hidden mb-6"
-          style={{ background: 'var(--card)', border: '1px solid var(--card-border)', boxShadow: 'var(--shadow-sm)' }}
-        >
-          <div className="p-5">
-            <div className="flex items-start justify-between gap-4 mb-4">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <GitPullRequest size={16} style={{ color: 'var(--accent)' }} />
-                  <span className="text-xs font-semibold" style={{ color: 'var(--accent)' }}>
-                    PR #{latest.pr_number} opened
-                  </span>
-                </div>
-                <h3 className="font-bold text-base" style={{ color: 'var(--foreground)' }}>
-                  {latest.pr_title}
-                </h3>
-              </div>
-              <a
-                href={latest.pr_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all hover:opacity-90"
-                style={{ background: 'linear-gradient(135deg, #6366f1, #818cf8)', color: '#fff' }}
-              >
-                View PR <ExternalLink size={11} />
-              </a>
-            </div>
-
-            {/* Files changed */}
-            <div className="mb-4">
-              <p className="text-xs font-semibold mb-2" style={{ color: 'var(--muted)' }}>FILES CHANGED</p>
-              <div className="flex flex-col gap-1">
-                {latest.files_changed.map((f) => (
-                  <div key={f} className="flex items-center gap-2">
-                    <FileCode size={13} style={{ color: 'var(--accent)' }} />
-                    <code className="text-xs" style={{ color: 'var(--foreground)' }}>{f}</code>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* AI review */}
-            <div
-              className="rounded-xl p-4"
-              style={{ background: 'var(--muted-bg)', border: '1px solid var(--card-border)' }}
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <MessageSquare size={13} style={{ color: 'var(--accent)' }} />
-                <p className="text-xs font-semibold" style={{ color: 'var(--accent)' }}>
-                  Gemma 4 Code Review
-                </p>
-              </div>
-              <p className="text-sm leading-relaxed" style={{ color: 'var(--foreground)' }}>
-                {latest.review_comment}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* History */}
-      {history.length > 0 && (
-        <div>
-          <h2 className="text-base font-semibold mb-3" style={{ color: 'var(--foreground)' }}>
-            Evolution History
-          </h2>
-          <div className="flex flex-col gap-3">
-            {history.map((rec) => (
-              <div
-                key={rec.id}
-                className="rounded-2xl overflow-hidden"
-                style={{ background: 'var(--card)', border: '1px solid var(--card-border)', boxShadow: 'var(--shadow-sm)' }}
-              >
-                <button
-                  onClick={() => setExpanded(expanded === rec.id ? null : rec.id)}
-                  className="w-full p-4 flex items-center justify-between text-left"
-                >
-                  <div className="flex items-start gap-3">
-                    <GitPullRequest size={16} className="mt-0.5 shrink-0" style={{ color: 'var(--accent)' }} />
-                    <div>
-                      <p className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>
-                        {rec.pr_title}
-                      </p>
-                      <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>
-                        {new Date(rec.created_at).toLocaleDateString('en-SG', {
-                          day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
-                        })}
-                        &nbsp;·&nbsp;PR #{rec.pr_number}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span
-                      className="px-2 py-0.5 rounded-full text-xs font-semibold"
-                      style={{
-                        background: 'rgba(99,102,241,0.08)',
-                        color: 'var(--accent)',
-                        border: '1px solid rgba(99,102,241,0.2)',
-                      }}
-                    >
-                      open
-                    </span>
-                    {expanded === rec.id ? <ChevronUp size={15} style={{ color: 'var(--muted)' }} /> : <ChevronDown size={15} style={{ color: 'var(--muted)' }} />}
-                  </div>
-                </button>
-
-                {expanded === rec.id && (
-                  <div
-                    className="px-4 pb-4 flex flex-col gap-3"
-                    style={{ borderTop: '1px solid var(--card-border)', paddingTop: 12 }}
-                  >
-                    <div>
-                      <p className="text-xs font-semibold mb-1" style={{ color: 'var(--muted)' }}>YOUR FEEDBACK</p>
-                      <p className="text-sm italic" style={{ color: 'var(--foreground)' }}>&ldquo;{rec.feedback}&rdquo;</p>
-                    </div>
-
-                    <div>
-                      <p className="text-xs font-semibold mb-1" style={{ color: 'var(--muted)' }}>FILES CHANGED</p>
-                      {rec.files_changed.map((f) => (
-                        <div key={f} className="flex items-center gap-2">
-                          <FileCode size={12} style={{ color: 'var(--accent)' }} />
-                          <code className="text-xs" style={{ color: 'var(--foreground)' }}>{f}</code>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div
-                      className="rounded-xl p-3"
-                      style={{ background: 'var(--muted-bg)', border: '1px solid var(--card-border)' }}
-                    >
-                      <p className="text-xs font-semibold mb-1" style={{ color: 'var(--accent)' }}>Gemma 4 Review</p>
-                      <p className="text-xs leading-relaxed" style={{ color: 'var(--foreground)' }}>
-                        {rec.review_comment}
-                      </p>
-                    </div>
-
-                    <a
-                      href={rec.pr_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 text-xs font-semibold w-fit"
-                      style={{ color: 'var(--accent)' }}
-                    >
-                      View on GitHub <ExternalLink size={11} />
-                    </a>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Empty history */}
-      {history.length === 0 && step === 'idle' && (
-        <div
-          className="rounded-2xl p-10 flex flex-col items-center text-center mt-4"
-          style={{ background: 'var(--card)', border: '2px dashed var(--card-border)' }}
-        >
-          <div
-            className="w-14 h-14 rounded-full flex items-center justify-center mb-3"
-            style={{ background: 'var(--accent-muted)' }}
-          >
-            <GitPullRequest size={24} style={{ color: 'var(--accent)' }} />
-          </div>
-          <p className="font-semibold text-sm mb-1" style={{ color: 'var(--foreground)' }}>
-            No evolutions yet
-          </p>
-          <p className="text-xs" style={{ color: 'var(--muted)', maxWidth: 280 }}>
-            Submit feedback above. Gemma 4 will write the code and open a PR — you review and merge it.
-          </p>
         </div>
       )}
     </div>
   );
 }
 
-function delay(ms: number) {
-  return new Promise((r) => setTimeout(r, ms));
+export default function EvolvePage() {
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    {
+      id: uid(), role: 'system', ts: Date.now(),
+      text: 'Hi! I\'m your **Wearly AI** — describe any feature, improvement, or fix you\'d like. I\'ll plan the code changes and create a GitHub PR for your review.\n\nYou can also try one of the examples below.',
+    },
+  ]);
+  const [input, setInput]         = useState('');
+  const [busy, setBusy]           = useState(false);
+  const [hasToken, setHasToken]   = useState<boolean | null>(null);
+  const bottomRef                 = useRef<HTMLDivElement>(null);
+  const inputRef                  = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    fetch('/api/health').then((r) => r.json()).then((d) => {
+      setHasToken(!!d.github_token);
+    }).catch(() => setHasToken(false));
+  }, []);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  function addMsg(msg: Omit<ChatMessage, 'id' | 'ts'>) {
+    const full: ChatMessage = { id: uid(), ts: Date.now(), ...msg };
+    setMessages((prev) => [...prev, full]);
+    return full.id;
+  }
+
+  function updateMsg(id: string, patch: Partial<ChatMessage>) {
+    setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, ...patch } : m)));
+  }
+
+  async function send(text?: string) {
+    const q = (text ?? input).trim();
+    if (!q || busy) return;
+    setInput('');
+    setBusy(true);
+
+    addMsg({ role: 'user', text: q });
+
+    const thinkingId = addMsg({
+      role: 'assistant',
+      text: 'Analysing your request and reading the codebase…',
+      loading: true,
+    });
+
+    try {
+      const res = await fetch('/api/evolve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ feedback: q }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        updateMsg(thinkingId, {
+          loading: false,
+          role: 'assistant',
+          text: data.error ?? 'Something went wrong. Try rephrasing your request.',
+        });
+        return;
+      }
+
+      if (data.preview) {
+        // Preview mode — no GitHub token
+        const p = data as { preview: PreviewResult };
+        updateMsg(thinkingId, {
+          loading: false,
+          text: `I've planned the changes for: **${p.preview.pr_title}**\n\nI'll modify ${p.preview.files_changed.length} file${p.preview.files_changed.length !== 1 ? 's' : ''}. To create a real GitHub PR, add **GITHUB_TOKEN** to your environment variables.\n\nHere's what I'd change:`,
+          preview: p.preview,
+        });
+      } else {
+        // Full PR created
+        const pr = data as PRResult;
+        updateMsg(thinkingId, {
+          loading: false,
+          text: `Done! I've created **PR #${pr.pr_number}: ${pr.pr_title}** — review and merge it on GitHub to ship the change.`,
+          result: pr,
+        });
+      }
+    } catch {
+      updateMsg(thinkingId, {
+        loading: false,
+        text: 'Network error. Make sure the app is running and try again.',
+      });
+    } finally {
+      setBusy(false);
+      setTimeout(() => inputRef.current?.focus(), 100);
+    }
+  }
+
+  function renderText(text: string) {
+    return text.split(/(\*\*[^*]+\*\*)/).map((part, i) =>
+      part.startsWith('**') && part.endsWith('**')
+        ? <strong key={i} style={{ color: 'var(--foreground)' }}>{part.slice(2, -2)}</strong>
+        : <span key={i}>{part}</span>
+    );
+  }
+
+  return (
+    <div className="max-w-2xl mx-auto px-4 py-6 animate-fade-in flex flex-col" style={{ minHeight: 'calc(100vh - 64px)' }}>
+
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-5">
+        <div
+          className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+          style={{ background: 'linear-gradient(135deg, #6366f1, #818cf8)' }}
+        >
+          <Zap size={20} style={{ color: '#fff' }} />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--foreground)' }}>App Evolution</h1>
+          <p className="text-xs" style={{ color: 'var(--muted)' }}>
+            {hasToken === true
+              ? 'Connected to GitHub — will create real PRs'
+              : hasToken === false
+              ? 'Preview mode — add GITHUB_TOKEN to create real PRs'
+              : 'Checking GitHub connection…'}
+          </p>
+        </div>
+        {hasToken !== null && (
+          <span
+            className="ml-auto px-2.5 py-1 rounded-full text-xs font-semibold"
+            style={hasToken
+              ? { background: 'rgba(22,163,74,0.1)', color: '#16a34a', border: '1px solid rgba(22,163,74,0.25)' }
+              : { background: 'rgba(245,158,11,0.1)', color: '#d97706', border: '1px solid rgba(245,158,11,0.25)' }}
+          >
+            {hasToken ? '● GitHub' : '◌ Preview'}
+          </span>
+        )}
+      </div>
+
+      {/* Chat window */}
+      <div
+        className="flex-1 rounded-2xl overflow-y-auto p-4 flex flex-col gap-4 mb-4"
+        style={{ background: 'var(--card)', border: '1px solid var(--card-border)', boxShadow: 'var(--shadow-sm)', minHeight: 360, maxHeight: '55vh' }}
+      >
+        {messages.map((msg) => (
+          <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+            <div
+              className="max-w-[85%] rounded-2xl px-4 py-3"
+              style={msg.role === 'user'
+                ? { background: 'linear-gradient(135deg, #6366f1, #818cf8)', color: '#fff', borderBottomRightRadius: 6 }
+                : { background: 'var(--muted-bg)', border: '1px solid var(--card-border)', borderBottomLeftRadius: 6 }
+              }
+            >
+              {msg.loading ? (
+                <div className="flex items-center gap-2">
+                  <Loader size={13} className="animate-spin" style={{ color: 'var(--accent)' }} />
+                  <span className="text-sm" style={{ color: 'var(--muted)' }}>{msg.text}</span>
+                </div>
+              ) : (
+                <>
+                  <p className="text-sm leading-relaxed" style={{ color: msg.role === 'user' ? '#fff' : 'var(--foreground)', whiteSpace: 'pre-line' }}>
+                    {renderText(msg.text)}
+                  </p>
+
+                  {/* PR result */}
+                  {msg.result && (
+                    <div className="mt-3 flex flex-col gap-2">
+                      <CodeCard
+                        files={msg.result.files_changed}
+                        review={msg.result.review_comment}
+                      />
+                      <a
+                        href={msg.result.pr_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold justify-center transition-all hover:opacity-90"
+                        style={{ background: 'linear-gradient(135deg, #6366f1, #818cf8)', color: '#fff' }}
+                      >
+                        <GitPullRequest size={13} />
+                        View PR #{msg.result.pr_number} on GitHub
+                        <ExternalLink size={11} />
+                      </a>
+                    </div>
+                  )}
+
+                  {/* Preview result */}
+                  {msg.preview && (
+                    <div className="mt-3">
+                      <CodeCard
+                        files={msg.preview.files_changed}
+                        review={msg.preview.review_comment}
+                        previews={msg.preview.preview_changes}
+                      />
+                      <div
+                        className="mt-2 px-3 py-2 rounded-xl text-xs"
+                        style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', color: '#d97706' }}
+                      >
+                        Add <code className="font-mono px-1 rounded" style={{ background: 'rgba(245,158,11,0.15)' }}>GITHUB_TOKEN</code> to create a real PR. Get it at GitHub → Settings → Developer Settings → Personal Access Tokens.
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        ))}
+
+        {/* Status icons for done/error */}
+        {messages.length > 1 && !busy && (() => {
+          const last = messages[messages.length - 1];
+          if (last.result) return (
+            <div className="flex items-center gap-2 justify-center">
+              <CheckCircle2 size={16} style={{ color: '#16a34a' }} />
+              <span className="text-xs font-semibold" style={{ color: '#16a34a' }}>PR created successfully</span>
+            </div>
+          );
+          return null;
+        })()}
+
+        <div ref={bottomRef} />
+      </div>
+
+      {/* Examples */}
+      {messages.length <= 1 && (
+        <div className="mb-3">
+          <p className="text-xs mb-2" style={{ color: 'var(--muted)' }}>Try an example:</p>
+          <div className="flex flex-wrap gap-2">
+            {EXAMPLES.map((ex) => (
+              <button
+                key={ex}
+                onClick={() => send(ex)}
+                disabled={busy}
+                className="px-3 py-1.5 rounded-full text-xs font-medium transition-all hover:opacity-80 disabled:opacity-40 text-left"
+                style={{ background: 'var(--card)', border: '1px solid var(--card-border)', color: 'var(--accent)', boxShadow: 'var(--shadow-sm)' }}
+              >
+                {ex}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Input */}
+      <div
+        className="flex items-end gap-3 rounded-2xl px-4 py-3"
+        style={{ background: 'var(--card)', border: '1px solid var(--card-border)', boxShadow: 'var(--shadow-sm)' }}
+      >
+        <Sparkles size={16} className="mt-1 shrink-0" style={{ color: 'var(--accent)' }} />
+        <textarea
+          ref={inputRef}
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
+          placeholder="Describe what you'd like to add or improve… (Enter to send)"
+          rows={2}
+          disabled={busy}
+          className="flex-1 bg-transparent outline-none text-sm resize-none disabled:opacity-50"
+          style={{ color: 'var(--foreground)', lineHeight: 1.5, minHeight: 44, maxHeight: 120 }}
+        />
+        <button
+          onClick={() => send()}
+          disabled={!input.trim() || busy}
+          className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 disabled:opacity-40 transition-all hover:opacity-90"
+          style={{ background: 'linear-gradient(135deg, #6366f1, #818cf8)' }}
+        >
+          {busy ? <Loader size={15} className="animate-spin" style={{ color: '#fff' }} /> : <Send size={15} style={{ color: '#fff' }} />}
+        </button>
+      </div>
+
+      {/* No-GitHub hint */}
+      {hasToken === false && (
+        <div
+          className="mt-3 px-4 py-3 rounded-xl flex items-start gap-2"
+          style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.15)' }}
+        >
+          <XCircle size={14} className="mt-0.5 shrink-0" style={{ color: 'var(--accent)' }} />
+          <p className="text-xs leading-relaxed" style={{ color: 'var(--muted)' }}>
+            <strong style={{ color: 'var(--foreground)' }}>Preview mode:</strong> I can plan code changes but can&apos;t create GitHub PRs yet.
+            Add <code className="px-1 rounded font-mono" style={{ background: 'var(--card-border)', fontSize: 10 }}>GITHUB_TOKEN</code> to{' '}
+            <code className="px-1 rounded font-mono" style={{ background: 'var(--card-border)', fontSize: 10 }}>.env.local</code> or Vercel environment variables.
+          </p>
+        </div>
+      )}
+    </div>
+  );
 }
