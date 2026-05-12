@@ -38,32 +38,32 @@ export default function UploadZone({ onFile, preview, label = 'Drop a clothing p
       className={cn(
         'cursor-pointer rounded-2xl border-2 border-dashed transition-all duration-200 flex flex-col items-center justify-center p-8 text-center',
         isDragging
-          ? 'border-[#c9a84c] bg-[rgba(201,168,76,0.08)]'
-          : 'border-[var(--card-border)] hover:border-[rgba(201,168,76,0.5)] hover:bg-[var(--muted-bg)]'
+          ? 'border-[#6366f1] bg-[rgba(99,102,241,0.06)]'
+          : 'border-[var(--card-border)] hover:border-[rgba(99,102,241,0.4)] hover:bg-[var(--muted-bg)]'
       )}
-      style={{ minHeight: 200 }}
+      style={{ minHeight: 180 }}
     >
       <input {...getInputProps()} />
       {preview ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={preview} alt="preview" className="max-h-48 rounded-xl object-contain" />
+        <img src={preview} alt="preview" className="max-h-44 rounded-xl object-contain" />
       ) : (
         <>
           <div
-            className="w-14 h-14 rounded-full flex items-center justify-center mb-4"
+            className="w-12 h-12 rounded-full flex items-center justify-center mb-3"
             style={{ background: 'var(--accent-muted)' }}
           >
             {isDragging ? (
-              <ImageIcon size={24} style={{ color: 'var(--accent)' }} />
+              <ImageIcon size={22} style={{ color: 'var(--accent)' }} />
             ) : (
-              <Upload size={24} style={{ color: 'var(--accent)' }} />
+              <Upload size={22} style={{ color: 'var(--accent)' }} />
             )}
           </div>
           <p className="font-medium text-sm" style={{ color: 'var(--foreground)' }}>
             {label}
           </p>
           <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>
-            PNG, JPG, WEBP up to 10MB
+            PNG, JPG, WEBP up to 10 MB
           </p>
         </>
       )}

@@ -11,18 +11,34 @@ const NAV = [
   { href: '/stylist',  label: 'Stylist',  icon: Sparkles },
 ];
 
+function WearlyLogo({ size = 28 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="32" height="32" rx="9" fill="#6366f1"/>
+      <path d="M6 9L11.5 23L16 13.5L20.5 23L26 9" stroke="white" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
 export default function Navbar() {
   const path = usePathname();
   return (
     <nav
       className="sticky top-0 z-50 w-full"
-      style={{ background: 'rgba(10,10,15,0.9)', backdropFilter: 'blur(16px)', borderBottom: '1px solid #1e1e2e' }}
+      style={{
+        background: 'rgba(245,246,250,0.92)',
+        backdropFilter: 'blur(20px)',
+        borderBottom: '1px solid var(--card-border)',
+        boxShadow: '0 1px 0 rgba(15,23,42,0.04)',
+      }}
     >
       <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs" style={{ background: 'linear-gradient(135deg, #c9a84c, #e8c96a)', color: '#000' }}>W</div>
-          <span className="font-semibold text-base gold-text">Wearly</span>
+        <Link href="/" className="flex items-center gap-2.5">
+          <WearlyLogo size={30} />
+          <span className="font-bold text-base tracking-tight" style={{ color: 'var(--foreground)' }}>
+            wearly
+          </span>
         </Link>
 
         {/* Nav */}
@@ -33,7 +49,9 @@ export default function Navbar() {
               <Link key={href} href={href}
                 className={cn(
                   'flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all',
-                  active ? 'text-[#c9a84c] bg-[rgba(201,168,76,0.12)]' : 'text-[#6b6b7b] hover:text-[#f0ede8] hover:bg-[rgba(255,255,255,0.05)]'
+                  active
+                    ? 'text-[#6366f1] bg-[rgba(99,102,241,0.1)]'
+                    : 'text-[#8b93a7] hover:text-[#0f172a] hover:bg-[rgba(15,23,42,0.04)]'
                 )}
               >
                 <Icon size={15} />{label}

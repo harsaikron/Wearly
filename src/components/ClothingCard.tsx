@@ -20,13 +20,12 @@ export default function ClothingCard({ item, onClick, selected }: Props) {
       className="hover-glow cursor-pointer rounded-2xl overflow-hidden transition-all duration-200"
       style={{
         background: 'var(--card)',
-        border: selected
-          ? '2px solid #c9a84c'
-          : '1px solid var(--card-border)',
+        border: selected ? '2px solid var(--accent)' : '1px solid var(--card-border)',
+        boxShadow: 'var(--shadow-sm)',
       }}
     >
       {/* Image */}
-      <div className="relative w-full h-48 bg-[var(--muted-bg)]">
+      <div className="relative w-full h-48" style={{ background: 'var(--muted-bg)' }}>
         <Image
           src={item.image_url}
           alt={item.name}
@@ -36,17 +35,14 @@ export default function ClothingCard({ item, onClick, selected }: Props) {
         />
         {/* Color badge */}
         <div
-          className="absolute top-2 right-2 w-6 h-6 rounded-full border-2"
-          style={{
-            background: item.color_hex,
-            borderColor: 'rgba(255,255,255,0.2)',
-          }}
+          className="absolute top-2 right-2 w-5 h-5 rounded-full border-2"
+          style={{ background: item.color_hex, borderColor: 'rgba(255,255,255,0.8)' }}
           title={item.color_name}
         />
         {selected && (
           <div
             className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-xs font-semibold"
-            style={{ background: '#c9a84c', color: '#000' }}
+            style={{ background: 'var(--accent)', color: '#fff' }}
           >
             Selected
           </div>
@@ -65,7 +61,7 @@ export default function ClothingCard({ item, onClick, selected }: Props) {
             </p>
           </div>
           <span
-            className="text-xs px-1.5 py-0.5 rounded font-mono shrink-0"
+            className="text-xs px-1.5 py-0.5 rounded-lg font-mono shrink-0"
             style={{ background: item.color_hex, color: contrast, fontSize: 10 }}
           >
             {item.color_hex}
@@ -75,18 +71,14 @@ export default function ClothingCard({ item, onClick, selected }: Props) {
         {/* Tags */}
         <div className="flex flex-wrap gap-1 mt-2">
           {item.tags.slice(0, 2).map((tag) => (
-            <span key={tag} className="tag-pill">
-              {occasionLabel(tag)}
-            </span>
+            <span key={tag} className="tag-pill">{occasionLabel(tag)}</span>
           ))}
         </div>
 
         {/* Stats */}
         <div className="flex items-center justify-between mt-2 text-xs" style={{ color: 'var(--muted)' }}>
           <span>Worn {item.times_worn}×</span>
-          {item.last_worn && (
-            <span>{daysAgo(item.last_worn)}d ago</span>
-          )}
+          {item.last_worn && <span>{daysAgo(item.last_worn)}d ago</span>}
         </div>
       </div>
     </div>

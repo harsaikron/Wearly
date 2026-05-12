@@ -25,20 +25,23 @@ export default function AIStatus() {
     ollama: {
       icon: <Cpu size={13} />,
       label: 'Gemma 3 · Local',
-      color: '#a0c4a0',
-      borderColor: 'rgba(160,196,160,0.4)',
+      color: '#16a34a',
+      bg: 'rgba(22,163,74,0.08)',
+      border: 'rgba(22,163,74,0.2)',
     },
     groq: {
       icon: <Cloud size={13} />,
       label: 'Gemma 2 · Groq',
-      color: '#7c9cbf',
-      borderColor: 'rgba(124,156,191,0.4)',
+      color: '#0369a1',
+      bg: 'rgba(3,105,161,0.08)',
+      border: 'rgba(3,105,161,0.2)',
     },
     none: {
       icon: <XCircle size={13} />,
       label: 'AI offline',
-      color: '#d97b7b',
-      borderColor: 'rgba(217,123,123,0.4)',
+      color: '#dc2626',
+      bg: 'rgba(220,38,38,0.06)',
+      border: 'rgba(220,38,38,0.2)',
     },
   }[health.backend];
 
@@ -46,9 +49,11 @@ export default function AIStatus() {
     <div
       className="fixed bottom-4 right-4 z-40 flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium"
       style={{
-        background: 'var(--card)',
-        border: `1px solid ${config.borderColor}`,
+        background: config.bg,
+        border: `1px solid ${config.border}`,
         color: config.color,
+        boxShadow: 'var(--shadow-sm)',
+        backdropFilter: 'blur(8px)',
       }}
     >
       {config.icon}

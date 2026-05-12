@@ -24,12 +24,12 @@ type FilterCat = ClothingCategory | 'all';
 export default function WardrobePage() {
   const { items, addItem, removeItem } = useWardrobeStore();
 
-  const [filter, setFilter]           = useState<FilterCat>('all');
-  const [search, setSearch]           = useState('');
-  const [showModal, setShowModal]     = useState(false);
-  const [showCamera, setShowCamera]   = useState(false);
-  const [preview, setPreview]         = useState('');       // data URL
-  const [analyzing, setAnalyzing]     = useState(false);
+  const [filter, setFilter]         = useState<FilterCat>('all');
+  const [search, setSearch]         = useState('');
+  const [showModal, setShowModal]   = useState(false);
+  const [showCamera, setShowCamera] = useState(false);
+  const [preview, setPreview]       = useState('');
+  const [analyzing, setAnalyzing]   = useState(false);
   const [form, setForm] = useState({
     name: '',
     category: 'shirt' as ClothingCategory,
@@ -39,7 +39,7 @@ export default function WardrobePage() {
   });
 
   const filtered = items.filter((item) => {
-    const matchCat = filter === 'all' || item.category === filter;
+    const matchCat    = filter === 'all' || item.category === filter;
     const matchSearch = !search ||
       item.name.toLowerCase().includes(search.toLowerCase()) ||
       item.color_name.toLowerCase().includes(search.toLowerCase());
@@ -113,37 +113,40 @@ export default function WardrobePage() {
     setForm({ name: '', category: 'shirt', color_hex: '#FFFFFF', color_name: 'White', tags: [] });
   }
 
-  const categories = [...new Set(items.map((i) => i.category))] as ClothingCategory[];
+  const usedCategories = [...new Set(items.map((i) => i.category))] as ClothingCategory[];
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
+
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold">My Wardrobe</h1>
+          <h1 className="text-3xl font-bold tracking-tight" style={{ color: 'var(--foreground)' }}>
+            My Wardrobe
+          </h1>
           <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>
             {items.length === 0
               ? 'Upload your first clothing item to get started'
-              : `${items.length} item${items.length !== 1 ? 's' : ''} — click any item to remove`}
+              : `${items.length} item${items.length !== 1 ? 's' : ''} — hover to remove`}
           </p>
         </div>
         <button
           onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl font-medium text-sm transition-all hover:opacity-90"
-          style={{ background: 'linear-gradient(135deg, #c9a84c, #e8c96a)', color: '#000' }}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all hover:opacity-90"
+          style={{ background: 'linear-gradient(135deg, #6366f1, #818cf8)', color: '#fff', boxShadow: '0 2px 8px rgba(99,102,241,0.3)' }}
         >
           <Plus size={16} /> Add Item
         </button>
       </div>
 
-      {/* Filter bar — only show if items exist */}
+      {/* Filter bar */}
       {items.length > 0 && (
         <div className="flex flex-col sm:flex-row gap-3 mb-6">
           <div
-            className="flex items-center gap-2 rounded-xl px-3 py-2 flex-1"
-            style={{ background: 'var(--card)', border: '1px solid var(--card-border)' }}
+            className="flex items-center gap-2 rounded-xl px-3 py-2.5 flex-1"
+            style={{ background: 'var(--card)', border: '1px solid var(--card-border)', boxShadow: 'var(--shadow-sm)' }}
           >
-            <Search size={16} style={{ color: 'var(--muted)' }} />
+            <Search size={15} style={{ color: 'var(--muted)' }} />
             <input
               type="text"
               placeholder="Search items…"
@@ -154,15 +157,16 @@ export default function WardrobePage() {
             />
           </div>
           <div className="flex gap-2 flex-wrap">
-            {(['all', ...categories] as (FilterCat)[]).map((cat) => (
+            {(['all', ...usedCategories] as FilterCat[]).map((cat) => (
               <button
                 key={cat}
                 onClick={() => setFilter(cat)}
-                className="px-3 py-2 rounded-xl text-sm transition-all"
+                className="px-3 py-2 rounded-xl text-sm font-medium transition-all"
                 style={{
                   background: filter === cat ? 'var(--accent-muted)' : 'var(--card)',
-                  border: filter === cat ? '1px solid rgba(201,168,76,0.4)' : '1px solid var(--card-border)',
+                  border: filter === cat ? '1px solid rgba(99,102,241,0.35)' : '1px solid var(--card-border)',
                   color: filter === cat ? 'var(--accent)' : 'var(--muted)',
+                  boxShadow: 'var(--shadow-sm)',
                 }}
               >
                 {cat === 'all' ? 'All' : categoryLabel(cat)}
@@ -184,14 +188,16 @@ export default function WardrobePage() {
           >
             <Shirt size={36} style={{ color: 'var(--accent)' }} />
           </div>
-          <h2 className="text-xl font-semibold mb-2">Your wardrobe is empty</h2>
+          <h2 className="text-xl font-semibold mb-2" style={{ color: 'var(--foreground)' }}>
+            Your wardrobe is empty
+          </h2>
           <p className="text-sm mb-6 max-w-xs" style={{ color: 'var(--muted)' }}>
             Upload photos of your shirts, pants, shoes, watches, jackets — AI will auto-detect the category and colour.
           </p>
           <button
             onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm"
-            style={{ background: 'linear-gradient(135deg, #c9a84c, #e8c96a)', color: '#000' }}
+            className="flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm transition-all hover:opacity-90"
+            style={{ background: 'linear-gradient(135deg, #6366f1, #818cf8)', color: '#fff', boxShadow: '0 2px 8px rgba(99,102,241,0.25)' }}
           >
             <Plus size={16} /> Add Your First Item
           </button>
@@ -207,7 +213,7 @@ export default function WardrobePage() {
               <button
                 onClick={() => removeItem(item.id)}
                 className="absolute top-2 left-2 w-7 h-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
-                style={{ background: 'rgba(217,60,60,0.85)' }}
+                style={{ background: 'rgba(239,68,68,0.9)', boxShadow: '0 2px 6px rgba(239,68,68,0.3)' }}
                 title="Remove"
               >
                 <Trash2 size={13} style={{ color: '#fff' }} />
@@ -217,58 +223,67 @@ export default function WardrobePage() {
         </div>
       )}
 
-      {/* Add Item Modal */}
+      {/* Camera overlay */}
       {showCamera && (
-        <CameraCapture
-          onCapture={onCameraCapture}
-          onClose={() => setShowCamera(false)}
-        />
+        <CameraCapture onCapture={onCameraCapture} onClose={() => setShowCamera(false)} />
       )}
 
+      {/* Add Item Modal */}
       {showModal && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)' }}
+          style={{ background: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(8px)' }}
         >
           <div
             className="w-full max-w-lg rounded-2xl overflow-hidden"
-            style={{ background: 'var(--card)', border: '1px solid var(--card-border)' }}
+            style={{ background: 'var(--card)', border: '1px solid var(--card-border)', boxShadow: 'var(--shadow-md)' }}
           >
             {/* Modal header */}
             <div
               className="flex items-center justify-between px-5 py-4"
               style={{ borderBottom: '1px solid var(--card-border)' }}
             >
-              <h2 className="font-semibold">Add Clothing Item</h2>
-              <button onClick={closeModal} className="p-1.5 rounded-lg hover:bg-[var(--muted-bg)]" style={{ color: 'var(--muted)' }}>
+              <h2 className="font-semibold text-base" style={{ color: 'var(--foreground)' }}>
+                Add Clothing Item
+              </h2>
+              <button
+                onClick={closeModal}
+                className="p-1.5 rounded-lg transition-colors hover:bg-[var(--muted-bg)]"
+                style={{ color: 'var(--muted)' }}
+              >
                 <X size={18} />
               </button>
             </div>
 
             <div className="p-5 flex flex-col gap-4 max-h-[75vh] overflow-y-auto">
-              {/* Camera / upload choice */}
+              {/* Camera button */}
               {!preview && (
                 <button
-                  onClick={() => setShowCamera(true)}
-                  className="w-full py-3 rounded-xl flex items-center justify-center gap-2 text-sm font-medium transition-all hover:opacity-90"
-                  style={{ background: 'linear-gradient(135deg, #c9a84c22, #e8c96a11)', border: '1px solid rgba(201,168,76,0.4)', color: 'var(--accent)' }}
+                  onClick={() => { setShowModal(false); setShowCamera(true); }}
+                  className="w-full py-3 rounded-xl flex items-center justify-center gap-2 text-sm font-semibold transition-all hover:opacity-90"
+                  style={{
+                    background: 'var(--accent-muted)',
+                    border: '1px solid rgba(99,102,241,0.25)',
+                    color: 'var(--accent)',
+                  }}
                 >
                   <Camera size={16} /> Use Camera
                 </button>
               )}
+
               {/* Upload zone */}
               <UploadZone onFile={handleFile} preview={preview} label="Or drop / click to upload a photo" />
 
-              {/* AI analyzing indicator */}
+              {/* Analyzing indicator */}
               {analyzing && (
                 <div
                   className="flex items-center gap-3 px-4 py-3 rounded-xl"
-                  style={{ background: 'var(--accent-muted)', border: '1px solid rgba(201,168,76,0.3)' }}
+                  style={{ background: 'var(--accent-muted)', border: '1px solid rgba(99,102,241,0.2)' }}
                 >
                   <Loader size={16} className="animate-spin" style={{ color: 'var(--accent)' }} />
                   <div>
                     <p className="text-sm font-medium" style={{ color: 'var(--accent)' }}>AI is analysing your photo…</p>
-                    <p className="text-xs" style={{ color: 'var(--muted)' }}>Detecting category, colour & tags</p>
+                    <p className="text-xs" style={{ color: 'var(--muted)' }}>Detecting category, colour &amp; tags</p>
                   </div>
                 </div>
               )}
@@ -277,49 +292,57 @@ export default function WardrobePage() {
               {!analyzing && preview && form.name && (
                 <div
                   className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs"
-                  style={{ background: 'rgba(160,196,160,0.1)', border: '1px solid rgba(160,196,160,0.3)', color: '#a0c4a0' }}
+                  style={{ background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.2)', color: '#16a34a' }}
                 >
                   <Sparkles size={12} />
                   AI detected and filled the details — review and confirm
                 </div>
               )}
 
-              {/* Form — only show after image is selected */}
+              {/* Form */}
               {preview && !analyzing && (
                 <>
                   <div>
-                    <label className="block text-xs font-medium mb-1" style={{ color: 'var(--muted)' }}>Item Name</label>
+                    <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--muted)' }}>ITEM NAME</label>
                     <input
                       type="text"
                       value={form.name}
                       onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
                       placeholder="e.g. White Oxford Shirt"
-                      className="w-full rounded-xl px-3 py-2 text-sm outline-none"
-                      style={{ background: 'var(--muted-bg)', border: '1px solid var(--card-border)', color: 'var(--foreground)' }}
+                      className="w-full rounded-xl px-3 py-2.5 text-sm outline-none"
+                      style={{
+                        background: 'var(--muted-bg)',
+                        border: '1px solid var(--card-border)',
+                        color: 'var(--foreground)',
+                      }}
                     />
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-medium mb-1" style={{ color: 'var(--muted)' }}>Category</label>
+                      <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--muted)' }}>CATEGORY</label>
                       <select
                         value={form.category}
                         onChange={(e) => setForm((p) => ({ ...p, category: e.target.value as ClothingCategory }))}
-                        className="w-full rounded-xl px-3 py-2 text-sm outline-none"
-                        style={{ background: 'var(--muted-bg)', border: '1px solid var(--card-border)', color: 'var(--foreground)' }}
+                        className="w-full rounded-xl px-3 py-2.5 text-sm outline-none"
+                        style={{
+                          background: 'var(--muted-bg)',
+                          border: '1px solid var(--card-border)',
+                          color: 'var(--foreground)',
+                        }}
                       >
                         {CATEGORIES.map((c) => <option key={c} value={c}>{categoryLabel(c)}</option>)}
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-medium mb-1" style={{ color: 'var(--muted)' }}>Colour</label>
+                      <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--muted)' }}>COLOUR</label>
                       <div className="flex gap-2">
                         <input
                           type="color"
                           value={form.color_hex}
                           onChange={(e) => setForm((p) => ({ ...p, color_hex: e.target.value }))}
-                          className="w-10 h-9 rounded-lg cursor-pointer"
-                          style={{ background: 'var(--muted-bg)', border: '1px solid var(--card-border)' }}
+                          className="w-10 h-10 rounded-lg cursor-pointer border"
+                          style={{ border: '1px solid var(--card-border)', background: 'var(--muted-bg)' }}
                         />
                         <input
                           type="text"
@@ -327,14 +350,18 @@ export default function WardrobePage() {
                           onChange={(e) => setForm((p) => ({ ...p, color_name: e.target.value }))}
                           placeholder="White"
                           className="flex-1 rounded-xl px-3 py-2 text-sm outline-none"
-                          style={{ background: 'var(--muted-bg)', border: '1px solid var(--card-border)', color: 'var(--foreground)' }}
+                          style={{
+                            background: 'var(--muted-bg)',
+                            border: '1px solid var(--card-border)',
+                            color: 'var(--foreground)',
+                          }}
                         />
                       </div>
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium mb-2" style={{ color: 'var(--muted)' }}>Occasion Tags</label>
+                    <label className="block text-xs font-semibold mb-2" style={{ color: 'var(--muted)' }}>OCCASION TAGS</label>
                     <div className="flex flex-wrap gap-2">
                       {OCCASIONS.map((tag) => (
                         <button
@@ -342,8 +369,8 @@ export default function WardrobePage() {
                           onClick={() => toggleTag(tag)}
                           className="px-3 py-1 rounded-full text-xs font-medium transition-all"
                           style={{
-                            background: form.tags.includes(tag) ? 'rgba(201,168,76,0.2)' : 'var(--muted-bg)',
-                            border: form.tags.includes(tag) ? '1px solid rgba(201,168,76,0.5)' : '1px solid var(--card-border)',
+                            background: form.tags.includes(tag) ? 'var(--accent-muted)' : 'var(--muted-bg)',
+                            border: form.tags.includes(tag) ? '1px solid rgba(99,102,241,0.35)' : '1px solid var(--card-border)',
                             color: form.tags.includes(tag) ? 'var(--accent)' : 'var(--muted)',
                           }}
                         >
@@ -362,16 +389,16 @@ export default function WardrobePage() {
             >
               <button
                 onClick={closeModal}
-                className="px-4 py-2 rounded-xl text-sm"
-                style={{ background: 'var(--muted-bg)', color: 'var(--muted)' }}
+                className="px-4 py-2.5 rounded-xl text-sm font-medium"
+                style={{ background: 'var(--muted-bg)', color: 'var(--muted)', border: '1px solid var(--card-border)' }}
               >
                 Cancel
               </button>
               <button
                 onClick={handleAdd}
                 disabled={!form.name || !preview || analyzing}
-                className="px-5 py-2 rounded-xl text-sm font-semibold disabled:opacity-40"
-                style={{ background: 'linear-gradient(135deg, #c9a84c, #e8c96a)', color: '#000' }}
+                className="px-5 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-40 transition-opacity hover:opacity-90"
+                style={{ background: 'linear-gradient(135deg, #6366f1, #818cf8)', color: '#fff' }}
               >
                 Add to Wardrobe
               </button>

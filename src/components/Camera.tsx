@@ -9,9 +9,9 @@ interface Props {
 }
 
 export default function CameraCapture({ onCapture, onClose }: Props) {
-  const videoRef   = useRef<HTMLVideoElement>(null);
-  const canvasRef  = useRef<HTMLCanvasElement>(null);
-  const streamRef  = useRef<MediaStream | null>(null);
+  const videoRef  = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   const [preview, setPreview]   = useState<string | null>(null);
   const [error, setError]       = useState('');
@@ -19,9 +19,7 @@ export default function CameraCapture({ onCapture, onClose }: Props) {
 
   const startCamera = useCallback(async (mode: 'user' | 'environment' = 'user') => {
     try {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((t) => t.stop());
-      }
+      if (streamRef.current) streamRef.current.getTracks().forEach((t) => t.stop());
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: mode, width: { ideal: 1280 }, height: { ideal: 720 } },
       });
@@ -38,19 +36,17 @@ export default function CameraCapture({ onCapture, onClose }: Props) {
 
   useEffect(() => {
     startCamera(facingMode);
-    return () => {
-      streamRef.current?.getTracks().forEach((t) => t.stop());
-    };
+    return () => { streamRef.current?.getTracks().forEach((t) => t.stop()); };
   }, [startCamera, facingMode]);
 
   function capture() {
     if (!videoRef.current || !canvasRef.current) return;
-    const video  = videoRef.current;
-    const canvas = canvasRef.current;
-    canvas.width  = video.videoWidth  || 640;
-    canvas.height = video.videoHeight || 480;
-    canvas.getContext('2d')!.drawImage(video, 0, 0);
-    setPreview(canvas.toDataURL('image/jpeg', 0.85));
+    const v = videoRef.current;
+    const c = canvasRef.current;
+    c.width  = v.videoWidth  || 640;
+    c.height = v.videoHeight || 480;
+    c.getContext('2d')!.drawImage(v, 0, 0);
+    setPreview(c.toDataURL('image/jpeg', 0.85));
     streamRef.current?.getTracks().forEach((t) => t.stop());
   }
 
@@ -59,73 +55,104 @@ export default function CameraCapture({ onCapture, onClose }: Props) {
     startCamera(facingMode);
   }
 
-  function flipCamera() {
-    const next = facingMode === 'user' ? 'environment' : 'user';
-    setFacing(next);
-  }
-
   function confirm() {
     if (preview) onCapture(preview);
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.9)' }}>
-      <div className="w-full max-w-md rounded-2xl overflow-hidden" style={{ background: '#0a0a0f', border: '1px solid #1e1e2e' }}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(8px)' }}
+    >
+      <div
+        className="w-full max-w-md rounded-2xl overflow-hidden"
+        style={{
+          background: 'var(--card)',
+          border: '1px solid var(--card-border)',
+          boxShadow: 'var(--shadow-md)',
+        }}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid #1e1e2e' }}>
-          <p className="font-semibold text-sm" style={{ color: '#f0ede8' }}>
+        <div
+          className="flex items-center justify-between px-4 py-3"
+          style={{ borderBottom: '1px solid var(--card-border)' }}
+        >
+          <p className="font-semibold text-sm" style={{ color: 'var(--foreground)' }}>
             {preview ? 'Use this photo?' : 'Take a Photo'}
           </p>
-          <button onClick={onClose} className="p-1.5 rounded-lg" style={{ color: '#6b6b7b' }}>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg transition-colors hover:bg-[var(--muted-bg)]"
+            style={{ color: 'var(--muted)' }}
+          >
             <X size={18} />
           </button>
         </div>
 
         {/* Video / preview */}
-        <div className="relative bg-black" style={{ aspectRatio: '4/3' }}>
+        <div className="relative" style={{ aspectRatio: '4/3', background: 'var(--muted-bg)' }}>
           {error ? (
             <div className="absolute inset-0 flex items-center justify-center p-6 text-center">
-              <p className="text-sm" style={{ color: '#d97b7b' }}>{error}</p>
+              <p className="text-sm" style={{ color: '#ef4444' }}>{error}</p>
             </div>
           ) : preview ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={preview} alt="captured" className="w-full h-full object-cover" />
           ) : (
-            <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" style={{ transform: facingMode === 'user' ? 'scaleX(-1)' : 'none' }} />
+            <video
+              ref={videoRef} autoPlay playsInline muted
+              className="w-full h-full object-cover"
+              style={{ transform: facingMode === 'user' ? 'scaleX(-1)' : 'none' }}
+            />
           )}
           <canvas ref={canvasRef} className="hidden" />
         </div>
 
         {/* Controls */}
-        <div className="flex items-center justify-center gap-6 py-5">
+        <div
+          className="flex items-center justify-center gap-6 py-5"
+          style={{ borderTop: '1px solid var(--card-border)' }}
+        >
           {preview ? (
             <>
               <button onClick={retake} className="flex flex-col items-center gap-1">
-                <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: '#1a1a24', border: '1px solid #1e1e2e' }}>
-                  <RotateCcw size={20} style={{ color: '#6b6b7b' }} />
+                <div
+                  className="w-12 h-12 rounded-full flex items-center justify-center"
+                  style={{ background: 'var(--muted-bg)', border: '1px solid var(--card-border)' }}
+                >
+                  <RotateCcw size={20} style={{ color: 'var(--muted)' }} />
                 </div>
-                <span className="text-xs" style={{ color: '#6b6b7b' }}>Retake</span>
+                <span className="text-xs" style={{ color: 'var(--muted)' }}>Retake</span>
               </button>
               <button onClick={confirm} className="flex flex-col items-center gap-1">
-                <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #c9a84c, #e8c96a)' }}>
-                  <Check size={24} style={{ color: '#000' }} />
+                <div
+                  className="w-14 h-14 rounded-full flex items-center justify-center"
+                  style={{ background: 'linear-gradient(135deg, #6366f1, #818cf8)' }}
+                >
+                  <Check size={24} style={{ color: '#fff' }} />
                 </div>
-                <span className="text-xs font-semibold" style={{ color: '#c9a84c' }}>Use Photo</span>
+                <span className="text-xs font-semibold" style={{ color: 'var(--accent)' }}>Use Photo</span>
               </button>
             </>
           ) : (
             <>
-              <button onClick={flipCamera} className="flex flex-col items-center gap-1">
-                <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: '#1a1a24', border: '1px solid #1e1e2e' }}>
-                  <RotateCcw size={20} style={{ color: '#6b6b7b' }} />
+              <button onClick={() => setFacing((m) => m === 'user' ? 'environment' : 'user')} className="flex flex-col items-center gap-1">
+                <div
+                  className="w-12 h-12 rounded-full flex items-center justify-center"
+                  style={{ background: 'var(--muted-bg)', border: '1px solid var(--card-border)' }}
+                >
+                  <RotateCcw size={20} style={{ color: 'var(--muted)' }} />
                 </div>
-                <span className="text-xs" style={{ color: '#6b6b7b' }}>Flip</span>
+                <span className="text-xs" style={{ color: 'var(--muted)' }}>Flip</span>
               </button>
               <button onClick={capture} disabled={!!error} className="flex flex-col items-center gap-1">
-                <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #c9a84c, #e8c96a)' }}>
-                  <Camera size={28} style={{ color: '#000' }} />
+                <div
+                  className="w-16 h-16 rounded-full flex items-center justify-center"
+                  style={{ background: 'linear-gradient(135deg, #6366f1, #818cf8)' }}
+                >
+                  <Camera size={28} style={{ color: '#fff' }} />
                 </div>
-                <span className="text-xs font-semibold" style={{ color: '#c9a84c' }}>Capture</span>
+                <span className="text-xs font-semibold" style={{ color: 'var(--accent)' }}>Capture</span>
               </button>
             </>
           )}
