@@ -2,21 +2,11 @@
 
 import { WeatherData } from '@/types';
 import { Droplets, Wind, Thermometer } from 'lucide-react';
+import { WeatherConditionIcon } from '@/components/icons/SgIcons';
 
 interface Props {
   weather: WeatherData;
 }
-
-const conditionEmoji: Record<string, string> = {
-  hot: '☀️',
-  warm: '🌤️',
-  mild: '⛅',
-  cool: '🌥️',
-  cold: '🧊',
-  rainy: '🌧️',
-  windy: '💨',
-  cloudy: '☁️',
-};
 
 export default function WeatherWidget({ weather }: Props) {
   return (
@@ -31,7 +21,7 @@ export default function WeatherWidget({ weather }: Props) {
           </p>
           <div className="flex items-end gap-2 mt-1">
             <span className="text-4xl font-light">{weather.temperature}°</span>
-            <span className="text-lg mb-1">{conditionEmoji[weather.condition]}</span>
+            <WeatherConditionIcon condition={weather.condition} size={24} color={weather.condition === 'rainy' ? '#6b9fd4' : weather.condition === 'cloudy' ? '#94a3b8' : '#f59e0b'} />
           </div>
           <p className="text-sm capitalize mt-0.5" style={{ color: 'var(--muted)' }}>
             {weather.description} · Feels {weather.feels_like}°C

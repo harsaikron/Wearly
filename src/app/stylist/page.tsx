@@ -4,8 +4,9 @@ import { useState, useRef, useEffect } from 'react';
 import { useWardrobeStore } from '@/store/wardrobe';
 import {
   Send, Sparkles, Bot, User, CalendarDays, ShoppingBag,
-  ExternalLink, Loader,
+  ExternalLink, Loader, Lightbulb, Star,
 } from 'lucide-react';
+import { EventIcon, OccasionIcon } from '@/components/icons/SgIcons';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -35,7 +36,6 @@ interface Message {
 
 interface SGEvent {
   name: string;
-  emoji: string;
   date: string;
   outfit_tip: string;
   daysAway: number;
@@ -48,16 +48,16 @@ interface SGEvent {
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 const OCCASIONS = [
-  { label: 'Date Night',   emoji: '🌙', hint: 'romantic dinner date night' },
-  { label: 'Office',       emoji: '💼', hint: 'smart professional office work' },
-  { label: 'Casual',       emoji: '☕', hint: 'casual everyday relaxed chill' },
-  { label: 'Weekend',      emoji: '🏖️', hint: 'weekend outdoor leisure' },
-  { label: 'Party',        emoji: '🎉', hint: 'party night out celebration' },
-  { label: 'Wedding',      emoji: '💒', hint: 'wedding formal guest attire' },
-  { label: 'Festive',      emoji: '🎊', hint: 'festive cultural traditional' },
-  { label: 'Travel',       emoji: '✈️', hint: 'travel airport comfortable' },
-  { label: 'Gym',          emoji: '🏋️', hint: 'gym workout activewear' },
-  { label: 'Beach / Pool', emoji: '🌊', hint: 'beach resort swimwear' },
+  { label: 'Date Night',   hint: 'romantic dinner date night' },
+  { label: 'Office',       hint: 'smart professional office work' },
+  { label: 'Casual',       hint: 'casual everyday relaxed chill' },
+  { label: 'Weekend',      hint: 'weekend outdoor leisure' },
+  { label: 'Party',        hint: 'party night out celebration' },
+  { label: 'Wedding',      hint: 'wedding formal guest attire' },
+  { label: 'Festive',      hint: 'festive cultural traditional' },
+  { label: 'Travel',       hint: 'travel airport comfortable' },
+  { label: 'Gym',          hint: 'gym workout activewear' },
+  { label: 'Beach / Pool', hint: 'beach resort swimwear' },
 ];
 
 // ── Shopping helpers ──────────────────────────────────────────────────────────
@@ -256,7 +256,7 @@ export default function StylistPage() {
                     border: `1px solid ${active ? 'rgba(99,102,241,0.35)' : 'var(--card-border)'}`,
                   }}
                 >
-                  <span style={{ fontSize: 22, lineHeight: 1 }}>{o.emoji}</span>
+                  <OccasionIcon label={o.label} size={22} color={active ? 'var(--accent)' : 'var(--muted)'} />
                   <span
                     style={{
                       fontSize: 9,
@@ -281,7 +281,7 @@ export default function StylistPage() {
             <div style={{ borderTop: '1px solid var(--card-border)' }} />
             <div className="px-4 py-3">
               <p className="text-xs font-semibold uppercase tracking-wide mb-2.5" style={{ color: 'var(--muted)' }}>
-                🎊 Festivals &amp; Events
+                <Star size={12} style={{ color: 'var(--muted)', display: 'inline', marginRight: 4 }} />Festivals &amp; Events
               </p>
               <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
                 {events.filter((e) => e.daysAway <= 60).map((ev) => {
@@ -298,7 +298,7 @@ export default function StylistPage() {
                         border: `1px solid ${active ? 'transparent' : 'var(--card-border)'}`,
                       }}
                     >
-                      <span style={{ fontSize: 20 }}>{ev.emoji}</span>
+                      <EventIcon name={ev.name} size={20} color={active ? '#fff' : 'var(--foreground)'} />
                       <div className="text-left">
                         <p
                           className="text-xs font-semibold whitespace-nowrap"
@@ -307,7 +307,7 @@ export default function StylistPage() {
                           {ev.name}
                         </p>
                         <p style={{ fontSize: 10, color: active ? 'rgba(255,255,255,0.75)' : 'var(--muted)' }}>
-                          {ev.daysAway === 0 ? 'Today 🎉' : ev.daysAway === 1 ? 'Tomorrow' : `in ${ev.daysAway}d`}
+                          {ev.daysAway === 0 ? 'Today' : ev.daysAway === 1 ? 'Tomorrow' : `in ${ev.daysAway}d`}
                         </p>
                       </div>
                     </button>
@@ -446,7 +446,7 @@ export default function StylistPage() {
                         style={{ background: 'rgba(99,102,241,0.04)', borderTop: '1px solid var(--card-border)' }}
                       >
                         <p className="text-xs leading-relaxed" style={{ color: 'var(--accent)' }}>
-                          💡 {msg.suggestion.style_tip}
+                          <Lightbulb size={13} style={{ flexShrink: 0 }} /> {msg.suggestion.style_tip}
                         </p>
                       </div>
                     )}

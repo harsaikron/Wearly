@@ -9,12 +9,14 @@ import { stripDataPrefix, compressImage } from '@/lib/image-utils';
 import {
   Camera, Shirt, Sparkles, Send, Loader,
   ImageIcon, X, Thermometer, Wind, Droplets,
-  ExternalLink, Sun, CloudRain, Cloud, TrendingUp, CalendarDays, Gem,
+  ExternalLink, TrendingUp, CalendarDays, Gem, Lightbulb, Flag,
 } from 'lucide-react';
+import {
+  EventIcon, SeasonIcon, WeatherConditionIcon,
+} from '@/components/icons/SgIcons';
 
 interface SGEvent {
   name: string;
-  emoji: string;
   date: string;
   type: string;
   outfit_tip: string;
@@ -66,11 +68,6 @@ interface Weather {
   uv_index?: number;
 }
 
-function WeatherIcon({ condition }: { condition: string }) {
-  if (condition === 'rainy') return <CloudRain size={14} style={{ color: '#6b9fd4' }} />;
-  if (condition === 'cloudy') return <Cloud size={14} style={{ color: '#94a3b8' }} />;
-  return <Sun size={14} style={{ color: '#f59e0b' }} />;
-}
 
 function getContrastHex(hex: string) {
   const r = parseInt(hex.slice(1, 3), 16);
@@ -219,13 +216,6 @@ export default function HomePage() {
     return `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(q + ' men outfit Singapore')}`;
   }
 
-  function seasonEmoji(name: string) {
-    if (name.includes('National')) return '🇸🇬';
-    if (name.includes('Festive')) return '🎊';
-    if (name.includes('Q4') || name.includes('Festival')) return '🎆';
-    return '🌿';
-  }
-
   const QUICK = [
     'What to wear for office today?',
     'Best outfit for Singapore heat?',
@@ -252,7 +242,7 @@ export default function HomePage() {
         {weather ? (
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1.5">
-              <WeatherIcon condition={weather.condition} />
+              <WeatherConditionIcon condition={weather.condition} size={16} />
               <span className="text-2xl font-bold" style={{ color: 'var(--foreground)' }}>{weather.temperature}°C</span>
             </div>
             <div className="flex flex-col gap-1">
@@ -290,7 +280,7 @@ export default function HomePage() {
               className="rounded-2xl px-4 py-4 flex items-start gap-3"
               style={{ background: 'linear-gradient(135deg, #6366f1 0%, #818cf8 100%)', color: '#fff' }}
             >
-              <span style={{ fontSize: 32, lineHeight: 1 }}>{events.upcoming[0].emoji}</span>
+              <EventIcon name={events.upcoming[0].name} size={32} color="#fff" />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-xs font-bold uppercase tracking-wide" style={{ opacity: 0.8 }}>Today</span>
@@ -317,14 +307,14 @@ export default function HomePage() {
             <div className="px-4 pt-4 pb-3" style={{ background: 'linear-gradient(135deg, rgba(99,102,241,0.06) 0%, rgba(233,30,140,0.04) 100%)' }}>
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <span style={{ fontSize: 20 }}>{seasonEmoji(events.season.season)}</span>
+                  <SeasonIcon season={events.season.season} size={18} color="var(--accent)" />
                   <p className="text-xs font-bold uppercase tracking-widest" style={{ color: 'var(--accent)' }}>
                     {events.season.season}
                   </p>
                 </div>
                 <span className="text-xs px-2 py-0.5 rounded-full font-medium"
                   style={{ background: 'rgba(99,102,241,0.1)', color: 'var(--accent)', border: '1px solid rgba(99,102,241,0.2)' }}>
-                  🇸🇬 Singapore
+                  <Flag size={11} style={{ display: 'inline', marginRight: 3 }} /> Singapore
                 </span>
               </div>
               <p className="text-sm font-semibold leading-snug" style={{ color: 'var(--foreground)' }}>
@@ -337,7 +327,7 @@ export default function HomePage() {
                 {events.season.trending.map((t) => (
                   <span key={t} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium"
                     style={{ background: 'var(--muted-bg)', border: '1px solid var(--card-border)', color: 'var(--foreground)' }}>
-                    <span style={{ color: 'var(--accent)', fontSize: 9 }}>✦</span> {t}
+                    <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--accent)', display: 'inline-block', flexShrink: 0 }} /> {t}
                   </span>
                 ))}
               </div>
@@ -435,7 +425,7 @@ export default function HomePage() {
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all hover:opacity-80"
                 style={{ background: 'var(--card)', border: '1px solid var(--card-border)', color: 'var(--muted)', boxShadow: 'var(--shadow-sm)' }}
               >
-                <span style={{ fontSize: 11 }}>📸</span> Instagram
+                <Camera size={11} /> Instagram
               </a>
             </div>
           </div>
@@ -486,13 +476,13 @@ export default function HomePage() {
                   }}
                   title={ev.outfit_tip}
                 >
-                  <span style={{ fontSize: 18 }}>{ev.emoji}</span>
+                  <EventIcon name={ev.name} size={18} color="var(--foreground)" />
                   <div>
                     <p className="text-xs font-semibold whitespace-nowrap" style={{ color: 'var(--foreground)', lineHeight: 1.2 }}>
                       {ev.name.split(' ').slice(0, 2).join(' ')}
                     </p>
                     <p className="text-xs whitespace-nowrap" style={{ color: ev.daysAway === 0 ? 'var(--accent)' : 'var(--muted)' }}>
-                      {ev.daysAway === 0 ? 'Today 🎉' : ev.daysAway === 1 ? 'Tomorrow' : `in ${ev.daysAway}d`}
+                      {ev.daysAway === 0 ? 'Today' : ev.daysAway === 1 ? 'Tomorrow' : `in ${ev.daysAway}d`}
                     </p>
                   </div>
                 </div>
@@ -664,7 +654,7 @@ export default function HomePage() {
                 className="flex items-start gap-2 px-3 py-2.5 rounded-xl"
                 style={{ background: 'var(--accent-muted)', border: '1px solid rgba(99,102,241,0.15)' }}
               >
-                <span style={{ fontSize: 14 }}>💡</span>
+                <Lightbulb size={14} style={{ color: 'var(--accent)', flexShrink: 0 }} />
                 <p className="text-xs font-medium leading-relaxed" style={{ color: 'var(--accent)' }}>
                   {suggestion.style_tip}
                 </p>

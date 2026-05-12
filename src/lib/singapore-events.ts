@@ -1,6 +1,5 @@
 export interface SGEvent {
   name: string;
-  emoji: string;
   date: string;           // YYYY-MM-DD
   type: 'holiday' | 'festive' | 'cultural' | 'national' | 'social';
   outfit_tip: string;
@@ -12,7 +11,7 @@ export interface SGEvent {
 // Singapore 2026 public holidays + major cultural/social events
 export const SG_EVENTS_2026: SGEvent[] = [
   {
-    name: 'Chinese New Year', emoji: '🧧',
+    name: 'Chinese New Year',
     date: '2026-02-17',
     type: 'festive',
     outfit_tip: 'Wear red, gold or auspicious colours. Avoid black and white. Traditional Mandarin collars are on-trend.',
@@ -21,7 +20,7 @@ export const SG_EVENTS_2026: SGEvent[] = [
     dress_code: 'Smart casual to traditional',
   },
   {
-    name: 'Valentine\'s Day', emoji: '❤️',
+    name: "Valentine's Day",
     date: '2026-02-14',
     type: 'social',
     outfit_tip: 'Classic date-night look: navy blazer, white shirt, slim trousers. Add a burgundy pocket square.',
@@ -30,7 +29,7 @@ export const SG_EVENTS_2026: SGEvent[] = [
     dress_code: 'Smart casual to formal',
   },
   {
-    name: 'Hari Raya Puasa', emoji: '🌙',
+    name: 'Hari Raya Puasa',
     date: '2026-03-20',
     type: 'festive',
     outfit_tip: 'Baju Melayu in earth tones or pastels. Songket fabric adds a luxurious touch for visiting.',
@@ -39,7 +38,7 @@ export const SG_EVENTS_2026: SGEvent[] = [
     dress_code: 'Traditional Malay or smart casual',
   },
   {
-    name: 'Good Friday', emoji: '✝️',
+    name: 'Good Friday',
     date: '2026-04-03',
     type: 'holiday',
     outfit_tip: 'Understated, modest dressing. Muted tones and minimal accessories.',
@@ -48,7 +47,7 @@ export const SG_EVENTS_2026: SGEvent[] = [
     dress_code: 'Smart casual, modest',
   },
   {
-    name: 'Labour Day', emoji: '⚒️',
+    name: 'Labour Day',
     date: '2026-05-01',
     type: 'holiday',
     outfit_tip: 'Casual Friday energy all day. Chinos and a relaxed linen shirt work perfectly.',
@@ -57,7 +56,7 @@ export const SG_EVENTS_2026: SGEvent[] = [
     dress_code: 'Casual',
   },
   {
-    name: 'Vesak Day', emoji: '☸️',
+    name: 'Vesak Day',
     date: '2026-05-12',
     type: 'cultural',
     outfit_tip: 'Muted, respectful tones. White is considered auspicious. Avoid overly flashy attire.',
@@ -66,7 +65,7 @@ export const SG_EVENTS_2026: SGEvent[] = [
     dress_code: 'Modest and respectful',
   },
   {
-    name: 'Hari Raya Haji', emoji: '🐑',
+    name: 'Hari Raya Haji',
     date: '2026-05-27',
     type: 'festive',
     outfit_tip: 'Similar to Hari Raya Puasa — Baju Melayu with kopiah. Deep greens and whites are traditional.',
@@ -75,7 +74,7 @@ export const SG_EVENTS_2026: SGEvent[] = [
     dress_code: 'Traditional Malay or smart casual',
   },
   {
-    name: 'Singapore National Day', emoji: '🇸🇬',
+    name: 'Singapore National Day',
     date: '2026-08-09',
     type: 'national',
     outfit_tip: 'Red and white — Singapore\'s colours. Wear a red polo, white chinos or traditional dress.',
@@ -84,7 +83,7 @@ export const SG_EVENTS_2026: SGEvent[] = [
     dress_code: 'Patriotic — red and/or white',
   },
   {
-    name: 'Mid-Autumn Festival', emoji: '🥮',
+    name: 'Mid-Autumn Festival',
     date: '2026-09-25',
     type: 'cultural',
     outfit_tip: 'Soft autumn tones — warm orange, jade green, cream. Light layers for the cooler evening.',
@@ -93,7 +92,7 @@ export const SG_EVENTS_2026: SGEvent[] = [
     dress_code: 'Smart casual, festive colours',
   },
   {
-    name: 'Deepavali', emoji: '🪔',
+    name: 'Deepavali',
     date: '2026-10-28',
     type: 'festive',
     outfit_tip: 'Vibrant jewel tones — royal purple, sapphire blue, emerald green. Gold accessories welcome.',
@@ -102,7 +101,7 @@ export const SG_EVENTS_2026: SGEvent[] = [
     dress_code: 'Traditional Indian or smart casual with jewel tones',
   },
   {
-    name: 'Christmas', emoji: '🎄',
+    name: 'Christmas',
     date: '2026-12-25',
     type: 'festive',
     outfit_tip: 'Classic Christmas palette — burgundy, forest green, navy. Light layers for Orchard Road lights.',
@@ -111,7 +110,7 @@ export const SG_EVENTS_2026: SGEvent[] = [
     dress_code: 'Smart casual to festive',
   },
   {
-    name: 'New Year\'s Eve', emoji: '🎆',
+    name: "New Year's Eve",
     date: '2026-12-31',
     type: 'social',
     outfit_tip: 'Dress to impress — metallic accents, deep navy or black with a statement piece. Rooftop bar ready.',
