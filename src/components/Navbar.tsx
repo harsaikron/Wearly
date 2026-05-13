@@ -5,26 +5,48 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, Shirt, Sparkles, Zap, Leaf, Menu, X, ShoppingBag, CalendarDays } from 'lucide-react';
+import { LayoutDashboard, Shirt, Sparkles, ShoppingBag, Zap, Menu, X } from 'lucide-react';
 
+// 5 focused nav items — Sustain lives inside Wardrobe, Planner inside Stylist
 const NAV = [
-  { href: '/',             label: 'Home',    icon: LayoutDashboard, desc: 'Dashboard & AI stylist' },
-  { href: '/wardrobe',     label: 'Wardrobe',icon: Shirt,           desc: 'Closet & health score' },
-  { href: '/stylist',      label: 'Stylist', icon: Sparkles,        desc: 'Get outfit suggestions' },
-  { href: '/marketplace',  label: 'Market',  icon: ShoppingBag,     desc: 'Buy, rent & sell fashion' },
-  { href: '/sustainable',  label: 'Sustain', icon: Leaf,            desc: 'Mindful fashion & eco tips' },
-  { href: '/planner',      label: 'Planner', icon: CalendarDays,    desc: 'Calendar & travel packing' },
-  { href: '/evolve',       label: 'Evolve',  icon: Zap,             desc: 'Request & build features' },
+  {
+    href: '/',
+    label: 'Home',
+    icon: LayoutDashboard,
+    desc: 'Dashboard · weather · AI outfit',
+  },
+  {
+    href: '/wardrobe',
+    label: 'Wardrobe',
+    icon: Shirt,
+    desc: 'Closet · health score · eco tips',
+  },
+  {
+    href: '/stylist',
+    label: 'Stylist',
+    icon: Sparkles,
+    desc: 'AI outfits · planner · events',
+  },
+  {
+    href: '/marketplace',
+    label: 'Market',
+    icon: ShoppingBag,
+    desc: 'Buy · rent · sell fashion',
+  },
+  {
+    href: '/evolve',
+    label: 'Evolve',
+    icon: Zap,
+    desc: 'Request & build new features',
+  },
 ];
 
 export default function Navbar() {
   const path = usePathname();
   const [open, setOpen] = useState(false);
 
-  // Close menu on route change
   useEffect(() => { setOpen(false); }, [path]);
 
-  // Prevent body scroll when menu is open
   useEffect(() => {
     document.body.style.overflow = open ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
@@ -32,6 +54,7 @@ export default function Navbar() {
 
   return (
     <>
+      {/* ── Top bar ────────────────────────────────────────────── */}
       <nav
         className="sticky top-0 z-50 w-full"
         style={{
@@ -43,7 +66,6 @@ export default function Navbar() {
         }}
       >
         <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
-
           {/* Logo */}
           <Link href="/" className="flex items-center shrink-0" onClick={() => setOpen(false)}>
             <Image
@@ -56,10 +78,10 @@ export default function Navbar() {
             />
           </Link>
 
-          {/* Desktop nav links — hidden on mobile */}
+          {/* Desktop nav — hidden on mobile (bottom bar handles mobile) */}
           <div className="hidden md:flex items-center gap-0.5">
             {NAV.map(({ href, label, icon: Icon }) => {
-              const active = path === href;
+              const active = path === href || (href !== '/' && path.startsWith(href));
               return (
                 <Link
                   key={href}
@@ -78,7 +100,7 @@ export default function Navbar() {
             })}
           </div>
 
-          {/* Hamburger button — visible on mobile only */}
+          {/* Mobile: hamburger for sheet menu (complements bottom tab bar) */}
           <button
             onClick={() => setOpen((v) => !v)}
             className="md:hidden flex items-center justify-center w-9 h-9 rounded-xl transition-all active:scale-95"
@@ -95,18 +117,18 @@ export default function Navbar() {
           </button>
         </div>
 
-        {/* Mobile dropdown menu */}
+        {/* Mobile slide-down sheet */}
         <div
           className="md:hidden overflow-hidden transition-all duration-200"
           style={{
-            maxHeight: open ? 420 : 0,
+            maxHeight: open ? 480 : 0,
             opacity: open ? 1 : 0,
             borderTop: open ? '1px solid var(--card-border)' : 'none',
           }}
         >
-          <div className="max-w-3xl mx-auto px-3 py-2 flex flex-col gap-1 pb-4">
+          <div className="max-w-3xl mx-auto px-3 py-3 flex flex-col gap-1 pb-4">
             {NAV.map(({ href, label, icon: Icon, desc }) => {
-              const active = path === href;
+              const active = path === href || (href !== '/' && path.startsWith(href));
               return (
                 <Link
                   key={href}
@@ -116,31 +138,19 @@ export default function Navbar() {
                     active ? 'bg-[rgba(99,102,241,0.08)]' : 'hover:bg-[rgba(15,23,42,0.04)]'
                   )}
                 >
-                  {/* Icon tile */}
                   <div
                     className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                    style={{
-                      background: active ? 'rgba(99,102,241,0.12)' : 'var(--muted-bg)',
-                    }}
+                    style={{ background: active ? 'rgba(99,102,241,0.12)' : 'var(--muted-bg)' }}
                   >
                     <Icon size={18} style={{ color: active ? '#6366f1' : 'var(--muted)' }} />
                   </div>
-
-                  {/* Text */}
                   <div className="flex-1 min-w-0">
-                    <p
-                      className="text-sm font-semibold"
-                      style={{ color: active ? '#6366f1' : 'var(--foreground)' }}
-                    >
+                    <p className="text-sm font-semibold" style={{ color: active ? '#6366f1' : 'var(--foreground)' }}>
                       {label}
                     </p>
                     <p className="text-xs" style={{ color: 'var(--muted)' }}>{desc}</p>
                   </div>
-
-                  {/* Active dot */}
-                  {active && (
-                    <div className="w-2 h-2 rounded-full shrink-0" style={{ background: '#6366f1' }} />
-                  )}
+                  {active && <div className="w-2 h-2 rounded-full shrink-0" style={{ background: '#6366f1' }} />}
                 </Link>
               );
             })}
@@ -148,7 +158,7 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* Backdrop — closes menu when tapped outside */}
+      {/* Backdrop */}
       {open && (
         <div
           className="md:hidden fixed inset-0 z-40"
@@ -156,6 +166,72 @@ export default function Navbar() {
           onClick={() => setOpen(false)}
         />
       )}
+
+      {/* ── Mobile Bottom Tab Bar ────────────────────────────────── */}
+      <div
+        className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around"
+        style={{
+          background: 'rgba(245,246,250,0.97)',
+          backdropFilter: 'blur(24px)',
+          WebkitBackdropFilter: 'blur(24px)',
+          borderTop: '1px solid var(--card-border)',
+          boxShadow: '0 -2px 12px rgba(15,23,42,0.06)',
+          paddingBottom: 'env(safe-area-inset-bottom)',
+          height: 'calc(60px + env(safe-area-inset-bottom))',
+        }}
+      >
+        {NAV.map(({ href, label, icon: Icon }) => {
+          const active = path === href || (href !== '/' && path.startsWith(href));
+          return (
+            <Link
+              key={href}
+              href={href}
+              className="flex flex-col items-center justify-center gap-0.5 flex-1 py-2 transition-all active:scale-95"
+              style={{ minHeight: 56 }}
+            >
+              <div
+                className="flex items-center justify-center w-8 h-8 rounded-xl transition-all"
+                style={{
+                  background: active ? 'rgba(99,102,241,0.12)' : 'transparent',
+                  transform: active ? 'scale(1.05)' : 'scale(1)',
+                }}
+              >
+                <Icon
+                  size={20}
+                  style={{
+                    color: active ? '#6366f1' : '#94a3b8',
+                    strokeWidth: active ? 2.2 : 1.8,
+                  }}
+                />
+              </div>
+              <span
+                className="font-medium transition-all"
+                style={{
+                  fontSize: 10,
+                  color: active ? '#6366f1' : '#94a3b8',
+                  fontWeight: active ? 700 : 500,
+                  letterSpacing: active ? '0.01em' : '0',
+                }}
+              >
+                {label}
+              </span>
+              {active && (
+                <div
+                  className="absolute bottom-0"
+                  style={{
+                    width: 4,
+                    height: 4,
+                    borderRadius: '50%',
+                    background: '#6366f1',
+                    marginBottom: 2,
+                    display: 'none', // dot handled by color change
+                  }}
+                />
+              )}
+            </Link>
+          );
+        })}
+      </div>
     </>
   );
 }

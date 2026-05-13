@@ -24,14 +24,14 @@ export default function AIStatus() {
   const config = {
     ollama: {
       icon: <Cpu size={13} />,
-      label: 'Gemma 3 · Local',
+      label: 'Gemma 4 · Local',
       color: '#16a34a',
       bg: 'rgba(22,163,74,0.08)',
       border: 'rgba(22,163,74,0.2)',
     },
     groq: {
       icon: <Cloud size={13} />,
-      label: 'Gemma 2 · Groq',
+      label: 'Gemma 4 · Groq',
       color: '#0369a1',
       bg: 'rgba(3,105,161,0.08)',
       border: 'rgba(3,105,161,0.2)',
@@ -47,7 +47,7 @@ export default function AIStatus() {
 
   return (
     <div
-      className="fixed bottom-4 right-4 z-40 flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium"
+      className="fixed bottom-[calc(60px+env(safe-area-inset-bottom)+8px)] md:bottom-4 right-4 z-40 flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium"
       style={{
         background: config.bg,
         border: `1px solid ${config.border}`,
