@@ -10,6 +10,7 @@ import {
   Camera, Shirt, Sparkles, Send, Loader,
   ImageIcon, X, Thermometer, Wind, Droplets,
   ExternalLink, TrendingUp, CalendarDays, Gem, Lightbulb, Flag, RefreshCw, Zap,
+  Mars, Venus,
 } from 'lucide-react';
 import {
   EventIcon, SeasonIcon, WeatherConditionIcon,
@@ -42,6 +43,7 @@ interface OOTDItem {
   color_name: string;
   color_hex: string;
   why: string;
+  image_url?: string; // enriched client-side from wardrobe
 }
 interface OOTDResult {
   outfit_name: string;
@@ -112,12 +114,35 @@ export default function HomePage() {
   const [ootdLoading, setOotdLoading]       = useState(false);
   const fileInputRef                        = useRef<HTMLInputElement>(null);
 
-  async function fetchOOTD(currentWeather: Weather, currentItems: typeof items, eventsData: EventsData | null) {
+  // Gender toggle — persisted in localStorage
+  const [gender, setGender] = useState<'male' | 'female'>('male');
+  useEffect(() => {
+    const saved = localStorage.getItem('wearly-gender') as 'male' | 'female' | null;
+    if (saved) setGender(saved);
+  }, []);
+  function toggleGender(g: 'male' | 'female') {
+    setGender(g);
+    localStorage.setItem('wearly-gender', g);
+    // Re-fetch OOTD with new gender context
+    setOotd(null);
+    setTrendCards([]);
+    if (weather) fetchOOTD(weather, items, events, g);
+  }
+
+  const genderLabel = gender === 'male' ? 'men' : 'women';
+
+  async function fetchOOTD(
+    currentWeather: Weather,
+    currentItems: typeof items,
+    eventsData: EventsData | null,
+    genderOverride?: 'male' | 'female'
+  ) {
     if (currentItems.length === 0) return;
     setOotdLoading(true);
     try {
       const day = new Date().toLocaleDateString('en-SG', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Asia/Singapore' });
       const nearEvent = eventsData?.upcoming.find((e) => e.daysAway >= 0 && e.daysAway <= 7);
+      const activeGender = genderOverride ?? gender;
       const res = await fetch('/api/ootd', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -136,11 +161,20 @@ export default function HomePage() {
           },
           day,
           event: nearEvent?.name,
+          gender: activeGender,
         }),
       });
       const data = await res.json() as OOTDResult & { error?: string };
       if (!res.ok || data.error) return;
-      setOotd(data);
+
+      // Enrich OOTD items with actual wardrobe images (match by name)
+      const enrichedItems = (data.items ?? []).map((ootdItem) => {
+        const wardrobeMatch = currentItems.find(
+          (w) => w.name.toLowerCase().trim() === ootdItem.name.toLowerCase().trim()
+        );
+        return { ...ootdItem, image_url: wardrobeMatch?.image_url };
+      });
+      setOotd({ ...data, items: enrichedItems });
     } catch { /* silent */ } finally {
       setOotdLoading(false);
     }
@@ -172,7 +206,7 @@ export default function HomePage() {
     return () => clearInterval(t);
   }, []);
 
-  // Fetch one photo per trending style when events load
+  // Fetch one photo per trending style when events or gender changes
   useEffect(() => {
     if (!events) return;
     const terms = events.season.trending.slice(0, 4);
@@ -184,7 +218,7 @@ export default function HomePage() {
       for (const term of terms) {
         if (cancelled) break;
         try {
-          const r = await fetch(`/api/images?q=${encodeURIComponent(term + ' Singapore men outfit')}`);
+          const r = await fetch(`/api/images?q=${encodeURIComponent(term + ' Singapore ' + genderLabel + ' outfit')}`);
           const d = await r.json();
           results.push({ term, img: (d.images ?? [])[0] ?? null });
           if (!cancelled) setTrendCards([...results]);
@@ -195,7 +229,8 @@ export default function HomePage() {
       if (!cancelled) setTrendLoading(false);
     })();
     return () => { cancelled = true; };
-  }, [events]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [events, gender]);
 
   const sgTime = now.toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Singapore' });
   const sgDay  = now.toLocaleDateString('en-SG', { weekday: 'long', timeZone: 'Asia/Singapore' });
@@ -270,21 +305,73 @@ export default function HomePage() {
   }
 
   function pinterestUrl(q: string) {
-    return `https://www.pinterest.com/search/pins/?q=${encodeURIComponent(q + ' men outfit')}`;
+    return `https://www.pinterest.com/search/pins/?q=${encodeURIComponent(q + ' ' + genderLabel + ' outfit')}`;
   }
   function googleImagesUrl(q: string) {
-    return `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(q + ' men outfit Singapore')}`;
+    return `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(q + ' ' + genderLabel + ' outfit Singapore')}`;
   }
 
-  const QUICK = [
-    'What to wear for office today?',
-    'Best outfit for Singapore heat?',
-    'Smart casual evening look?',
-    'Suggest a weekend outfit',
-  ];
+  const QUICK = gender === 'male'
+    ? [
+        'What to wear for office today?',
+        'Best outfit for Singapore heat?',
+        'Smart casual evening look?',
+        'Suggest a weekend outfit',
+      ]
+    : [
+        'What to wear for work today?',
+        'Feminine summer outfit ideas?',
+        'Smart casual evening look?',
+        'Weekend brunch outfit ideas',
+      ];
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8 page-enter">
+
+      {/* ── Gender toggle ─────────────────────────────────────── */}
+      <div className="flex justify-center mb-5">
+        <div
+          className="flex items-center gap-1 p-1 rounded-2xl"
+          style={{
+            background: 'rgba(255,255,255,0.75)',
+            backdropFilter: 'blur(16px) saturate(160%)',
+            WebkitBackdropFilter: 'blur(16px) saturate(160%)',
+            border: '1.5px solid rgba(255,255,255,0.85)',
+            boxShadow: 'var(--shadow-sm)',
+          }}
+        >
+          <button
+            onClick={() => toggleGender('male')}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all"
+            style={gender === 'male' ? {
+              background: 'linear-gradient(to bottom, var(--primary-mid), var(--primary))',
+              color: '#fff',
+              boxShadow: 'var(--shadow-btn)',
+            } : {
+              background: 'transparent',
+              color: 'var(--muted)',
+            }}
+          >
+            <Mars size={15} />
+            Male
+          </button>
+          <button
+            onClick={() => toggleGender('female')}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all"
+            style={gender === 'female' ? {
+              background: 'linear-gradient(135deg, #BE185D, #9B1750)',
+              color: '#fff',
+              boxShadow: '0 4px 14px rgba(190,24,93,0.35)',
+            } : {
+              background: 'transparent',
+              color: 'var(--muted)',
+            }}
+          >
+            <Venus size={15} />
+            Female
+          </button>
+        </div>
+      </div>
 
       {/* ── Weather + Date strip ───────────────────────────────── */}
       <div
@@ -353,7 +440,7 @@ export default function HomePage() {
             )}
           </div>
           <button
-            onClick={() => weather && fetchOOTD(weather, items, events)}
+            onClick={() => weather && fetchOOTD(weather, items, events, gender)}
             disabled={ootdLoading || !weather}
             className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-xl font-medium transition-all hover:opacity-80 disabled:opacity-40"
             style={{ background: 'var(--muted-bg)', color: 'var(--muted)', border: '1px solid var(--card-border)' }}
@@ -405,7 +492,7 @@ export default function HomePage() {
               <p className="text-xs mt-1 leading-relaxed" style={{ color: 'var(--muted)' }}>{ootd.overall_reason}</p>
             </div>
 
-            {/* Items with WHY */}
+            {/* Items with WHY + actual wardrobe images */}
             <div className="flex flex-col gap-2">
               {ootd.items?.map((item, i) => (
                 <div
@@ -417,18 +504,42 @@ export default function HomePage() {
                     className="flex items-center gap-3 px-3 py-2.5"
                     style={{ background: 'var(--muted-bg)' }}
                   >
-                    {/* Color swatch */}
-                    <div
-                      className="w-9 h-9 rounded-lg shrink-0 border-2"
-                      style={{
-                        background: item.color_hex ?? '#e5e7eb',
-                        borderColor: 'rgba(0,0,0,0.08)',
-                      }}
-                      title={item.color_name}
-                    />
+                    {/* Wardrobe photo if available, else color swatch */}
+                    {item.image_url ? (
+                      <div
+                        className="w-14 h-14 rounded-xl shrink-0 overflow-hidden border-2"
+                        style={{ borderColor: 'rgba(0,0,0,0.08)' }}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={item.image_url}
+                          alt={item.name}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    ) : (
+                      <div
+                        className="w-14 h-14 rounded-xl shrink-0 border-2 flex items-center justify-center"
+                        style={{
+                          background: item.color_hex ?? '#e5e7eb',
+                          borderColor: 'rgba(0,0,0,0.08)',
+                        }}
+                        title={item.color_name}
+                      >
+                        <Shirt size={22} style={{ color: 'rgba(255,255,255,0.7)' }} />
+                      </div>
+                    )}
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold truncate" style={{ color: 'var(--foreground)' }}>{item.name}</p>
                       <p className="text-xs truncate" style={{ color: 'var(--muted)' }}>{item.category} · {item.color_name}</p>
+                      {/* Color dot */}
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <div
+                          className="w-3 h-3 rounded-full border"
+                          style={{ background: item.color_hex ?? '#ccc', borderColor: 'rgba(0,0,0,0.1)' }}
+                        />
+                        <span style={{ fontSize: 10, color: 'var(--muted)' }}>{item.color_hex}</span>
+                      </div>
                     </div>
                   </div>
                   {/* WHY this item */}
@@ -538,7 +649,7 @@ export default function HomePage() {
                 </p>
               </div>
               <a
-                href={`https://www.pinterest.com/search/pins/?q=${encodeURIComponent(events.season.trending[0] + ' men outfit Singapore')}`}
+                href={`https://www.pinterest.com/search/pins/?q=${encodeURIComponent(events.season.trending[0] + ' ' + genderLabel + ' outfit Singapore')}`}
                 target="_blank" rel="noopener noreferrer"
                 className="flex items-center gap-1 text-xs font-semibold transition-opacity hover:opacity-70"
                 style={{ color: '#e91e8c' }}
@@ -557,7 +668,7 @@ export default function HomePage() {
               {trendCards.map(({ term, img }) => (
                 <a
                   key={term}
-                  href={`https://www.pinterest.com/search/pins/?q=${encodeURIComponent(term + ' men outfit')}`}
+                  href={`https://www.pinterest.com/search/pins/?q=${encodeURIComponent(term + ' ' + genderLabel + ' outfit')}`}
                   target="_blank" rel="noopener noreferrer"
                   className="shrink-0 relative rounded-2xl overflow-hidden group block"
                   style={{ width: 130, height: 175, background: 'var(--muted-bg)', border: '1px solid var(--card-border)', flexShrink: 0 }}
@@ -590,7 +701,7 @@ export default function HomePage() {
               {/* "More" card */}
               {trendCards.length > 0 && (
                 <a
-                  href={`https://www.pinterest.com/search/pins/?q=${encodeURIComponent('men outfit Singapore ' + events.season.season)}`}
+                  href={`https://www.pinterest.com/search/pins/?q=${encodeURIComponent(genderLabel + ' outfit Singapore ' + events.season.season)}`}
                   target="_blank" rel="noopener noreferrer"
                   className="shrink-0 rounded-2xl flex flex-col items-center justify-center gap-2 transition-all hover:opacity-80"
                   style={{ width: 100, height: 175, background: 'linear-gradient(135deg, rgba(233,30,140,0.06), rgba(44,74,30,0.06))', border: '1px dashed rgba(233,30,140,0.3)', flexShrink: 0 }}
@@ -606,7 +717,7 @@ export default function HomePage() {
             {/* Also check Google Images */}
             <div className="flex gap-2 mt-2">
               <a
-                href={`https://www.google.com/search?tbm=isch&q=${encodeURIComponent(events.season.trending.slice(0, 2).join(' ') + ' men Singapore outfit')}`}
+                href={`https://www.google.com/search?tbm=isch&q=${encodeURIComponent(events.season.trending.slice(0, 2).join(' ') + ' ' + genderLabel + ' Singapore outfit')}`}
                 target="_blank" rel="noopener noreferrer"
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all hover:opacity-80"
                 style={{ background: 'var(--card)', border: '1px solid var(--card-border)', color: 'var(--muted)', boxShadow: 'var(--shadow-sm)' }}
@@ -614,7 +725,7 @@ export default function HomePage() {
                 <ExternalLink size={10} /> Google Images
               </a>
               <a
-                href={`https://www.instagram.com/explore/tags/${encodeURIComponent(events.season.trending[0].replace(/\s+/g, ''))}/`}
+                href={`https://www.instagram.com/explore/tags/${encodeURIComponent((events.season.trending[0] + genderLabel).replace(/\s+/g, ''))}/`}
                 target="_blank" rel="noopener noreferrer"
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all hover:opacity-80"
                 style={{ background: 'var(--card)', border: '1px solid var(--card-border)', color: 'var(--muted)', boxShadow: 'var(--shadow-sm)' }}
@@ -636,7 +747,7 @@ export default function HomePage() {
               {events.trends.map((t, i) => (
                 <a
                   key={t}
-                  href={`https://www.pinterest.com/search/pins/?q=${encodeURIComponent(t + ' men')}`}
+                  href={`https://www.pinterest.com/search/pins/?q=${encodeURIComponent(t + ' ' + genderLabel)}`}
                   target="_blank" rel="noopener noreferrer"
                   className="px-3 py-1 rounded-full text-xs font-medium transition-all hover:opacity-80"
                   style={{

@@ -20,11 +20,12 @@ interface WeatherInput {
 }
 
 export async function POST(req: NextRequest) {
-  const { wardrobe, weather, day, event } = await req.json() as {
+  const { wardrobe, weather, day, event, gender } = await req.json() as {
     wardrobe: WardrobeItem[];
     weather: WeatherInput;
     day: string;
     event?: string;
+    gender?: 'male' | 'female';
   };
 
   if (!wardrobe || wardrobe.length === 0) {
@@ -35,10 +36,12 @@ export async function POST(req: NextRequest) {
     .map((i) => `- ${i.name} | ${i.category} | ${i.color_name} (${i.color_hex}) | occasions: ${i.tags.join(', ')}${i.times_worn !== undefined ? ` | worn ${i.times_worn}×` : ''}`)
     .join('\n');
 
+  const genderLabel = gender === 'female' ? 'female / women' : 'male / men';
   const system = `You are a personal AI stylist powered by Gemma 4.
-Select the BEST outfit for today from the user's actual wardrobe.
+Select the BEST outfit for today for a ${genderLabel} user from their actual wardrobe.
 Be specific — use the EXACT item names from the wardrobe list.
 For every item you select, give a clear, personal reason why you chose it today (weather, day of week, event, style logic).
+If pants/jeans/shorts exist in the wardrobe, always include one as the bottom.
 Reply ONLY with valid JSON, no markdown.`;
 
   const userMessage = `Today is ${day} in Singapore.
