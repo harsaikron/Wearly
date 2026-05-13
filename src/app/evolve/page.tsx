@@ -225,7 +225,7 @@ export default function EvolvePage() {
         </div>
         {hasToken !== null && (
           <span
-            className="ml-auto px-2.5 py-1 rounded-full text-xs font-semibold"
+            className="ml-auto status-badge shrink-0"
             style={hasToken
               ? { background: 'rgba(22,163,74,0.1)', color: '#16a34a', border: '1px solid rgba(22,163,74,0.25)' }
               : { background: 'rgba(245,158,11,0.1)', color: '#d97706', border: '1px solid rgba(245,158,11,0.25)' }}
@@ -341,27 +341,41 @@ export default function EvolvePage() {
       {/* Input */}
       <div
         className="flex items-end gap-3 rounded-2xl px-4 py-3"
-        style={{ background: 'var(--card)', border: '1px solid var(--card-border)', boxShadow: 'var(--shadow-sm)' }}
+        style={{
+          background: 'rgba(255,255,255,0.85)',
+          backdropFilter: 'blur(20px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+          border: '1.5px solid rgba(255,255,255,0.85)',
+          boxShadow: 'var(--shadow-md), inset 0 1px 0 rgba(255,255,255,0.9)',
+        }}
       >
-        <Sparkles size={16} className="mt-1 shrink-0" style={{ color: 'var(--accent)' }} />
+        <Sparkles size={18} className="mb-2 shrink-0" style={{ color: 'var(--primary-mid)' }} />
         <textarea
           ref={inputRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
-          placeholder="Describe what you'd like to add or improve… (Enter to send)"
+          placeholder="Describe a feature or improvement…"
           rows={2}
           disabled={busy}
-          className="flex-1 bg-transparent outline-none text-sm resize-none disabled:opacity-50"
-          style={{ color: 'var(--foreground)', lineHeight: 1.5, minHeight: 44, maxHeight: 120 }}
+          className="flex-1 bg-transparent outline-none resize-none disabled:opacity-50"
+          style={{ color: 'var(--foreground)', lineHeight: 1.6, minHeight: 52, maxHeight: 140, fontSize: 15 }}
+          aria-label="Feature request input"
         />
         <button
           onClick={() => send()}
           disabled={!input.trim() || busy}
-          className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 disabled:opacity-40 transition-all hover:opacity-90"
-          style={{ background: 'linear-gradient(to bottom, var(--primary-mid), var(--primary))' }}
+          aria-label="Send request"
+          className="shrink-0 disabled:opacity-40 transition-all hover:opacity-90 ripple-btn"
+          style={{
+            width: 46, height: 46, borderRadius: 14,
+            background: 'linear-gradient(to bottom, var(--primary-mid), var(--primary))',
+            boxShadow: 'var(--shadow-btn)',
+            border: 'none',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
         >
-          {busy ? <Loader size={15} className="animate-spin" style={{ color: '#fff' }} /> : <Send size={15} style={{ color: '#fff' }} />}
+          {busy ? <Loader size={16} className="animate-spin" style={{ color: '#fff' }} /> : <Send size={16} style={{ color: '#fff' }} />}
         </button>
       </div>
 

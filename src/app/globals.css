@@ -864,3 +864,244 @@ button, a { -webkit-tap-highlight-color: transparent; }
   to   { opacity: 1; transform: translateY(0); }
 }
 .animate-fade-in { animation: fadeIn 0.35s ease forwards; }
+
+
+/* ═══════════════════════════════════════════════════════════════
+   PRODUCTION MOBILE & ACCESSIBILITY FIXES
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Prevent iOS input zoom (font-size must be ≥16px) ─────────── */
+input, select, textarea {
+  font-size: 16px !important; /* prevents iOS auto-zoom */
+}
+
+/* ── Mobile input fields — 48px min touch target ──────────────── */
+.input-field,
+input[type="text"],
+input[type="email"],
+input[type="search"],
+input[type="number"],
+input[type="tel"],
+input[type="url"],
+select,
+textarea {
+  min-height: 48px;
+  border-radius: 14px;
+  padding: 12px 16px;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* ── Focus rings — WCAG 2.1 AA accessibility ──────────────────── */
+:focus-visible {
+  outline: 3px solid rgba(44,74,30,0.45);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+button:focus-visible,
+a:focus-visible {
+  outline: 3px solid rgba(44,74,30,0.50);
+  outline-offset: 3px;
+}
+
+/* ── All interactive touch targets ≥44×44px ───────────────────── */
+button, [role="button"], a {
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+/* Reset for elements that shouldn't be forced to 44px */
+a.block, a[href], nav a, span[role="button"] {
+  min-height: unset;
+  min-width: unset;
+  display: initial;
+}
+nav a {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* ── Badge / pill — prevent wrapping ─────────────────────────── */
+.badge,
+[class*="badge-"],
+.tag-pill,
+.tag-pill-neutral {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── Status badge in header row ───────────────────────────────── */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  flex-shrink: 0;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+/* ── Bottom padding for scrollable content (above tab bar) ────── */
+.page-scroll-pb {
+  padding-bottom: calc(80px + env(safe-area-inset-bottom));
+}
+
+/* ── Modal — full-height sheet on mobile ──────────────────────── */
+@media (max-width: 640px) {
+  .modal-sheet {
+    position: fixed;
+    inset: 0;
+    top: auto;
+    border-radius: 28px 28px 0 0;
+    max-height: 92dvh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* ── Mobile-friendly tab bar item ─────────────────────────────── */
+.bottom-nav-item {
+  min-height: 56px;
+  padding: 8px 4px 10px;
+}
+
+/* ── Search input row ─────────────────────────────────────────── */
+.search-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.search-input-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 0 16px;
+  border-radius: 16px;
+  background: var(--card);
+  border: 1.5px solid var(--card-border);
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+.search-input-wrap:focus-within {
+  border-color: var(--primary-mid);
+  box-shadow: 0 0 0 3px rgba(44,74,30,0.10), var(--shadow-sm);
+}
+.search-input-wrap input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 15px;
+  color: var(--foreground);
+  min-height: 44px;
+}
+
+/* ── FAB — Floating action button (Add Clothes) ───────────────── */
+.fab {
+  position: fixed;
+  right: 20px;
+  bottom: calc(80px + env(safe-area-inset-bottom));
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 20px;
+  height: 54px;
+  border-radius: 27px;
+  background: linear-gradient(to bottom, var(--primary-mid), var(--primary));
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  box-shadow: 0 6px 24px rgba(44,74,30,0.40), 0 2px 6px rgba(44,74,30,0.25),
+              inset 0 1px 0 rgba(255,255,255,0.15);
+  border: 1px solid rgba(0,0,0,0.12);
+  transition: all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+  cursor: pointer;
+}
+.fab:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 10px 32px rgba(44,74,30,0.45), 0 4px 10px rgba(44,74,30,0.30),
+              inset 0 1px 0 rgba(255,255,255,0.18);
+}
+.fab:active {
+  transform: scale(0.96);
+  box-shadow: 0 4px 16px rgba(44,74,30,0.30);
+}
+
+/* Desktop: hide FAB since Add button is in the search row */
+@media (min-width: 768px) {
+  .fab { display: none; }
+}
+
+/* ── Consistent modal backdrop ────────────────────────────────── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(10,15,20,0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+@media (min-width: 640px) {
+  .modal-overlay {
+    align-items: center;
+  }
+}
+.modal-card {
+  width: 100%;
+  max-width: 520px;
+  border-radius: 28px 28px 0 0;
+  background: var(--card);
+  box-shadow: 0 -8px 48px rgba(0,0,0,0.18), 0 0 0 1px var(--card-border);
+  max-height: 92dvh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+@media (min-width: 640px) {
+  .modal-card {
+    border-radius: 28px;
+    max-height: 88dvh;
+  }
+}
+
+/* ── Typography scale — mobile first ─────────────────────────── */
+@media (max-width: 640px) {
+  h1 { font-size: clamp(1.5rem, 6.5vw, 2.2rem) !important; }
+  h2 { font-size: clamp(1.1rem, 4.5vw, 1.5rem) !important; }
+  .overflow-x-auto { -webkit-overflow-scrolling: touch; }
+
+  /* Larger tap areas for all filter pills */
+  .filter-pill {
+    padding: 10px 16px !important;
+    font-size: 13px !important;
+    min-height: 44px;
+  }
+
+  /* Full-width action buttons on mobile */
+  .mobile-full {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+}
+
+/* ── Occasion tag truncation fix ─────────────────────────────── */
+.occasion-pill {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+  flex-shrink: 0;
+}

@@ -159,7 +159,7 @@ interface TripPlan {
 }
 
 const ACTIVITY_COLOR: Record<string, string> = {
-  travel: 'var(--primary-mid)', beach: '#f59e0b', temple: '#8b5cf6', city: '#3b82f6',
+  travel: 'var(--primary-mid)', beach: '#f59e0b', temple: 'var(--primary-mid)', city: '#3b82f6',
   night_market: '#ec4899', fine_dining: '#ef4444', water_sports: '#06b6d4',
   shopping: '#10b981', resort: '#f97316', hiking: '#84cc16',
 };
@@ -682,18 +682,37 @@ export default function WardrobePage() {
       {/* ══════ CLOSET TAB ══════ */}
       {tab === 'closet' && (
         <div className="space-y-4">
-          <div className="flex gap-2">
-            <div className="flex-1 flex items-center gap-2 px-3 rounded-xl" style={{ background:'var(--card)', border:'1px solid var(--card-border)' }}>
-              <Search size={14} style={{ color:'var(--muted)' }}/>
-              <input className="flex-1 text-sm py-2.5 bg-transparent outline-none" placeholder="Search items…"
-                style={{ color:'var(--foreground)' }} value={search} onChange={(e) => setSearch(e.target.value)}/>
+          {/* Search row */}
+          <div className="search-row">
+            <div className="search-input-wrap">
+              <Search size={16} style={{ color:'var(--muted)', flexShrink: 0 }}/>
+              <input
+                placeholder="Search items…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                aria-label="Search wardrobe items"
+              />
             </div>
-            <button onClick={() => { setPreview(''); setShowAdd(true); }}
-              className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-semibold"
-              style={{ background:'var(--accent)', color:'#fff' }}>
-              <Plus size={15}/> Add
+            {/* Desktop Add button */}
+            <button
+              onClick={() => { setPreview(''); setShowAdd(true); }}
+              className="hidden md:flex items-center gap-2 btn-primary"
+              style={{ padding: '0 20px', height: 52, borderRadius: 16, fontSize: 14, whiteSpace: 'nowrap' }}
+              aria-label="Add new clothing item"
+            >
+              <Plus size={16}/> Add Clothes
             </button>
           </div>
+
+          {/* Mobile FAB — Add Clothes */}
+          <button
+            onClick={() => { setPreview(''); setShowAdd(true); }}
+            className="fab md:hidden"
+            aria-label="Add new clothing item"
+          >
+            <Plus size={20} />
+            Add Clothes
+          </button>
 
           {/* Category pills — colorful badges */}
           <div className="flex gap-2 overflow-x-auto pb-1 hide-scrollbar">
@@ -840,7 +859,7 @@ export default function WardrobePage() {
               )}
 
               {health.unused?.length > 0 && (
-                <Section icon={<Package size={15} color="#6366f1"/>} title="Unused Items" color="#6366f1">
+                <Section icon={<Package size={15} color="var(--primary-mid)"/>} title="Unused Items" color="var(--primary-mid)">
                   {health.unused.map((u,i) => (
                     <div key={i} className="py-2" style={{ borderBottom:'1px solid var(--card-border)' }}>
                       <div className="flex items-center justify-between">
@@ -918,7 +937,7 @@ export default function WardrobePage() {
                         <div className="flex items-center justify-between mb-2">
                           <p className="font-bold text-sm" style={{ color:'var(--foreground)' }}>{combo.outfit_name}</p>
                           <div className="flex gap-1.5">
-                            <ScoreBadge label="Style" value={combo.confidence} color="#6366f1"/>
+                            <ScoreBadge label="Style" value={combo.confidence} color="var(--primary-mid)"/>
                             <ScoreBadge label="Comfort" value={combo.comfort} color="#22c55e"/>
                             <ScoreBadge label="Eco" value={combo.sustainability} color="#16a34a"/>
                           </div>
@@ -1107,56 +1126,96 @@ export default function WardrobePage() {
       {showAdd && (
         <Modal title="Add Clothing Item" onClose={() => { setShowAdd(false); setPreview(''); }}>
           {!preview && (
-            <div className="flex gap-3 mb-4">
-              <button onClick={() => { setShowAdd(false); setShowCamera(true); }}
-                className="flex-1 flex flex-col items-center gap-2 py-4 rounded-xl"
-                style={{ background:'linear-gradient(135deg,#6366f1,#818cf8)', color:'#fff' }}>
-                <Camera size={20}/><span className="text-xs font-semibold">Camera</span>
+            <div className="flex gap-3 mb-5">
+              {/* Camera button — green, tall, good touch target */}
+              <button
+                onClick={() => { setShowAdd(false); setShowCamera(true); }}
+                className="flex-1 flex flex-col items-center justify-center gap-2.5 rounded-2xl"
+                style={{
+                  minHeight: 96,
+                  background: 'linear-gradient(to bottom, var(--primary-mid), var(--primary))',
+                  color: '#fff',
+                  boxShadow: 'var(--shadow-btn), inset 0 1px 0 rgba(255,255,255,0.12)',
+                  border: '1px solid rgba(0,0,0,0.12)',
+                }}
+                aria-label="Take photo with camera"
+              >
+                <Camera size={26} strokeWidth={1.8}/>
+                <span className="text-sm font-bold">Camera</span>
               </button>
               <div className="flex-1"><UploadZone onFile={handleFile}/></div>
             </div>
           )}
           {preview && (
-            <div className="relative mb-4 rounded-xl overflow-hidden" style={{ height:160 }}>
+            <div className="relative mb-4 rounded-2xl overflow-hidden" style={{ height: 180 }}>
               <Image src={preview} alt="preview" fill className="object-cover"/>
               {analyzing && (
-                <div className="absolute inset-0 flex items-center justify-center" style={{ background:'rgba(0,0,0,0.4)' }}>
-                  <Loader size={24} className="animate-spin text-white"/>
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3" style={{ background:'rgba(0,0,0,0.5)' }}>
+                  <Loader size={28} className="animate-spin text-white"/>
+                  <p className="text-xs font-semibold text-white">AI analysing…</p>
                 </div>
               )}
             </div>
           )}
-          <div className="space-y-3">
+          <div className="space-y-4">
             <Field label="Name">
-              <input className="w-full px-3 py-2 rounded-xl text-sm outline-none" style={{ background:'var(--muted-bg)', color:'var(--foreground)', border:'1px solid var(--card-border)' }}
-                value={form.name} onChange={(e) => setForm({...form, name: e.target.value})} placeholder="e.g. White Oxford Shirt"/>
+              <input
+                className="w-full rounded-2xl outline-none"
+                style={{ background:'var(--muted-bg)', color:'var(--foreground)', border:'1.5px solid var(--card-border)', padding:'14px 16px', width:'100%' }}
+                value={form.name}
+                onChange={(e) => setForm({...form, name: e.target.value})}
+                placeholder="e.g. White Oxford Shirt"
+                aria-label="Item name"
+              />
             </Field>
             <Field label="Category">
-              <select className="w-full px-3 py-2 rounded-xl text-sm outline-none" style={{ background:'var(--muted-bg)', color:'var(--foreground)', border:'1px solid var(--card-border)' }}
-                value={form.category} onChange={(e) => setForm({...form, category: e.target.value as ClothingCategory})}>
+              <select
+                className="w-full rounded-2xl outline-none"
+                style={{ background:'var(--muted-bg)', color:'var(--foreground)', border:'1.5px solid var(--card-border)', padding:'14px 16px', width:'100%' }}
+                value={form.category}
+                onChange={(e) => setForm({...form, category: e.target.value as ClothingCategory})}
+                aria-label="Item category"
+              >
                 {CATEGORIES.map((c) => <option key={c} value={c}>{categoryLabel(c)}</option>)}
               </select>
             </Field>
-            <div className="flex gap-2">
-              <div className="flex-1">
+            <div className="flex gap-3">
+              <div style={{ flex: '0 0 64px' }}>
                 <Field label="Color">
-                  <input type="color" className="w-full h-10 rounded-xl cursor-pointer border outline-none" style={{ border:'1px solid var(--card-border)' }}
-                    value={form.color_hex} onChange={(e) => setForm({...form, color_hex: e.target.value})}/>
+                  <input
+                    type="color"
+                    className="rounded-2xl cursor-pointer"
+                    style={{ border:'1.5px solid var(--card-border)', width:'100%', height:52, padding: 4 }}
+                    value={form.color_hex}
+                    onChange={(e) => setForm({...form, color_hex: e.target.value})}
+                    aria-label="Color picker"
+                  />
                 </Field>
               </div>
               <div className="flex-1">
                 <Field label="Color Name">
-                  <input className="w-full px-3 py-2 rounded-xl text-sm outline-none" style={{ background:'var(--muted-bg)', color:'var(--foreground)', border:'1px solid var(--card-border)' }}
-                    value={form.color_name} onChange={(e) => setForm({...form, color_name: e.target.value})}/>
+                  <input
+                    className="w-full rounded-2xl outline-none"
+                    style={{ background:'var(--muted-bg)', color:'var(--foreground)', border:'1.5px solid var(--card-border)', padding:'14px 16px', width:'100%' }}
+                    value={form.color_name}
+                    onChange={(e) => setForm({...form, color_name: e.target.value})}
+                    placeholder="e.g. Navy Blue"
+                    aria-label="Color name"
+                  />
                 </Field>
               </div>
             </div>
             <Field label="Occasions">
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap gap-2">
                 {OCCASIONS.map((o) => (
-                  <button key={o} onClick={() => setForm({...form, tags: form.tags.includes(o) ? form.tags.filter((t) => t!==o) : [...form.tags, o]})}
-                    className="px-2.5 py-1 rounded-full text-xs font-medium transition-all"
-                    style={form.tags.includes(o) ? { background:'var(--accent)', color:'#fff' } : { background:'var(--muted-bg)', color:'var(--muted)', border:'1px solid var(--card-border)' }}>
+                  <button key={o}
+                    onClick={() => setForm({...form, tags: form.tags.includes(o) ? form.tags.filter((t) => t!==o) : [...form.tags, o]})}
+                    className="rounded-full text-sm font-semibold transition-all"
+                    style={form.tags.includes(o)
+                      ? { background:'linear-gradient(to bottom, var(--primary-mid), var(--primary))', color:'#fff', padding:'8px 16px', boxShadow:'var(--shadow-btn)', border:'none' }
+                      : { background:'var(--muted-bg)', color:'var(--muted)', padding:'8px 16px', border:'1.5px solid var(--card-border)' }}
+                    aria-pressed={form.tags.includes(o)}
+                  >
                     {o.replace(/_/g,' ')}
                   </button>
                 ))}

@@ -209,7 +209,7 @@ export default function StylistPage() {
                   <button key={d} onClick={() => setSelectedDay(i)}
                     className="shrink-0 flex flex-col items-center px-3.5 py-2 rounded-xl text-xs font-bold transition-all hover:opacity-90"
                     style={{
-                      background: selectedDay === i ? 'linear-gradient(135deg,#6366f1,#818cf8)' : 'var(--muted-bg)',
+                      background: selectedDay === i ? 'linear-gradient(to bottom, var(--primary-mid), var(--primary))' : 'var(--muted-bg)',
                       color: selectedDay === i ? '#fff' : 'var(--foreground)',
                       border: i === todayIdx && selectedDay !== i ? '1px dashed 0' : '1px solid transparent',
                       minWidth: 44,
@@ -255,7 +255,7 @@ export default function StylistPage() {
                       return (
                         <button key={ev.name} onClick={() => { setSelectedEvent(active ? null : ev.name); setSelectedOccasion(null); }}
                           className="shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl transition-all hover:opacity-90"
-                          style={{ background: active ? 'linear-gradient(135deg,#6366f1,#818cf8)' : 'var(--muted-bg)', border:`1px solid ${active ? 'transparent' : 'var(--card-border)'}` }}>
+                          style={{ background: active ? 'linear-gradient(to bottom, var(--primary-mid), var(--primary))' : 'var(--muted-bg)', border:`1px solid ${active ? 'transparent' : 'var(--card-border)'}` }}>
                           <EventIcon name={ev.name} size={20} color={active ? '#fff' : 'var(--foreground)'}/>
                           <div className="text-left">
                             <p className="text-xs font-semibold whitespace-nowrap" style={{ color: active ? '#fff' : 'var(--foreground)', lineHeight:1.2 }}>{ev.name}</p>
@@ -286,7 +286,7 @@ export default function StylistPage() {
                 </div>
                 <button onClick={() => ask()} disabled={loading}
                   className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-xl font-bold text-sm transition-all hover:opacity-90 disabled:opacity-40"
-                  style={{ background:'linear-gradient(135deg,#6366f1,#818cf8)', color:'#fff', boxShadow:'0 2px 8px 0' }}>
+                  style={{ background:'linear-gradient(to bottom, var(--primary-mid), var(--primary))', color:'#fff', boxShadow:'0 2px 8px 0' }}>
                   {loading ? <Loader size={14} className="animate-spin"/> : <Sparkles size={14}/>}
                   Get Outfit
                 </button>
@@ -306,7 +306,7 @@ export default function StylistPage() {
                   <div className={`flex flex-col gap-3 ${msg.role === 'user' ? 'items-end' : ''}`} style={{ maxWidth:'85%' }}>
                     <div className="px-4 py-2.5 rounded-2xl text-sm leading-relaxed"
                       style={msg.role === 'user'
-                        ? { background:'linear-gradient(135deg,#6366f1,#818cf8)', color:'#fff', borderBottomRightRadius:6 }
+                        ? { background:'linear-gradient(to bottom, var(--primary-mid), var(--primary))', color:'#fff', borderBottomRightRadius:6 }
                         : { background:'var(--muted-bg)', border:'1px solid var(--card-border)', color: msg.error ? '#dc2626' : 'var(--foreground)', borderBottomLeftRadius:6 }}>
                       {msg.content}
                     </div>
@@ -376,7 +376,7 @@ export default function StylistPage() {
               placeholder="Or type a specific question…" className="flex-1 bg-transparent outline-none text-sm" style={{ color:'var(--foreground)' }}/>
             <button onClick={() => ask()} disabled={!input.trim() || loading}
               className="w-8 h-8 rounded-xl flex items-center justify-center disabled:opacity-40 transition-all hover:opacity-90"
-              style={{ background:'linear-gradient(135deg,#6366f1,#818cf8)' }}>
+              style={{ background:'linear-gradient(to bottom, var(--primary-mid), var(--primary))' }}>
               <Send size={14} style={{ color:'#fff' }}/>
             </button>
           </div>
