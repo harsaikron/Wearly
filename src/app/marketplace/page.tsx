@@ -107,7 +107,7 @@ export default function MarketplacePage() {
   });
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
+    <div className="max-w-2xl mx-auto px-4 py-6 space-y-4 page-enter">
       {/* Header */}
       <div>
         <h1 className="text-xl font-bold" style={{ color:'var(--foreground)' }}>Circular Marketplace</h1>

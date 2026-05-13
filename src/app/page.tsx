@@ -284,7 +284,7 @@ export default function HomePage() {
   ];
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8 animate-fade-in">
+    <div className="max-w-2xl mx-auto px-4 py-8 page-enter">
 
       {/* ── Weather + Date strip ───────────────────────────────── */}
       <div
