@@ -39,6 +39,18 @@ export default function CameraCapture({ onCapture, onClose }: Props) {
     return () => { streamRef.current?.getTracks().forEach((t) => t.stop()); };
   }, [startCamera, facingMode]);
 
+  // Lock body scroll + scroll to top when camera opens
+  useEffect(() => {
+    const prev = document.documentElement.style.overflow;
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
+    window.scrollTo(0, 0);
+    return () => {
+      document.documentElement.style.overflow = prev;
+      document.body.style.overflow = '';
+    };
+  }, []);
+
   function capture() {
     if (!videoRef.current || !canvasRef.current) return;
     const v = videoRef.current;
@@ -61,15 +73,21 @@ export default function CameraCapture({ onCapture, onClose }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(8px)' }}
+      className="fixed inset-0 flex items-center justify-center"
+      style={{
+        background: 'rgba(10,15,30,0.85)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        zIndex: 9999,
+        padding: '0',
+      }}
     >
       <div
-        className="w-full max-w-md rounded-2xl overflow-hidden"
+        className="w-full max-w-md rounded-3xl overflow-hidden mx-4"
         style={{
           background: 'var(--card)',
           border: '1px solid var(--card-border)',
-          boxShadow: 'var(--shadow-md)',
+          boxShadow: '0 24px 80px rgba(0,0,0,0.4)',
         }}
       >
         {/* Header */}

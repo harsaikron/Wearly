@@ -58,7 +58,7 @@ export default function Navbar() {
             )}
             <span
               className="hidden sm:block font-bold text-base tracking-tight select-none"
-              style={{ color: 'var(--primary)', letterSpacing: '-0.03em' }}
+              style={{ color: 'var(--foreground)', letterSpacing: '-0.03em' }}
             >
               wearly
             </span>
@@ -89,18 +89,20 @@ export default function Navbar() {
             })}
           </div>
 
-          {/* Mobile hamburger only */}
-          <button
-            onClick={() => setOpen((v) => !v)}
-            className="md:hidden btn-icon"
-            style={{ borderRadius: '12px' }}
-            aria-label={open ? 'Close menu' : 'Open menu'}
-          >
-            {open
-              ? <X size={18} style={{ color: 'var(--primary)' }} />
-              : <Menu size={18} style={{ color: 'var(--foreground-mid)' }} />
-            }
-          </button>
+          {/* Mobile hamburger only — wrapped in div so md:hidden isn't overridden by btn-icon's display:flex */}
+          <div className="md:hidden">
+            <button
+              onClick={() => setOpen((v) => !v)}
+              className="btn-icon"
+              style={{ borderRadius: '12px' }}
+              aria-label={open ? 'Close menu' : 'Open menu'}
+            >
+              {open
+                ? <X size={18} style={{ color: 'var(--primary)' }} />
+                : <Menu size={18} style={{ color: 'var(--foreground-mid)' }} />
+              }
+            </button>
+          </div>
         </div>
 
         {/* Mobile slide-down sheet */}

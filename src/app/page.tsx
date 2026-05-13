@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import CameraCapture from '@/components/Camera';
@@ -131,7 +131,7 @@ export default function HomePage() {
 
   const genderLabel = gender === 'male' ? 'men' : 'women';
 
-  async function fetchOOTD(
+  const fetchOOTD = useCallback(async function fetchOOTDImpl(
     currentWeather: Weather,
     currentItems: typeof items,
     eventsData: EventsData | null,
@@ -178,7 +178,8 @@ export default function HomePage() {
     } catch { /* silent */ } finally {
       setOotdLoading(false);
     }
-  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gender]);
 
   // Fetch weather on mount
   useEffect(() => {
@@ -192,13 +193,13 @@ export default function HomePage() {
       .catch(() => null);
   }, []);
 
-  // Auto-fetch OOTD once weather + events are ready
+  // Auto-fetch OOTD once weather + events are ready (also re-fetch when gender changes)
   useEffect(() => {
     if (weather && !ootd && !ootdLoading) {
       fetchOOTD(weather, items, events);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [weather, events]);
+  }, [weather, events, fetchOOTD]);
 
   // Live clock
   useEffect(() => {
@@ -280,6 +281,12 @@ export default function HomePage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  function openCamera() {
+    setShowCamera(true);
+    // Scroll to top so the fixed camera overlay isn't hidden behind content on mobile
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   function onCameraCapture(dataUrl: string) {
@@ -483,94 +490,159 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* OOTD result */}
+        {/* OOTD result — flat-lay board style */}
         {ootd && (
-          <div className="px-4 py-4 flex flex-col gap-3">
-            {/* Outfit name + overall reason */}
-            <div>
-              <h3 className="font-bold text-base leading-tight" style={{ color: 'var(--foreground)' }}>{ootd.outfit_name}</h3>
-              <p className="text-xs mt-1 leading-relaxed" style={{ color: 'var(--muted)' }}>{ootd.overall_reason}</p>
-            </div>
+          <div className="flex flex-col">
 
-            {/* Items with WHY + actual wardrobe images */}
-            <div className="flex flex-col gap-2">
-              {ootd.items?.map((item, i) => (
+            {/* ── Flat-lay board ────────────────────────────── */}
+            <div
+              className="relative mx-4 mt-3 mb-0 rounded-3xl overflow-hidden"
+              style={{
+                background: 'linear-gradient(145deg, #F5F0EC 0%, #EDE6DE 60%, #E8DFD5 100%)',
+                minHeight: 220,
+                border: '1px solid rgba(0,0,0,0.06)',
+              }}
+            >
+              {/* Outfit name overlay */}
+              <div
+                className="absolute top-3 left-3 z-10 px-3 py-1.5 rounded-full"
+                style={{
+                  background: 'rgba(255,255,255,0.85)',
+                  backdropFilter: 'blur(8px)',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
+                }}
+              >
+                <p className="text-xs font-bold" style={{ color: 'var(--primary)' }}>{ootd.outfit_name}</p>
+              </div>
+              {/* Mood badge */}
+              {ootd.mood && (
                 <div
-                  key={i}
-                  className="rounded-xl overflow-hidden"
-                  style={{ border: '1px solid var(--card-border)' }}
+                  className="absolute top-3 right-3 z-10 px-3 py-1.5 rounded-full"
+                  style={{
+                    background: 'linear-gradient(135deg, var(--primary-mid), var(--primary))',
+                    boxShadow: 'var(--shadow-btn)',
+                  }}
                 >
+                  <p className="text-xs font-bold" style={{ color: '#fff' }}>{ootd.mood}</p>
+                </div>
+              )}
+
+              {/* Items grid — flat-lay spread */}
+              <div
+                className="flex flex-wrap justify-center items-center gap-4 px-4 py-10"
+                style={{ minHeight: 220 }}
+              >
+                {ootd.items?.map((item, i) => (
                   <div
-                    className="flex items-center gap-3 px-3 py-2.5"
-                    style={{ background: 'var(--muted-bg)' }}
+                    key={i}
+                    className="flex flex-col items-center gap-1.5"
+                    style={{
+                      transform: `rotate(${[-4, 3, -2, 5][i % 4]}deg)`,
+                      transition: 'transform 0.2s ease',
+                    }}
                   >
-                    {/* Wardrobe photo if available, else color swatch */}
                     {item.image_url ? (
                       <div
-                        className="w-14 h-14 rounded-xl shrink-0 overflow-hidden border-2"
-                        style={{ borderColor: 'rgba(0,0,0,0.08)' }}
+                        className="rounded-2xl overflow-hidden"
+                        style={{
+                          width: ootd.items.length <= 2 ? 110 : ootd.items.length === 3 ? 95 : 80,
+                          height: ootd.items.length <= 2 ? 130 : ootd.items.length === 3 ? 112 : 96,
+                          background: '#fff',
+                          boxShadow: '0 8px 24px rgba(0,0,0,0.16), 0 2px 6px rgba(0,0,0,0.08)',
+                          border: '2px solid rgba(255,255,255,0.9)',
+                        }}
                       >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={item.image_url}
                           alt={item.name}
-                          className="w-full h-full object-cover"
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                         />
                       </div>
                     ) : (
                       <div
-                        className="w-14 h-14 rounded-xl shrink-0 border-2 flex items-center justify-center"
+                        className="rounded-2xl flex items-center justify-center"
                         style={{
-                          background: item.color_hex ?? '#e5e7eb',
-                          borderColor: 'rgba(0,0,0,0.08)',
+                          width: ootd.items.length <= 2 ? 110 : ootd.items.length === 3 ? 95 : 80,
+                          height: ootd.items.length <= 2 ? 130 : ootd.items.length === 3 ? 112 : 96,
+                          background: `linear-gradient(135deg, ${item.color_hex ?? '#C8C8C8'}, ${item.color_hex ?? '#C8C8C8'}CC)`,
+                          boxShadow: '0 8px 24px rgba(0,0,0,0.16), 0 2px 6px rgba(0,0,0,0.08)',
+                          border: '2px solid rgba(255,255,255,0.9)',
                         }}
-                        title={item.color_name}
                       >
-                        <Shirt size={22} style={{ color: 'rgba(255,255,255,0.7)' }} />
+                        <Shirt size={28} style={{ color: 'rgba(255,255,255,0.75)' }} />
                       </div>
                     )}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold truncate" style={{ color: 'var(--foreground)' }}>{item.name}</p>
-                      <p className="text-xs truncate" style={{ color: 'var(--muted)' }}>{item.category} · {item.color_name}</p>
-                      {/* Color dot */}
-                      <div className="flex items-center gap-1.5 mt-1">
-                        <div
-                          className="w-3 h-3 rounded-full border"
-                          style={{ background: item.color_hex ?? '#ccc', borderColor: 'rgba(0,0,0,0.1)' }}
-                        />
-                        <span style={{ fontSize: 10, color: 'var(--muted)' }}>{item.color_hex}</span>
-                      </div>
-                    </div>
+                    {/* Item label */}
+                    <span
+                      className="px-2 py-0.5 rounded-full text-center"
+                      style={{
+                        fontSize: 9,
+                        fontWeight: 700,
+                        background: 'rgba(255,255,255,0.80)',
+                        color: 'var(--foreground-mid)',
+                        backdropFilter: 'blur(4px)',
+                        maxWidth: 90,
+                        lineHeight: 1.3,
+                        textAlign: 'center',
+                      }}
+                    >
+                      {item.name.split(' ').slice(0, 3).join(' ')}
+                    </span>
                   </div>
-                  {/* WHY this item */}
-                  <div
-                    className="px-3 py-2 flex items-start gap-2"
-                    style={{ background: 'var(--card)', borderTop: '1px solid var(--card-border)' }}
-                  >
-                    <Lightbulb size={11} style={{ color: 'var(--accent)', marginTop: 2, flexShrink: 0 }} />
-                    <p className="text-xs leading-relaxed" style={{ color: 'var(--muted)' }}>{item.why}</p>
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
 
-            {/* Style tip */}
-            {ootd.style_tip && (
-              <div
-                className="rounded-xl px-3 py-2.5 flex items-start gap-2"
-                style={{ background: 'rgba(44,74,30,0.05)', border: '1px solid rgba(44,74,30,0.14)' }}
-              >
-                <Sparkles size={12} style={{ color: 'var(--accent)', marginTop: 2, flexShrink: 0 }} />
-                <p className="text-xs leading-relaxed" style={{ color: 'var(--foreground)' }}>
-                  <span className="font-semibold">Style tip: </span>{ootd.style_tip}
-                </p>
-              </div>
-            )}
+            {/* ── Details section ───────────────────────────── */}
+            <div className="px-4 py-4 flex flex-col gap-3">
 
-            {/* AI badge */}
-            <p className="text-xs text-right" style={{ color: 'var(--muted)' }}>
-              Selected by Gemma 4 · {ootd.backend === 'ollama' ? 'Running locally' : 'Cloud AI'}
-            </p>
+              {/* Overall reason */}
+              <p className="text-xs leading-relaxed" style={{ color: 'var(--muted)' }}>{ootd.overall_reason}</p>
+
+              {/* Item breakdown */}
+              <div className="flex flex-col gap-2">
+                {ootd.items?.map((item, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl"
+                    style={{ background: 'var(--muted-bg)', border: '1px solid var(--card-border)' }}
+                  >
+                    {/* Color swatch */}
+                    <div
+                      className="w-8 h-8 rounded-lg shrink-0 border"
+                      style={{ background: item.color_hex ?? '#e5e7eb', borderColor: 'rgba(0,0,0,0.08)' }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold truncate" style={{ color: 'var(--foreground)' }}>{item.name}</p>
+                      <p className="text-xs truncate" style={{ color: 'var(--muted)', fontSize: 10 }}>{item.category} · {item.color_name}</p>
+                    </div>
+                    {/* WHY inline */}
+                    <div className="flex items-start gap-1 max-w-[48%]">
+                      <Lightbulb size={10} style={{ color: 'var(--accent)', marginTop: 1, flexShrink: 0 }} />
+                      <p style={{ fontSize: 10, color: 'var(--muted)', lineHeight: 1.4 }}>{item.why}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Style tip */}
+              {ootd.style_tip && (
+                <div
+                  className="rounded-xl px-3 py-2.5 flex items-start gap-2"
+                  style={{ background: 'rgba(44,74,30,0.05)', border: '1px solid rgba(44,74,30,0.14)' }}
+                >
+                  <Sparkles size={12} style={{ color: 'var(--accent)', marginTop: 2, flexShrink: 0 }} />
+                  <p className="text-xs leading-relaxed" style={{ color: 'var(--foreground)' }}>
+                    <span className="font-semibold">Style tip: </span>{ootd.style_tip}
+                  </p>
+                </div>
+              )}
+
+              <p className="text-xs text-right" style={{ color: 'var(--muted)' }}>
+                Selected by Gemma 4 · {ootd.backend === 'ollama' ? 'Running locally' : 'Cloud AI'}
+              </p>
+            </div>
           </div>
         )}
       </div>
@@ -840,7 +912,7 @@ export default function HomePage() {
             </div>
             <div className="flex gap-3 w-full max-w-xs">
               <button
-                onClick={() => setShowCamera(true)}
+                onClick={openCamera}
                 className="flex-1 flex flex-col items-center gap-1.5 py-3 rounded-xl font-semibold text-sm transition-all hover:opacity-90"
                 style={{ background: 'linear-gradient(to bottom, var(--primary-mid), var(--primary))', color: '#fff', boxShadow: 'var(--shadow-btn)' }}
               >
