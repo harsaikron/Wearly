@@ -3,13 +3,14 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, Shirt, Sparkles, Zap } from 'lucide-react';
+import { LayoutDashboard, Shirt, Sparkles, Zap, Leaf } from 'lucide-react';
 
 const NAV = [
-  { href: '/',         label: 'Home',     icon: LayoutDashboard },
-  { href: '/wardrobe', label: 'Wardrobe', icon: Shirt },
-  { href: '/stylist',  label: 'Stylist',  icon: Sparkles },
-  { href: '/evolve',   label: 'Evolve',   icon: Zap },
+  { href: '/',            label: 'Home',     icon: LayoutDashboard },
+  { href: '/wardrobe',    label: 'Wardrobe', icon: Shirt },
+  { href: '/stylist',     label: 'Stylist',  icon: Sparkles },
+  { href: '/sustainable', label: 'Sustain',  icon: Leaf },
+  { href: '/evolve',      label: 'Evolve',   icon: Zap },
 ];
 
 function WearlyLogo({ size = 28 }: { size?: number }) {
