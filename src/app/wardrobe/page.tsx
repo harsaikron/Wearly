@@ -15,6 +15,7 @@ import {
   Heart, BarChart2, ShoppingBag, RefreshCw, Lightbulb, Award,
   AlertTriangle, Package, Palette, Star, ExternalLink,
   Calendar, ChevronRight, ChevronLeft, CalendarDays, Zap, Leaf, Tag, Plane, MapPin,
+  Building2, Landmark, Umbrella, Sun, ShoppingCart, Droplets, ChevronDown, ChevronUp,
 } from 'lucide-react';
 
 // ── Google Calendar types ──────────────────────────────────────────────────────
@@ -132,6 +133,58 @@ function ScoreRing({ score, grade }: { score: number; grade: string }) {
   );
 }
 
+// ── Trip planner types ─────────────────────────────────────────────────────────
+interface TripDay {
+  day: number;
+  title: string;
+  place: string;
+  activity_type: string;
+  weather_note: string;
+  outfit_name: string;
+  items: string[];
+  from_wardrobe: string[];
+  need_to_buy: string[];
+  styling_note: string;
+  eco_tip: string;
+  buy_query: string;
+  can_rent: boolean;
+  rent_query?: string;
+}
+interface TripPlan {
+  destination: string;
+  climate: string;
+  days: TripDay[];
+  packing_essentials: string[];
+}
+
+const ACTIVITY_COLOR: Record<string, string> = {
+  travel: '#6366f1', beach: '#f59e0b', temple: '#8b5cf6', city: '#3b82f6',
+  night_market: '#ec4899', fine_dining: '#ef4444', water_sports: '#06b6d4',
+  shopping: '#10b981', resort: '#f97316', hiking: '#84cc16',
+};
+
+function ActivityIcon({ type, size = 13 }: { type: string; size?: number }) {
+  const color = ACTIVITY_COLOR[type] ?? '#6366f1';
+  const s = { color };
+  switch (type) {
+    case 'beach':       return <Sun size={size} style={s}/>;
+    case 'temple':      return <Landmark size={size} style={s}/>;
+    case 'city':        return <Building2 size={size} style={s}/>;
+    case 'night_market':return <ShoppingBag size={size} style={s}/>;
+    case 'fine_dining': return <Star size={size} style={s}/>;
+    case 'water_sports':return <Droplets size={size} style={s}/>;
+    case 'shopping':    return <ShoppingCart size={size} style={s}/>;
+    case 'resort':      return <Umbrella size={size} style={s}/>;
+    case 'hiking':      return <MapPin size={size} style={s}/>;
+    default:            return <Plane size={size} style={s}/>;
+  }
+}
+
+function sheinTripUrl(q: string)    { return `https://sg.shein.com/search?q=${encodeURIComponent(q)}`; }
+function shopeeTripUrl(q: string)   { return `https://shopee.sg/search?keyword=${encodeURIComponent(q)}`; }
+function zaloraTripUrl(q: string)   { return `https://www.zalora.com.sg/search/?q=${encodeURIComponent(q)}`; }
+function carousellTripUrl(q: string){ return `https://www.carousell.sg/search/${encodeURIComponent(q)}/`; }
+
 // ── Google Calendar section ────────────────────────────────────────────────────
 function CalendarSection({ wardrobeItems }: { wardrobeItems: ClothingItem[] }) {
   const [connected, setConnected] = useState(false);
@@ -141,6 +194,9 @@ function CalendarSection({ wardrobeItems }: { wardrobeItems: ClothingItem[] }) {
   const [calError, setCalError] = useState('');
   const tokenRef = useRef<string>('');
   const scriptLoaded = useRef(false);
+  const [tripPlans, setTripPlans] = useState<Record<string, TripPlan>>({});
+  const [tripLoadings, setTripLoadings] = useState<Record<string, boolean>>({});
+  const [expandedDays, setExpandedDays] = useState<Record<string, number | null>>({});
 
   useEffect(() => {
     if (scriptLoaded.current) return;
@@ -168,22 +224,25 @@ function CalendarSection({ wardrobeItems }: { wardrobeItems: ClothingItem[] }) {
     } catch (e) { setCalError(String(e)); } finally { setLoadingCal(false); }
   }
 
-  async function generatePackingList(tv: TravelEvent, index: number) {
-    setTravelEvents((p) => p.map((t, i) => i === index ? { ...t, loading: true } : t));
+  async function generateTripPlan(tv: TravelEvent) {
+    const eid = tv.event.id;
+    setTripLoadings((p) => ({ ...p, [eid]: true }));
     try {
-      const res = await fetch('/api/sustainable', {
+      const res = await fetch('/api/trip-planner', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          items: wardrobeItems.map((i) => ({ name:i.name, category:i.category, color_name:i.color_name, tags:i.tags })),
-          occasion: 'Travel',
-          event: `${tv.durationDays}-day trip to ${tv.destination}`,
+          destination: tv.destination,
+          duration_days: tv.durationDays,
+          wardrobe: wardrobeItems.map((i) => ({ name: i.name, category: i.category, color_name: i.color_name, tags: i.tags })),
         }),
       });
-      const data = await res.json();
-      const list: string[] = data.outfits?.flatMap((o: { items: string[] }) => o.items) ?? [];
-      setTravelEvents((p) => p.map((t, i) => i === index ? { ...t, packingList: list, loading: false } : t));
-    } catch { setTravelEvents((p) => p.map((t, i) => i === index ? { ...t, loading: false } : t)); }
+      const data = await res.json() as TripPlan;
+      setTripPlans((p) => ({ ...p, [eid]: data }));
+      setExpandedDays((p) => ({ ...p, [eid]: 1 }));
+    } catch { /* silent */ } finally {
+      setTripLoadings((p) => ({ ...p, [eid]: false }));
+    }
   }
 
   function connectGoogle() {
@@ -238,47 +297,169 @@ function CalendarSection({ wardrobeItems }: { wardrobeItems: ClothingItem[] }) {
             {calError && <p className="text-xs" style={{ color:'#dc2626' }}>{calError}</p>}
 
             {travelEvents.length > 0 && (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <p className="text-xs font-bold uppercase tracking-wide" style={{ color:'var(--accent)' }}>Upcoming Trips</p>
-                {travelEvents.map((tv, i) => (
-                  <div key={tv.event.id} className="rounded-xl overflow-hidden" style={{ border:'1px solid rgba(99,102,241,0.2)' }}>
-                    <div className="px-3 py-3" style={{ background:'linear-gradient(135deg,rgba(99,102,241,0.06),rgba(59,130,246,0.04))' }}>
-                      <div className="flex items-start gap-2">
-                        <Plane size={14} style={{ color:'var(--accent)', marginTop:2, flexShrink:0 }}/>
-                        <div className="flex-1">
-                          <p className="text-sm font-bold" style={{ color:'var(--foreground)' }}>{tv.event.summary}</p>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            {tv.event.location && <span className="flex items-center gap-1 text-xs" style={{ color:'var(--muted)' }}><MapPin size={9}/>{tv.event.location}</span>}
-                            <span className="text-xs" style={{ color:'var(--muted)' }}>{tv.durationDays} days</span>
+                {travelEvents.map((tv) => {
+                  const eid = tv.event.id;
+                  const plan = tripPlans[eid];
+                  const isLoading = tripLoadings[eid];
+                  const expandedDay = expandedDays[eid] ?? null;
+                  return (
+                    <div key={eid} className="rounded-2xl overflow-hidden" style={{ border:'1px solid rgba(99,102,241,0.2)' }}>
+                      {/* Trip header */}
+                      <div className="px-4 py-3 flex items-start justify-between gap-3"
+                        style={{ background:'linear-gradient(135deg,rgba(99,102,241,0.08),rgba(59,130,246,0.05))' }}>
+                        <div className="flex items-start gap-2 flex-1 min-w-0">
+                          <Plane size={15} style={{ color:'var(--accent)', marginTop:2, flexShrink:0 }}/>
+                          <div>
+                            <p className="text-sm font-bold" style={{ color:'var(--foreground)' }}>{tv.event.summary}</p>
+                            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                              {tv.event.location && <span className="flex items-center gap-1 text-xs" style={{ color:'var(--muted)' }}><MapPin size={9}/>{tv.event.location}</span>}
+                              <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{ background:'rgba(99,102,241,0.1)', color:'var(--accent)' }}>{tv.durationDays} days</span>
+                              {plan && <span className="text-xs" style={{ color:'var(--muted)' }}>{plan.climate}</span>}
+                            </div>
                           </div>
                         </div>
+                        {!plan && (
+                          <button onClick={() => generateTripPlan(tv)} disabled={isLoading}
+                            className="shrink-0 flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl transition-all"
+                            style={{ background:'var(--accent)', color:'#fff', opacity: isLoading ? 0.7 : 1 }}>
+                            {isLoading ? <><Loader size={11} className="animate-spin"/> Planning…</> : <><Sparkles size={11}/> Plan Day by Day</>}
+                          </button>
+                        )}
                       </div>
-                      {!tv.packingList && (
-                        <button onClick={() => generatePackingList(tv, i)} disabled={tv.loading}
-                          className="mt-2 flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg"
-                          style={{ background:'var(--accent)', color:'#fff' }}>
-                          {tv.loading ? <Loader size={11} className="animate-spin"/> : <Lightbulb size={11}/>}
-                          {tv.loading ? 'Packing with AI…' : `AI Packing List — ${tv.durationDays} days`}
-                        </button>
+
+                      {/* Day-by-day agenda */}
+                      {plan && (
+                        <div className="divide-y" style={{ borderColor:'var(--card-border)' }}>
+                          {/* Packing essentials banner */}
+                          {plan.packing_essentials?.length > 0 && (
+                            <div className="px-4 py-2.5 flex items-center gap-2 flex-wrap" style={{ background:'rgba(99,102,241,0.04)' }}>
+                              <span className="text-xs font-semibold shrink-0" style={{ color:'var(--accent)' }}>Must-pack:</span>
+                              {plan.packing_essentials.slice(0, 5).map((e, i) => (
+                                <span key={i} className="text-xs px-2 py-0.5 rounded-full" style={{ background:'rgba(99,102,241,0.08)', color:'var(--accent)', border:'1px solid rgba(99,102,241,0.15)' }}>{e}</span>
+                              ))}
+                            </div>
+                          )}
+
+                          {plan.days?.map((dayPlan) => {
+                            const acColor = ACTIVITY_COLOR[dayPlan.activity_type] ?? '#6366f1';
+                            const isExpanded = expandedDay === dayPlan.day;
+                            return (
+                              <div key={dayPlan.day} style={{ background:'var(--card)' }}>
+                                {/* Day row — tap to expand */}
+                                <button
+                                  className="w-full flex items-center gap-3 px-4 py-3 text-left transition-all"
+                                  style={{ background: isExpanded ? `${acColor}06` : 'transparent' }}
+                                  onClick={() => setExpandedDays((p) => ({ ...p, [eid]: isExpanded ? null : dayPlan.day }))}>
+                                  <div className="shrink-0 w-9 h-9 rounded-xl flex flex-col items-center justify-center"
+                                    style={{ background:`${acColor}15`, border:`1px solid ${acColor}30` }}>
+                                    <span className="text-xs font-bold leading-none" style={{ color: acColor }}>D{dayPlan.day}</span>
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-1.5 mb-0.5">
+                                      <ActivityIcon type={dayPlan.activity_type}/>
+                                      <p className="text-sm font-semibold truncate" style={{ color:'var(--foreground)' }}>{dayPlan.title}</p>
+                                    </div>
+                                    <p className="text-xs truncate" style={{ color:'var(--muted)' }}>{dayPlan.place}</p>
+                                  </div>
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    <span className="text-xs hidden sm:block" style={{ color:'var(--muted)' }}>{dayPlan.weather_note}</span>
+                                    {isExpanded ? <ChevronUp size={14} style={{ color:'var(--muted)' }}/> : <ChevronDown size={14} style={{ color:'var(--muted)' }}/>}
+                                  </div>
+                                </button>
+
+                                {/* Expanded detail */}
+                                {isExpanded && (
+                                  <div className="px-4 pb-4 space-y-3" style={{ borderTop:`1px solid ${acColor}20` }}>
+                                    {/* Weather (mobile) */}
+                                    <p className="text-xs pt-1 sm:hidden" style={{ color:'var(--muted)' }}>{dayPlan.weather_note}</p>
+
+                                    {/* Outfit card */}
+                                    <div className="rounded-xl overflow-hidden" style={{ border:`1px solid ${acColor}25` }}>
+                                      <div className="px-3 py-2 flex items-center gap-2" style={{ background:`${acColor}10` }}>
+                                        <Sparkles size={12} style={{ color: acColor }}/>
+                                        <p className="text-xs font-bold" style={{ color: acColor }}>{dayPlan.outfit_name}</p>
+                                      </div>
+                                      <div className="px-3 py-2.5 space-y-2" style={{ background:'var(--card)' }}>
+                                        {/* Items — green if from wardrobe */}
+                                        <div className="flex flex-wrap gap-1.5">
+                                          {dayPlan.items?.map((item, j) => {
+                                            const owned = dayPlan.from_wardrobe?.includes(item);
+                                            return (
+                                              <span key={j} className="text-xs px-2 py-0.5 rounded-full font-medium flex items-center gap-1"
+                                                style={{ background: owned ? 'rgba(34,197,94,0.1)' : 'var(--muted-bg)', color: owned ? '#16a34a' : 'var(--foreground)', border:`1px solid ${owned ? 'rgba(34,197,94,0.25)' : 'var(--card-border)'}` }}>
+                                                {owned && <Leaf size={9} style={{ color:'#16a34a' }}/>}{item}
+                                              </span>
+                                            );
+                                          })}
+                                        </div>
+                                        {dayPlan.from_wardrobe?.length > 0 && (
+                                          <p className="text-xs flex items-center gap-1" style={{ color:'#16a34a' }}>
+                                            <Leaf size={9}/>{dayPlan.from_wardrobe.length} item{dayPlan.from_wardrobe.length > 1 ? 's' : ''} from your wardrobe
+                                          </p>
+                                        )}
+                                        <p className="text-xs leading-relaxed" style={{ color:'var(--muted)' }}>
+                                          <Lightbulb size={10} style={{ display:'inline', marginRight:3, color: acColor }}/>{dayPlan.styling_note}
+                                        </p>
+                                        <div className="flex items-start gap-1.5 rounded-lg px-2.5 py-1.5" style={{ background:'rgba(34,197,94,0.06)', border:'1px solid rgba(34,197,94,0.15)' }}>
+                                          <Leaf size={10} style={{ color:'#16a34a', marginTop:2, flexShrink:0 }}/>
+                                          <p className="text-xs leading-snug" style={{ color:'#16a34a' }}>{dayPlan.eco_tip}</p>
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    {/* Need to buy */}
+                                    {dayPlan.need_to_buy?.length > 0 && (
+                                      <div>
+                                        <p className="text-xs font-semibold mb-1.5" style={{ color:'var(--muted)' }}>NEED TO GET:</p>
+                                        <div className="flex flex-wrap gap-1.5">
+                                          {dayPlan.need_to_buy.map((item, j) => (
+                                            <span key={j} className="text-xs px-2 py-0.5 rounded-full" style={{ background:'rgba(239,68,68,0.08)', color:'#ef4444', border:'1px solid rgba(239,68,68,0.2)' }}>{item}</span>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {/* Buy / Rent links */}
+                                    <div className="space-y-2">
+                                      <p className="text-xs font-semibold" style={{ color:'var(--muted)' }}>SHOP THIS LOOK:</p>
+                                      <div className="flex flex-wrap gap-1.5">
+                                        <a href={shopeeTripUrl(dayPlan.buy_query + ' Singapore')} target="_blank" rel="noopener noreferrer"
+                                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold" style={{ background:'#ee4d2d', color:'#fff' }}>
+                                          <ShoppingCart size={10}/> Shopee
+                                        </a>
+                                        <a href={sheinTripUrl(dayPlan.buy_query)} target="_blank" rel="noopener noreferrer"
+                                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold" style={{ background:'#000', color:'#fff' }}>
+                                          <ShoppingCart size={10}/> Shein
+                                        </a>
+                                        <a href={zaloraTripUrl(dayPlan.buy_query)} target="_blank" rel="noopener noreferrer"
+                                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold" style={{ background:'#9b27af', color:'#fff' }}>
+                                          <ShoppingCart size={10}/> Zalora
+                                        </a>
+                                        {dayPlan.can_rent && dayPlan.rent_query && (
+                                          <a href={carousellTripUrl(dayPlan.rent_query)} target="_blank" rel="noopener noreferrer"
+                                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold" style={{ background:'rgba(34,197,94,0.12)', color:'#16a34a', border:'1px solid rgba(34,197,94,0.25)' }}>
+                                            <Leaf size={10}/> Rent · Carousell
+                                          </a>
+                                        )}
+                                      </div>
+                                      <a href={`https://calendar.google.com/calendar/r/eventedit?text=${encodeURIComponent(`Day ${dayPlan.day}: ${dayPlan.outfit_name}`)}&details=${encodeURIComponent(`${dayPlan.place}\n\nOutfit: ${dayPlan.items?.join(', ')}\n\n${dayPlan.styling_note}`)}`}
+                                        target="_blank" rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-1 text-xs font-semibold" style={{ color:'var(--accent)' }}>
+                                        <ExternalLink size={10}/> Save Day {dayPlan.day} to Calendar
+                                      </a>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
                       )}
                     </div>
-                    {tv.packingList && (
-                      <div className="px-3 py-3" style={{ background:'var(--card)' }}>
-                        <p className="text-xs font-semibold mb-2" style={{ color:'var(--muted)' }}>PACK FROM YOUR WARDROBE:</p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {tv.packingList.map((item, j) => (
-                            <span key={j} className="text-xs px-2 py-1 rounded-full" style={{ background:'rgba(99,102,241,0.08)', color:'var(--accent)', border:'1px solid rgba(99,102,241,0.15)' }}>{item}</span>
-                          ))}
-                        </div>
-                        <a href={`https://calendar.google.com/calendar/r/eventedit?text=Pack+for+${encodeURIComponent(tv.event.summary)}&details=${encodeURIComponent(tv.packingList.join(', '))}`}
-                          target="_blank" rel="noopener noreferrer"
-                          className="mt-2 flex items-center gap-1 text-xs font-semibold" style={{ color:'var(--accent)' }}>
-                          <ExternalLink size={11}/> Save packing reminder to Calendar
-                        </a>
-                      </div>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 
@@ -539,51 +720,53 @@ export default function WardrobePage() {
                 const isOverused = item.times_worn > 10;
                 return (
                   <div key={item.id} className="rounded-2xl overflow-hidden flex flex-col"
-                    style={{ background:'var(--card)', border:'1px solid var(--card-border)', boxShadow:'var(--shadow-sm)' }}>
-                    <div className="relative w-full" style={{ height:160, background:'var(--muted-bg)' }}>
-                      {item.image_url ? (
-                        <Image src={item.image_url} alt={item.name} fill className="object-cover"/>
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center flex-col gap-1">
-                          <div className="w-10 h-10 rounded-full" style={{ background: item.color_hex }}/>
-                          <Shirt size={20} style={{ color:'var(--muted)' }}/>
+                    style={{ background:'var(--card)', border:`1px solid ${item.favorite ? 'rgba(236,72,153,0.3)' : 'var(--card-border)'}`, boxShadow:'var(--shadow-sm)' }}>
+                    {/* Clickable area → detail page */}
+                    <Link href={`/wardrobe/${item.id}`} className="block">
+                      <div className="relative w-full" style={{ height:160, background:'var(--muted-bg)' }}>
+                        {item.image_url ? (
+                          <Image src={item.image_url} alt={item.name} fill className="object-cover"/>
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center flex-col gap-1">
+                            <div className="w-10 h-10 rounded-full" style={{ background: item.color_hex }}/>
+                            <Shirt size={20} style={{ color:'var(--muted)' }}/>
+                          </div>
+                        )}
+                        <div className="absolute top-2 left-2 flex flex-col gap-1">
+                          {isUnused  && <span className="text-xs px-1.5 py-0.5 rounded-full font-semibold" style={{ background:'rgba(239,68,68,0.9)', color:'#fff', fontSize:9 }}>Unused</span>}
+                          {isOverused && <span className="text-xs px-1.5 py-0.5 rounded-full font-semibold" style={{ background:'rgba(245,158,11,0.9)', color:'#fff', fontSize:9 }}>Overused</span>}
                         </div>
-                      )}
-                      <div className="absolute top-2 left-2 flex flex-col gap-1">
-                        {isUnused  && <span className="text-xs px-1.5 py-0.5 rounded-full font-semibold" style={{ background:'rgba(239,68,68,0.9)', color:'#fff', fontSize:9 }}>Unused</span>}
-                        {isOverused && <span className="text-xs px-1.5 py-0.5 rounded-full font-semibold" style={{ background:'rgba(245,158,11,0.9)', color:'#fff', fontSize:9 }}>Overused</span>}
+                        {item.favorite && (
+                          <div className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center" style={{ background:'rgba(236,72,153,0.15)' }}>
+                            <Heart size={12} fill="#ec4899" stroke="#ec4899"/>
+                          </div>
+                        )}
                       </div>
-                      <button onClick={() => removeItem(item.id)}
-                        className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center"
-                        style={{ background:'rgba(255,255,255,0.9)', border:'1px solid var(--card-border)' }}>
-                        <Trash2 size={11} style={{ color:'#ef4444' }}/>
+                      <div className="px-3 pt-3 pb-1 flex flex-col gap-1.5">
+                        <div>
+                          <p className="font-semibold text-sm leading-tight truncate" style={{ color:'var(--foreground)' }}>{item.name}</p>
+                          <p className="text-xs" style={{ color:'var(--muted)' }}>{categoryLabel(item.category)}</p>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-4 h-4 rounded-full border" style={{ background: item.color_hex, borderColor:'rgba(0,0,0,0.1)' }}/>
+                          <span className="text-xs" style={{ color:'var(--muted)' }}>{item.color_name}</span>
+                        </div>
+                        <div className="flex items-center gap-3 text-xs" style={{ color:'var(--muted)' }}>
+                          <span className="flex items-center gap-0.5"><Heart size={10}/> {item.times_worn}×</span>
+                          <span>{daysSince !== null ? `${daysSince}d ago` : 'Never worn'}</span>
+                        </div>
+                      </div>
+                    </Link>
+                    <div className="px-3 pb-3 pt-1 flex gap-1.5 mt-auto">
+                      <Link href={`/wardrobe/${item.id}`} className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-xs font-semibold" style={{ background:'rgba(99,102,241,0.1)', color:'var(--accent)' }}>
+                        <Sparkles size={11}/> Style
+                      </Link>
+                      <button onClick={() => openSell(item, 'sell')} className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-xs font-semibold" style={{ background:'rgba(34,197,94,0.1)', color:'#16a34a' }}>
+                        <Tag size={11}/> Sell
                       </button>
-                    </div>
-                    <div className="p-3 flex-1 flex flex-col gap-2">
-                      <div>
-                        <p className="font-semibold text-sm leading-tight truncate" style={{ color:'var(--foreground)' }}>{item.name}</p>
-                        <p className="text-xs" style={{ color:'var(--muted)' }}>{categoryLabel(item.category)}</p>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <div className="w-4 h-4 rounded-full border" style={{ background: item.color_hex, borderColor:'rgba(0,0,0,0.1)' }}/>
-                        <span className="text-xs font-mono" style={{ color:'var(--muted)', fontSize:10 }}>{item.color_hex}</span>
-                        <span className="text-xs" style={{ color:'var(--muted)' }}>· {item.color_name}</span>
-                      </div>
-                      <div className="flex items-center gap-3 text-xs" style={{ color:'var(--muted)' }}>
-                        <span className="flex items-center gap-0.5"><Heart size={10}/> {item.times_worn}×</span>
-                        <span>{daysSince !== null ? `${daysSince}d ago` : 'Never worn'}</span>
-                      </div>
-                      <div className="flex gap-1.5 mt-auto">
-                        <a href="/stylist" className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-xs font-semibold" style={{ background:'rgba(99,102,241,0.1)', color:'var(--accent)' }}>
-                          <Sparkles size={11}/> Style
-                        </a>
-                        <button onClick={() => openSell(item, 'sell')} className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-xs font-semibold" style={{ background:'rgba(34,197,94,0.1)', color:'#16a34a' }}>
-                          <Tag size={11}/> Sell
-                        </button>
-                        <button onClick={() => openSell(item, 'rent')} className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-xs font-semibold" style={{ background:'rgba(245,158,11,0.1)', color:'#d97706' }}>
-                          <ShoppingBag size={11}/> Rent
-                        </button>
-                      </div>
+                      <button onClick={() => openSell(item, 'rent')} className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-xs font-semibold" style={{ background:'rgba(245,158,11,0.1)', color:'#d97706' }}>
+                        <ShoppingBag size={11}/> Rent
+                      </button>
                     </div>
                   </div>
                 );

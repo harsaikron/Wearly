@@ -19,6 +19,8 @@ interface WardrobeStore {
   addToHistory: (outfit: Outfit) => void;
   removeFromHistory: (id: string) => void;
   incrementWorn: (itemIds: string[]) => void;
+  toggleFavorite: (id: string) => void;
+  markWornOn: (id: string, date: string) => void; // date = 'YYYY-MM-DD'
 }
 
 export const useWardrobeStore = create<WardrobeStore>()(
@@ -67,6 +69,28 @@ export const useWardrobeStore = create<WardrobeStore>()(
                 }
               : item
           ),
+        })),
+
+      toggleFavorite: (id) =>
+        set((s) => ({
+          items: s.items.map((item) =>
+            item.id === id ? { ...item, favorite: !item.favorite } : item
+          ),
+        })),
+
+      markWornOn: (id, date) =>
+        set((s) => ({
+          items: s.items.map((item) => {
+            if (item.id !== id) return item;
+            const prevDates = item.worn_dates ?? [];
+            const already = prevDates.includes(date);
+            return {
+              ...item,
+              times_worn: already ? item.times_worn : item.times_worn + 1,
+              last_worn: date,
+              worn_dates: already ? prevDates : [...prevDates, date].sort(),
+            };
+          }),
         })),
     }),
     {

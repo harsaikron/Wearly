@@ -71,8 +71,8 @@ export default function Navbar() {
             <Image
               src="/logo.png"
               alt="Wearly"
-              width={96}
-              height={34}
+              width={46}
+              height={17}
               style={{ objectFit: 'contain', mixBlendMode: 'multiply' }}
               priority
             />

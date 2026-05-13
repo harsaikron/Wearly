@@ -39,6 +39,9 @@ export interface ClothingItem {
   times_worn: number;
   last_worn?: string;
   created_at: string;
+  favorite?: boolean;
+  worn_dates?: string[]; // ISO date strings of individual wear events
+  notes?: string;
 }
 
 export interface Outfit {
