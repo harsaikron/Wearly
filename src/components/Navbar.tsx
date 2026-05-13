@@ -5,14 +5,16 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, Shirt, Sparkles, Zap, Leaf, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Shirt, Sparkles, Zap, Leaf, Menu, X, ShoppingBag, CalendarDays } from 'lucide-react';
 
 const NAV = [
-  { href: '/',            label: 'Home',     icon: LayoutDashboard, desc: 'Dashboard & AI stylist' },
-  { href: '/wardrobe',    label: 'Wardrobe', icon: Shirt,           desc: 'Manage your clothes' },
-  { href: '/stylist',     label: 'Stylist',  icon: Sparkles,        desc: 'Get outfit suggestions' },
-  { href: '/sustainable', label: 'Sustain',  icon: Leaf,            desc: 'Mindful fashion & eco tips' },
-  { href: '/evolve',      label: 'Evolve',   icon: Zap,             desc: 'Request & build features' },
+  { href: '/',             label: 'Home',    icon: LayoutDashboard, desc: 'Dashboard & AI stylist' },
+  { href: '/wardrobe',     label: 'Wardrobe',icon: Shirt,           desc: 'Closet & health score' },
+  { href: '/stylist',      label: 'Stylist', icon: Sparkles,        desc: 'Get outfit suggestions' },
+  { href: '/marketplace',  label: 'Market',  icon: ShoppingBag,     desc: 'Buy, rent & sell fashion' },
+  { href: '/sustainable',  label: 'Sustain', icon: Leaf,            desc: 'Mindful fashion & eco tips' },
+  { href: '/planner',      label: 'Planner', icon: CalendarDays,    desc: 'Calendar & travel packing' },
+  { href: '/evolve',       label: 'Evolve',  icon: Zap,             desc: 'Request & build features' },
 ];
 
 export default function Navbar() {

@@ -94,3 +94,30 @@ export interface UserProfile {
   style_preferences: OccasionTag[];
   created_at: string;
 }
+
+export type ListingCondition = 'New' | 'Like New' | 'Good' | 'Fair';
+export type ListingMode = 'sell' | 'rent' | 'both';
+
+export interface Listing {
+  id: string;
+  item_id?: string;
+  title: string;
+  category: string;
+  brand: string;
+  size: string;
+  condition: ListingCondition;
+  price: number;
+  rent_price_day?: number;
+  description: string;
+  image_url?: string;
+  color_hex?: string;
+  color_name?: string;
+  seller_name: string;
+  seller_distance_km: number;
+  pickup_location: string;
+  availability: 'available' | 'sold' | 'rented';
+  mode: ListingMode;
+  is_mine: boolean;
+  sustainability_badge: boolean;
+  created_at: string;
+}
