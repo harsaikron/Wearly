@@ -9,7 +9,7 @@ import { stripDataPrefix, compressImage } from '@/lib/image-utils';
 import {
   Camera, Shirt, Sparkles, Send, Loader,
   ImageIcon, X, Thermometer, Wind, Droplets,
-  ExternalLink, TrendingUp, CalendarDays, Gem, Lightbulb, Flag,
+  ExternalLink, TrendingUp, CalendarDays, Gem, Lightbulb, Flag, RefreshCw, Zap,
 } from 'lucide-react';
 import {
   EventIcon, SeasonIcon, WeatherConditionIcon,
@@ -34,6 +34,22 @@ interface EventsData {
   upcoming: SGEvent[];
   season: SeasonContext;
   trends: string[];
+}
+
+interface OOTDItem {
+  name: string;
+  category: string;
+  color_name: string;
+  color_hex: string;
+  why: string;
+}
+interface OOTDResult {
+  outfit_name: string;
+  overall_reason: string;
+  items: OOTDItem[];
+  style_tip: string;
+  mood: string;
+  backend?: string;
 }
 
 interface OutfitItem {
@@ -92,7 +108,43 @@ export default function HomePage() {
   const [events, setEvents]                 = useState<EventsData | null>(null);
   const [trendCards, setTrendCards]         = useState<{ term: string; img: InspirationImage | null }[]>([]);
   const [trendLoading, setTrendLoading]     = useState(false);
+  const [ootd, setOotd]                     = useState<OOTDResult | null>(null);
+  const [ootdLoading, setOotdLoading]       = useState(false);
   const fileInputRef                        = useRef<HTMLInputElement>(null);
+
+  async function fetchOOTD(currentWeather: Weather, currentItems: typeof items, eventsData: EventsData | null) {
+    if (currentItems.length === 0) return;
+    setOotdLoading(true);
+    try {
+      const day = new Date().toLocaleDateString('en-SG', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Asia/Singapore' });
+      const nearEvent = eventsData?.upcoming.find((e) => e.daysAway >= 0 && e.daysAway <= 7);
+      const res = await fetch('/api/ootd', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          wardrobe: currentItems.map((i) => ({
+            name: i.name, category: i.category,
+            color_name: i.color_name, color_hex: i.color_hex,
+            tags: i.tags, times_worn: i.times_worn,
+          })),
+          weather: {
+            temperature: currentWeather.temperature,
+            feels_like: currentWeather.feels_like,
+            description: currentWeather.description,
+            condition: currentWeather.condition,
+            humidity: currentWeather.humidity,
+          },
+          day,
+          event: nearEvent?.name,
+        }),
+      });
+      const data = await res.json() as OOTDResult & { error?: string };
+      if (!res.ok || data.error) return;
+      setOotd(data);
+    } catch { /* silent */ } finally {
+      setOotdLoading(false);
+    }
+  }
 
   // Fetch weather on mount
   useEffect(() => {
@@ -105,6 +157,14 @@ export default function HomePage() {
       .then(setEvents)
       .catch(() => null);
   }, []);
+
+  // Auto-fetch OOTD once weather + events are ready
+  useEffect(() => {
+    if (weather && !ootd && !ootdLoading) {
+      fetchOOTD(weather, items, events);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [weather, events]);
 
   // Live clock
   useEffect(() => {
@@ -266,6 +326,140 @@ export default function HomePage() {
           <div className="flex items-center gap-2">
             <Loader size={14} className="animate-spin" style={{ color: 'var(--accent)' }} />
             <span className="text-xs" style={{ color: 'var(--muted)' }}>Fetching weather…</span>
+          </div>
+        )}
+      </div>
+
+      {/* ── Outfit of the Day ─────────────────────────────────── */}
+      <div
+        className="rounded-2xl overflow-hidden mb-6"
+        style={{ background: 'var(--card)', border: '1px solid var(--card-border)', boxShadow: 'var(--shadow-sm)' }}
+      >
+        {/* Header */}
+        <div
+          className="px-4 py-3 flex items-center justify-between"
+          style={{ background: 'linear-gradient(135deg, rgba(99,102,241,0.07) 0%, rgba(168,85,247,0.05) 100%)', borderBottom: '1px solid var(--card-border)' }}
+        >
+          <div className="flex items-center gap-2">
+            <Zap size={15} style={{ color: 'var(--accent)' }} />
+            <p className="text-sm font-bold" style={{ color: 'var(--foreground)' }}>Outfit of the Day</p>
+            {ootd && (
+              <span
+                className="text-xs px-2 py-0.5 rounded-full font-semibold"
+                style={{ background: 'rgba(99,102,241,0.1)', color: 'var(--accent)', border: '1px solid rgba(99,102,241,0.2)' }}
+              >
+                {ootd.mood}
+              </span>
+            )}
+          </div>
+          <button
+            onClick={() => weather && fetchOOTD(weather, items, events)}
+            disabled={ootdLoading || !weather}
+            className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-xl font-medium transition-all hover:opacity-80 disabled:opacity-40"
+            style={{ background: 'var(--muted-bg)', color: 'var(--muted)', border: '1px solid var(--card-border)' }}
+          >
+            <RefreshCw size={11} className={ootdLoading ? 'animate-spin' : ''} />
+            {ootdLoading ? 'Picking…' : 'Refresh'}
+          </button>
+        </div>
+
+        {/* Loading shimmer */}
+        {ootdLoading && !ootd && (
+          <div className="px-4 py-4 flex flex-col gap-3">
+            <div className="shimmer rounded-lg h-4 w-3/5" />
+            <div className="shimmer rounded-lg h-3 w-full" />
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="flex items-center gap-3">
+                <div className="shimmer rounded-lg w-9 h-9 shrink-0" />
+                <div className="flex-1 flex flex-col gap-1.5">
+                  <div className="shimmer rounded h-3 w-2/5" />
+                  <div className="shimmer rounded h-2.5 w-4/5" />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Empty wardrobe prompt */}
+        {!ootdLoading && !ootd && items.length === 0 && (
+          <div className="px-4 py-6 flex flex-col items-center gap-2 text-center">
+            <Shirt size={24} style={{ color: 'var(--muted)' }} />
+            <p className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>No wardrobe items yet</p>
+            <p className="text-xs" style={{ color: 'var(--muted)' }}>Add clothes to your wardrobe and AI will pick today's best outfit automatically.</p>
+            <a
+              href="/wardrobe"
+              className="mt-1 text-xs font-semibold px-3 py-1.5 rounded-xl"
+              style={{ background: 'rgba(99,102,241,0.1)', color: 'var(--accent)' }}
+            >
+              Go to Wardrobe →
+            </a>
+          </div>
+        )}
+
+        {/* OOTD result */}
+        {ootd && (
+          <div className="px-4 py-4 flex flex-col gap-3">
+            {/* Outfit name + overall reason */}
+            <div>
+              <h3 className="font-bold text-base leading-tight" style={{ color: 'var(--foreground)' }}>{ootd.outfit_name}</h3>
+              <p className="text-xs mt-1 leading-relaxed" style={{ color: 'var(--muted)' }}>{ootd.overall_reason}</p>
+            </div>
+
+            {/* Items with WHY */}
+            <div className="flex flex-col gap-2">
+              {ootd.items?.map((item, i) => (
+                <div
+                  key={i}
+                  className="rounded-xl overflow-hidden"
+                  style={{ border: '1px solid var(--card-border)' }}
+                >
+                  <div
+                    className="flex items-center gap-3 px-3 py-2.5"
+                    style={{ background: 'var(--muted-bg)' }}
+                  >
+                    {/* Color swatch */}
+                    <div
+                      className="w-9 h-9 rounded-lg shrink-0 border-2"
+                      style={{
+                        background: item.color_hex ?? '#e5e7eb',
+                        borderColor: 'rgba(0,0,0,0.08)',
+                      }}
+                      title={item.color_name}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold truncate" style={{ color: 'var(--foreground)' }}>{item.name}</p>
+                      <p className="text-xs truncate" style={{ color: 'var(--muted)' }}>{item.category} · {item.color_name}</p>
+                    </div>
+                  </div>
+                  {/* WHY this item */}
+                  <div
+                    className="px-3 py-2 flex items-start gap-2"
+                    style={{ background: 'var(--card)', borderTop: '1px solid var(--card-border)' }}
+                  >
+                    <Lightbulb size={11} style={{ color: 'var(--accent)', marginTop: 2, flexShrink: 0 }} />
+                    <p className="text-xs leading-relaxed" style={{ color: 'var(--muted)' }}>{item.why}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Style tip */}
+            {ootd.style_tip && (
+              <div
+                className="rounded-xl px-3 py-2.5 flex items-start gap-2"
+                style={{ background: 'rgba(99,102,241,0.05)', border: '1px solid rgba(99,102,241,0.15)' }}
+              >
+                <Sparkles size={12} style={{ color: 'var(--accent)', marginTop: 2, flexShrink: 0 }} />
+                <p className="text-xs leading-relaxed" style={{ color: 'var(--foreground)' }}>
+                  <span className="font-semibold">Style tip: </span>{ootd.style_tip}
+                </p>
+              </div>
+            )}
+
+            {/* AI badge */}
+            <p className="text-xs text-right" style={{ color: 'var(--muted)' }}>
+              Selected by Gemma 4 · {ootd.backend === 'ollama' ? 'Running locally' : 'Cloud AI'}
+            </p>
           </div>
         )}
       </div>
