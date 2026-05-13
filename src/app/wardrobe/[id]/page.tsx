@@ -11,7 +11,7 @@ import {
   Sun, CloudRain, Award,
 } from 'lucide-react';
 import { useWardrobeStore } from '@/store/wardrobe';
-import { ClothingItem } from '@/types';
+import { ClothingItem, PlannedOutfit } from '@/types';
 import { badgeInlineStyle, categoryBadgeStyle } from '@/lib/badges';
 
 // ─── Carbon estimates (kg CO2e to produce) ───────────────────────────────────
@@ -145,7 +145,7 @@ function PairingImage({ p, itemFromWardrobe }: { p: Pairing; itemFromWardrobe?: 
 export default function ItemDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
-  const { items, removeItem, toggleFavorite, markWornOn, updateItem } = useWardrobeStore();
+  const { items, removeItem, toggleFavorite, markWornOn, updateItem, addPlannedOutfit } = useWardrobeStore();
   const item = items.find((i) => i.id === id) as ClothingItem | undefined;
 
   const [pairings, setPairings]           = useState<PairingResult | null>(null);
@@ -156,6 +156,8 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
   const [scoreLoading, setScoreLoading]   = useState(false);
   const [wearDate, setWearDate]           = useState<'today' | 'tomorrow' | null>(null);
   const [wornConfirmed, setWornConfirmed] = useState(false);
+  const [planDate, setPlanDate]           = useState('');
+  const [planSaved, setPlanSaved]         = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [editingNotes, setEditingNotes]   = useState(false);
   const [notes, setNotes]                 = useState('');
@@ -504,6 +506,81 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
           >
             <CheckCircle size={15} /> Logged! Wear count updated.
           </div>
+        )}
+      </div>
+
+      {/* ── Plan to wear ────────────────────────────────────────────── */}
+      <div
+        className="p-4 rounded-2xl mb-5 section-reveal section-reveal-5"
+        style={{ background: 'var(--card)', border: '1px solid var(--card-border)' }}
+      >
+        <p className="text-sm font-semibold mb-3 flex items-center gap-1.5" style={{ color: 'var(--foreground)' }}>
+          <Calendar size={14} style={{ color: 'var(--accent)' }} /> When am I going to wear this?
+        </p>
+        {planSaved ? (
+          <div
+            className="flex items-center gap-2 px-4 py-3 rounded-xl success-pop"
+            style={{ background: 'rgba(22,163,74,0.08)', border: '1px solid rgba(22,163,74,0.2)' }}
+          >
+            <CheckCircle size={15} style={{ color: '#16a34a', flexShrink: 0 }} />
+            <div>
+              <p className="text-sm font-semibold" style={{ color: '#16a34a' }}>Added to your planner!</p>
+              <p className="text-xs" style={{ color: '#16a34a', opacity: 0.8 }}>
+                {new Date(planDate + 'T00:00:00').toLocaleDateString('en-SG', { weekday: 'long', month: 'long', day: 'numeric' })}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="flex gap-2 mb-3">
+              {[
+                { label: 'Tomorrow', date: new Date(Date.now() + 86400000).toISOString().split('T')[0] },
+                { label: 'This weekend', date: (() => { const d = new Date(); const day = d.getDay(); const toSat = day === 6 ? 7 : 6 - day; d.setDate(d.getDate() + toSat); return d.toISOString().split('T')[0]; })() },
+              ].map(({ label, date }) => (
+                <button
+                  key={label}
+                  onClick={() => setPlanDate(date)}
+                  className="flex-1 py-2 rounded-xl text-xs font-semibold transition-all"
+                  style={planDate === date
+                    ? { background: 'var(--accent-muted)', color: 'var(--accent)', border: '1.5px solid rgba(44,74,30,0.25)' }
+                    : { background: 'var(--muted-bg)', color: 'var(--foreground)', border: '1px solid var(--card-border)' }
+                  }
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <input
+              type="date"
+              value={planDate}
+              min={new Date().toISOString().split('T')[0]}
+              onChange={(e) => setPlanDate(e.target.value)}
+              className="w-full rounded-xl px-3 py-2.5 text-sm outline-none mb-3"
+              style={{ background: 'var(--muted-bg)', border: '1.5px solid var(--card-border)', color: 'var(--foreground)', fontSize: 16 }}
+            />
+            <button
+              disabled={!planDate}
+              onClick={() => {
+                if (!planDate) return;
+                const planned: PlannedOutfit = {
+                  id: Math.random().toString(36).slice(2),
+                  date: planDate,
+                  title: item.name,
+                  items: [{ piece: item.name, color_name: item.color_name, color_hex: item.color_hex }],
+                  occasion: item.tags[0],
+                  source: 'manual',
+                  created_at: new Date().toISOString(),
+                };
+                addPlannedOutfit(planned);
+                setPlanSaved(true);
+                setTimeout(() => setPlanSaved(false), 3000);
+              }}
+              className="w-full py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-40 transition-all hover:opacity-90"
+              style={{ background: 'linear-gradient(to bottom, var(--primary-mid), var(--primary))', color: '#fff' }}
+            >
+              <Calendar size={14} /> Save to Planner
+            </button>
+          </>
         )}
       </div>
 

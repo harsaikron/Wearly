@@ -2,12 +2,13 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { ClothingItem, Outfit } from '@/types';
+import { ClothingItem, Outfit, PlannedOutfit } from '@/types';
 
 interface WardrobeStore {
   items: ClothingItem[];
   outfits: Outfit[];
   history: Outfit[];
+  plannedOutfits: PlannedOutfit[];
 
   addItem: (item: ClothingItem) => void;
   removeItem: (id: string) => void;
@@ -21,6 +22,10 @@ interface WardrobeStore {
   incrementWorn: (itemIds: string[]) => void;
   toggleFavorite: (id: string) => void;
   markWornOn: (id: string, date: string) => void; // date = 'YYYY-MM-DD'
+
+  addPlannedOutfit: (outfit: PlannedOutfit) => void;
+  removePlannedOutfit: (id: string) => void;
+  updatePlannedOutfitDate: (id: string, newDate: string) => void;
 }
 
 export const useWardrobeStore = create<WardrobeStore>()(
@@ -29,6 +34,7 @@ export const useWardrobeStore = create<WardrobeStore>()(
       items: [],
       outfits: [],
       history: [],
+      plannedOutfits: [],
 
       addItem: (item) =>
         set((s) => ({ items: [item, ...s.items] })),
@@ -92,14 +98,32 @@ export const useWardrobeStore = create<WardrobeStore>()(
             };
           }),
         })),
+
+      addPlannedOutfit: (outfit) =>
+        set((s) => ({
+          plannedOutfits: [
+            ...s.plannedOutfits.filter((p) => p.date !== outfit.date || p.id === outfit.id),
+            outfit,
+          ].sort((a, b) => a.date.localeCompare(b.date)),
+        })),
+
+      removePlannedOutfit: (id) =>
+        set((s) => ({ plannedOutfits: s.plannedOutfits.filter((p) => p.id !== id) })),
+
+      updatePlannedOutfitDate: (id, newDate) =>
+        set((s) => ({
+          plannedOutfits: s.plannedOutfits.map((p) =>
+            p.id === id ? { ...p, date: newDate } : p
+          ).sort((a, b) => a.date.localeCompare(b.date)),
+        })),
     }),
     {
       name: 'wearly-wardrobe',
-      // Don't persist large base64 images beyond 4MB total
       partialize: (state) => ({
         items: state.items,
         outfits: state.outfits,
         history: state.history,
+        plannedOutfits: state.plannedOutfits,
       }),
     }
   )

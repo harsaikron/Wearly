@@ -16,7 +16,7 @@ import {
   Heart, BarChart2, ShoppingBag, RefreshCw, Lightbulb, Award,
   AlertTriangle, Package, Palette, Star, ExternalLink,
   Calendar, ChevronRight, ChevronLeft, CalendarDays, Zap, Leaf, Tag, Plane, MapPin,
-  Building2, Landmark, Umbrella, Sun, ShoppingCart, Droplets, ChevronDown, ChevronUp,
+  Building2, Landmark, Umbrella, Sun, ShoppingCart, Droplets, ChevronDown, ChevronUp, Info,
 } from 'lucide-react';
 
 // ── Google Calendar types ──────────────────────────────────────────────────────
@@ -129,6 +129,96 @@ function ScoreRing({ score, grade }: { score: number; grade: string }) {
       <div className="absolute flex flex-col items-center">
         <span className="text-xl font-bold" style={{ color }}>{score}</span>
         <span className="text-xs font-semibold" style={{ color }}>{grade}</span>
+      </div>
+    </div>
+  );
+}
+
+// ── Score explanation modal ─────────────────────────────────────────────────────
+const GRADE_EXPLANATIONS = [
+  { grade: 'A+', range: '95–100', color: '#15803d', bg: '#dcfce7', desc: 'Outstanding! Your wardrobe is diverse, well-utilised, and perfectly balanced.' },
+  { grade: 'A',  range: '90–94',  color: '#16a34a', bg: '#dcfce7', desc: 'Excellent wardrobe health. Very few gaps and great outfit variety.' },
+  { grade: 'B+', range: '80–89',  color: '#2563eb', bg: '#dbeafe', desc: 'Great closet with minor room for improvement in variety or utilisation.' },
+  { grade: 'B',  range: '75–79',  color: '#1d4ed8', bg: '#dbeafe', desc: 'Good overall. Some items are underused or there are small colour gaps.' },
+  { grade: 'C+', range: '60–74',  color: '#d97706', bg: '#fef3c7', desc: 'Average. Several items rarely worn, or wardrobe lacks essential categories.' },
+  { grade: 'C',  range: '45–59',  color: '#b45309', bg: '#fef3c7', desc: 'Below average. Many items are duplicates or never worn — time to declutter.' },
+  { grade: 'D',  range: '< 45',   color: '#dc2626', bg: '#fee2e2', desc: 'Needs attention. Very low utilisation, too many duplicates, or missing basics.' },
+];
+const SCORE_FACTORS = [
+  { icon: '♻️', label: 'Item Utilisation', desc: 'Proportion of clothes worn in the last 90 days' },
+  { icon: '🎨', label: 'Colour Diversity', desc: 'Range of colours in your wardrobe' },
+  { icon: '📦', label: 'Category Balance', desc: 'Mix of tops, bottoms, shoes, accessories' },
+  { icon: '🔄', label: 'Outfit Versatility', desc: 'How many outfits your items can create together' },
+  { icon: '⚠️', label: 'Duplicates', desc: 'Penalises near-identical items (same category + colour)' },
+];
+
+function ScoreInfoModal({ onClose }: { onClose: () => void }) {
+  return (
+    <div
+      className="fixed inset-0 flex items-end sm:items-center justify-center"
+      style={{ zIndex: 9900, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}
+      onClick={onClose}
+    >
+      <div
+        className="w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl overflow-hidden"
+        style={{ background: 'var(--card)', border: '1px solid var(--card-border)', maxHeight: '88dvh', overflowY: 'auto' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 sticky top-0"
+          style={{ background: 'var(--card)', borderBottom: '1px solid var(--card-border)', zIndex: 1 }}>
+          <div className="flex items-center gap-2">
+            <Award size={16} style={{ color: 'var(--accent)' }}/>
+            <p className="font-bold text-base" style={{ color: 'var(--foreground)' }}>How Scores Work</p>
+          </div>
+          <button onClick={onClose}
+            style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--muted-bg)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+            <X size={15} style={{ color: 'var(--muted)' }} />
+          </button>
+        </div>
+
+        <div className="px-5 py-4 flex flex-col gap-5">
+          {/* Grade table */}
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: 'var(--muted)' }}>Grade Scale</p>
+            <div className="flex flex-col gap-2">
+              {GRADE_EXPLANATIONS.map((g) => (
+                <div key={g.grade} className="flex items-start gap-3 px-3 py-2.5 rounded-xl"
+                  style={{ background: g.bg, border: `1px solid ${g.color}22` }}>
+                  <span className="font-bold text-base w-9 shrink-0 text-right" style={{ color: g.color }}>{g.grade}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold" style={{ color: g.color }}>{g.range} / 100</p>
+                    <p className="text-xs mt-0.5 leading-snug" style={{ color: g.color, opacity: 0.85 }}>{g.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Scoring factors */}
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: 'var(--muted)' }}>What We Measure</p>
+            <div className="flex flex-col gap-2">
+              {SCORE_FACTORS.map((f) => (
+                <div key={f.label} className="flex items-start gap-3 px-3 py-2.5 rounded-xl"
+                  style={{ background: 'var(--muted-bg)', border: '1px solid var(--card-border)' }}>
+                  <span style={{ fontSize: 18, lineHeight: 1, flexShrink: 0 }}>{f.icon}</span>
+                  <div>
+                    <p className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>{f.label}</p>
+                    <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>{f.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Tip */}
+          <div className="px-3 py-3 rounded-xl" style={{ background: 'var(--accent-muted)', border: '1px solid rgba(44,74,30,0.15)' }}>
+            <p className="text-xs leading-relaxed" style={{ color: 'var(--accent)' }}>
+              💡 <strong>Tip:</strong> Wear items more often, remove duplicates, and add a few missing essentials (e.g. neutral shoes or a versatile jacket) to improve your score.
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -519,6 +609,7 @@ export default function WardrobePage() {
   const [health, setHealth]         = useState<HealthData | null>(null);
   const [healthLoading, setHealthLoading] = useState(false);
   const [healthError, setHealthError] = useState('');
+  const [showScoreInfo, setShowScoreInfo] = useState(false);
 
   // ── Plan state ──
   const today = new Date();
@@ -693,21 +784,23 @@ export default function WardrobePage() {
                 aria-label="Search wardrobe items"
               />
             </div>
-            {/* Desktop Add button */}
-            <button
-              onClick={() => { setPreview(''); setShowAdd(true); }}
-              className="hidden md:flex items-center gap-2 btn-primary"
-              style={{ padding: '0 20px', height: 52, borderRadius: 16, fontSize: 14, whiteSpace: 'nowrap' }}
-              aria-label="Add new clothing item"
-            >
-              <Plus size={16}/> Add Clothes
-            </button>
+            {/* Desktop Add button — wrapper div ensures hidden/md:flex beats btn-primary specificity */}
+            <div className="hidden md:flex">
+              <button
+                onClick={() => { setPreview(''); setShowAdd(true); }}
+                className="btn-primary items-center gap-2"
+                style={{ padding: '0 20px', height: 52, borderRadius: 16, fontSize: 14, whiteSpace: 'nowrap' }}
+                aria-label="Add new clothing item"
+              >
+                <Plus size={16}/> Add Clothes
+              </button>
+            </div>
           </div>
 
-          {/* Mobile FAB — Add Clothes */}
+          {/* Mobile FAB — sits above the bottom nav, only on mobile */}
           <button
             onClick={() => { setPreview(''); setShowAdd(true); }}
-            className="fab md:hidden"
+            className="fab"
             aria-label="Add new clothing item"
           >
             <Plus size={20} />
@@ -835,14 +928,24 @@ export default function WardrobePage() {
               {/* Score card */}
               <div className="rounded-2xl p-5 flex items-center gap-5" style={{ background:'var(--card)', border:'1px solid var(--card-border)', boxShadow:'var(--shadow-md)' }}>
                 <ScoreRing score={health.overall_score} grade={health.grade}/>
-                <div className="flex-1">
-                  <p className="font-bold text-base" style={{ color:'var(--foreground)' }}>Closet Health Score</p>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="font-bold text-base" style={{ color:'var(--foreground)' }}>Closet Health Score</p>
+                    <button
+                      onClick={() => setShowScoreInfo(true)}
+                      aria-label="What does this score mean?"
+                      style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--muted-bg)', border: '1px solid var(--card-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
+                    >
+                      <Info size={12} style={{ color: 'var(--muted)' }} />
+                    </button>
+                  </div>
                   <p className="text-xs mt-1 leading-relaxed" style={{ color:'var(--muted)' }}>{health.summary}</p>
                   <button onClick={fetchHealth} className="flex items-center gap-1 mt-2 text-xs font-semibold" style={{ color:'var(--accent)' }}>
                     <RefreshCw size={11}/> Refresh
                   </button>
                 </div>
               </div>
+              {showScoreInfo && <ScoreInfoModal onClose={() => setShowScoreInfo(false)} />}
 
               {health.overused?.length > 0 && (
                 <Section icon={<AlertTriangle size={15} color="#f59e0b"/>} title="Overused Items" color="#f59e0b">

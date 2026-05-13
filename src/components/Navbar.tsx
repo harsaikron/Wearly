@@ -121,30 +121,37 @@ export default function Navbar() {
                 <Link
                   key={href}
                   href={href}
-                  className="flex items-center gap-3 px-3 py-3 rounded-2xl transition-all active:scale-[0.98]"
                   style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 14,
+                    padding: '12px 14px',
+                    borderRadius: 18,
+                    textDecoration: 'none',
+                    transition: 'background 0.15s, transform 0.1s',
                     background: active ? 'rgba(44,74,30,0.07)' : 'transparent',
                     border: active ? '1px solid rgba(44,74,30,0.14)' : '1px solid transparent',
                   }}
                 >
                   <div
-                    className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0"
                     style={{
+                      width: 48, height: 48, borderRadius: 14, flexShrink: 0,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
                       background: active
                         ? 'linear-gradient(to bottom, var(--primary-mid), var(--primary))'
-                        : 'rgba(0,0,0,0.05)',
+                        : 'rgba(0,0,0,0.06)',
                       boxShadow: active ? 'var(--shadow-btn)' : 'none',
                     }}
                   >
-                    <Icon size={18} style={{ color: active ? '#fff' : 'var(--muted)' }} />
+                    <Icon size={22} style={{ color: active ? '#fff' : 'var(--muted)' }} />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold" style={{ color: active ? 'var(--primary)' : 'var(--foreground)' }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: 17, fontWeight: 700, lineHeight: 1.2, color: active ? 'var(--primary)' : 'var(--foreground)', margin: 0 }}>
                       {label}
                     </p>
-                    <p className="text-xs" style={{ color: 'var(--muted)' }}>{desc}</p>
+                    <p style={{ fontSize: 13, color: 'var(--muted)', margin: '2px 0 0', lineHeight: 1.3 }}>{desc}</p>
                   </div>
-                  <ChevronRight size={14} style={{ color: 'var(--muted)', flexShrink: 0 }} />
+                  <ChevronRight size={16} style={{ color: 'var(--muted)', flexShrink: 0 }} />
                 </Link>
               );
             })}

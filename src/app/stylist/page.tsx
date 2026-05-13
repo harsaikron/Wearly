@@ -2,10 +2,11 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useWardrobeStore } from '@/store/wardrobe';
+import { PlannedOutfit } from '@/types';
 import {
   Send, Sparkles, Bot, User, CalendarDays, ShoppingBag,
   ExternalLink, Loader, Lightbulb, Star, Leaf, Zap, Award,
-  RefreshCw, ChevronDown, ChevronUp,
+  RefreshCw, ChevronDown, ChevronUp, CalendarPlus, Check, X,
 } from 'lucide-react';
 import { EventIcon, OccasionIcon } from '@/components/icons/SgIcons';
 import { getUpcomingEvents } from '@/lib/singapore-events';
@@ -67,7 +68,7 @@ function ShopButtons({ query }: { query: string }) {
     <div className="flex gap-1.5 flex-wrap">
       <a href={sheinUrl(query)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold hover:opacity-80" style={{ background:'#000', color:'#fff' }}><ShoppingBag size={9}/> Shein</a>
       <a href={shopeeUrl(query)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold hover:opacity-80" style={{ background:'#ee4d2d', color:'#fff' }}><ShoppingBag size={9}/> Shopee</a>
-      <a href={zaloraUrl(query)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold hover:opacity-80" style={{ background:'#9b27af', color:'#fff' }}><ShoppingBag size={9}/> Zalora</a>
+      <a href={zaloraUrl(query)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold hover:opacity-80" style={{ background:'linear-gradient(to bottom, var(--primary-mid), var(--primary))', color:'#fff' }}><ShoppingBag size={9}/> Zalora</a>
     </div>
   );
 }
@@ -75,8 +76,73 @@ function ShopButtons({ query }: { query: string }) {
 // ── Main page ─────────────────────────────────────────────────────────────────
 type Tab = 'stylist' | 'eco';
 
+// ── Add-to-Planner modal ──────────────────────────────────────────────────────
+function PlannerModal({
+  suggestion,
+  onClose,
+  onSaved,
+}: {
+  suggestion: AISuggestion;
+  onClose: () => void;
+  onSaved: (date: string) => void;
+}) {
+  const today = new Date().toISOString().split('T')[0];
+  const [date, setDate] = useState(today);
+  return (
+    <div
+      className="fixed inset-0 flex items-end sm:items-center justify-center"
+      style={{ zIndex: 9000, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)' }}
+      onClick={onClose}
+    >
+      <div
+        className="w-full sm:max-w-sm rounded-t-3xl sm:rounded-2xl p-6 flex flex-col gap-4"
+        style={{ background: 'var(--card)', border: '1px solid var(--card-border)', boxShadow: 'var(--shadow-md)' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <CalendarPlus size={18} style={{ color: 'var(--accent)' }} />
+            <p className="font-bold text-sm" style={{ color: 'var(--foreground)' }}>Add to Planner</p>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-full" style={{ background: 'var(--muted-bg)' }}>
+            <X size={14} style={{ color: 'var(--muted)' }} />
+          </button>
+        </div>
+        <p className="text-xs" style={{ color: 'var(--muted)' }}>
+          {suggestion.headline ?? 'Outfit'} · {(suggestion.outfit_items ?? []).length} piece{(suggestion.outfit_items ?? []).length !== 1 ? 's' : ''}
+        </p>
+        <div className="flex flex-wrap gap-1.5">
+          {(suggestion.outfit_items ?? []).slice(0, 4).map((item, i) => (
+            <span key={i} className="text-xs px-2 py-0.5 rounded-full" style={{ background: `${item.color_hex}22`, color: 'var(--foreground)', border: `1px solid ${item.color_hex}44` }}>
+              {item.piece}
+            </span>
+          ))}
+        </div>
+        <div>
+          <label className="text-xs font-semibold block mb-1.5" style={{ color: 'var(--muted)' }}>PICK A DATE</label>
+          <input
+            type="date"
+            value={date}
+            min={today}
+            onChange={(e) => setDate(e.target.value)}
+            className="w-full rounded-xl px-3 py-2.5 text-sm outline-none"
+            style={{ background: 'var(--muted-bg)', border: '1.5px solid var(--card-border)', color: 'var(--foreground)', fontSize: 16 }}
+          />
+        </div>
+        <button
+          onClick={() => { onSaved(date); onClose(); }}
+          className="w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2"
+          style={{ background: 'linear-gradient(to bottom, var(--primary-mid), var(--primary))', color: '#fff' }}
+        >
+          <Check size={15} /> Save to {new Date(date + 'T00:00:00').toLocaleDateString('en-SG', { weekday: 'short', month: 'short', day: 'numeric' })}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function StylistPage() {
-  const { items } = useWardrobeStore();
+  const { items, addPlannedOutfit } = useWardrobeStore();
   const todayIdx = (new Date().getDay() + 6) % 7;
 
   const [tab, setTab] = useState<Tab>('stylist');
@@ -89,6 +155,8 @@ export default function StylistPage() {
   const [messages,         setMessages]         = useState<Message[]>([]);
   const [input,            setInput]            = useState('');
   const [loading,          setLoading]          = useState(false);
+  const [plannerMsg,       setPlannerMsg]       = useState<{ id: string; suggestion: AISuggestion } | null>(null);
+  const [savedDates,       setSavedDates]       = useState<Record<string, string>>({});
   const bottomRef = useRef<HTMLDivElement>(null);
 
   // ── Eco state ──
@@ -342,12 +410,34 @@ export default function StylistPage() {
                             </p>
                           </div>
                         )}
+                        {/* Add to Planner */}
+                        {msg.suggestion.outfit_items && msg.suggestion.outfit_items.length > 0 && (
+                          <div className="px-4 py-3" style={{ borderTop:'1px solid var(--card-border)' }}>
+                            {savedDates[msg.id] ? (
+                              <div className="flex items-center gap-2 px-3 py-2 rounded-xl" style={{ background:'rgba(22,163,74,0.08)', border:'1px solid rgba(22,163,74,0.2)' }}>
+                                <Check size={13} style={{ color:'#16a34a', flexShrink:0 }} />
+                                <span className="text-xs font-semibold" style={{ color:'#16a34a' }}>
+                                  Saved to {new Date(savedDates[msg.id] + 'T00:00:00').toLocaleDateString('en-SG', { weekday:'short', month:'short', day:'numeric' })}
+                                </span>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => setPlannerMsg({ id: msg.id, suggestion: msg.suggestion! })}
+                                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-90"
+                                style={{ background:'var(--accent-muted)', color:'var(--accent)', border:'1.5px solid rgba(var(--accent-rgb,44,74,30),0.25)' }}
+                              >
+                                <CalendarPlus size={14} /> Add to Planner
+                              </button>
+                            )}
+                          </div>
+                        )}
+
                         {msg.suggestion.search_query && (
                           <div className="px-4 py-3 flex items-center gap-2 flex-wrap" style={{ borderTop:'1px solid var(--card-border)', background:'var(--muted-bg)' }}>
                             <span className="text-xs font-semibold flex items-center gap-1 mr-1" style={{ color:'var(--muted)' }}><ShoppingBag size={11}/> Shop Full Look:</span>
                             <a href={sheinUrl(msg.suggestion.search_query + ' men')} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold hover:opacity-80" style={{ background:'#000', color:'#fff' }}>Shein <ExternalLink size={9}/></a>
                             <a href={shopeeUrl(msg.suggestion.search_query + ' men Singapore')} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold hover:opacity-80" style={{ background:'#ee4d2d', color:'#fff' }}>Shopee <ExternalLink size={9}/></a>
-                            <a href={zaloraUrl(msg.suggestion.search_query)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold hover:opacity-80" style={{ background:'#9b27af', color:'#fff' }}>Zalora <ExternalLink size={9}/></a>
+                            <a href={zaloraUrl(msg.suggestion.search_query)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold hover:opacity-80" style={{ background:'linear-gradient(to bottom, var(--primary-mid), var(--primary))', color:'#fff' }}>Zalora <ExternalLink size={9}/></a>
                           </div>
                         )}
                       </div>
@@ -564,6 +654,28 @@ export default function StylistPage() {
       )}
 
       <style>{`@keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}`}</style>
+
+      {/* Add to Planner modal */}
+      {plannerMsg && (
+        <PlannerModal
+          suggestion={plannerMsg.suggestion}
+          onClose={() => setPlannerMsg(null)}
+          onSaved={(date) => {
+            const s = plannerMsg.suggestion;
+            const planned: PlannedOutfit = {
+              id: uid(),
+              date,
+              title: s.headline ?? s.occasion ?? 'AI Outfit',
+              items: (s.outfit_items ?? []).map((i) => ({ piece: i.piece, color_name: i.color_name, color_hex: i.color_hex, note: i.note })),
+              occasion: s.occasion,
+              source: 'stylist',
+              created_at: new Date().toISOString(),
+            };
+            addPlannedOutfit(planned);
+            setSavedDates((prev) => ({ ...prev, [plannerMsg.id]: date }));
+          }}
+        />
+      )}
     </div>
   );
 }

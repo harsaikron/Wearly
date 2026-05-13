@@ -905,23 +905,16 @@ a:focus-visible {
   outline-offset: 3px;
 }
 
-/* ── All interactive touch targets ≥44×44px ───────────────────── */
-button, [role="button"], a {
+/* ── Touch target helpers — explicit classes only, never global a/Link ─── */
+/* Don't force display on <a>/<Link> — Tailwind classes must win */
+button:not(.btn-bare), [role="button"] {
   min-height: 44px;
   min-width: 44px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
 }
-/* Reset for elements that shouldn't be forced to 44px */
-a.block, a[href], nav a, span[role="button"] {
-  min-height: unset;
-  min-width: unset;
-  display: initial;
-}
-nav a {
-  display: inline-flex;
-  align-items: center;
+/* Icon-only buttons that are smaller are exempt */
+.btn-icon {
+  min-height: 40px;
+  min-width: 40px;
 }
 
 /* ── Badge / pill — prevent wrapping ─────────────────────────── */
@@ -966,8 +959,14 @@ nav a {
 
 /* ── Mobile-friendly tab bar item ─────────────────────────────── */
 .bottom-nav-item {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 3px !important;
   min-height: 56px;
   padding: 8px 4px 10px;
+  text-decoration: none !important;
 }
 
 /* ── Search input row ─────────────────────────────────────────── */

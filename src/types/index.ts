@@ -98,6 +98,16 @@ export interface UserProfile {
   created_at: string;
 }
 
+export interface PlannedOutfit {
+  id: string;
+  date: string; // YYYY-MM-DD
+  title: string;
+  items: { piece: string; color_name: string; color_hex: string; note?: string }[];
+  occasion?: string;
+  source: 'ai' | 'manual' | 'stylist';
+  created_at: string;
+}
+
 export type ListingCondition = 'New' | 'Like New' | 'Good' | 'Fair';
 export type ListingMode = 'sell' | 'rent' | 'both';
 
