@@ -10,7 +10,8 @@ import { Ollama } from 'ollama';
 import Groq from 'groq-sdk';
 
 const OLLAMA_MODEL        = 'gemma4:e4b';
-const OLLAMA_FASHION_MODEL = 'wearly-fashion-v1'; // fine-tuned clothing classifier
+const OLLAMA_FASHION_MODEL = 'wearly-fashion-v1'; // fine-tuned clothing classifier (Module 1)
+const OLLAMA_OUTFIT_MODEL  = 'wearly-outfit-v1';  // fine-tuned outfit scorer       (Module 2)
 const GROQ_TEXT_MODEL     = 'llama-3.3-70b-versatile';
 const GROQ_VISION_MODEL   = 'meta-llama/llama-4-scout-17b-16e-instruct';
 
@@ -21,18 +22,35 @@ export const OLLAMA_HOST = process.env.OLLAMA_HOST ?? 'http://localhost:11434';
 // Falls back silently to the base gemma4:e4b if not found.
 
 let _fashionModelAvailable: boolean | null = null;
+let _outfitModelAvailable: boolean | null  = null;
+let _ollamaTagsCache: { models: { name: string }[] } | null = null;
 
+async function _getOllamaTags(): Promise<{ models: { name: string }[] } | null> {
+  if (_ollamaTagsCache) return _ollamaTagsCache;
+  try {
+    const res = await fetch(`${OLLAMA_HOST}/api/tags`, { signal: AbortSignal.timeout(1500) });
+    if (!res.ok) return null;
+    _ollamaTagsCache = await res.json() as { models: { name: string }[] };
+    return _ollamaTagsCache;
+  } catch {
+    return null;
+  }
+}
+
+// Module 1 — clothing vision classifier
 export async function detectFashionModel(): Promise<boolean> {
   if (_fashionModelAvailable !== null) return _fashionModelAvailable;
-  try {
-    const res  = await fetch(`${OLLAMA_HOST}/api/tags`, { signal: AbortSignal.timeout(1500) });
-    if (!res.ok) { _fashionModelAvailable = false; return false; }
-    const data = await res.json() as { models: { name: string }[] };
-    _fashionModelAvailable = data.models?.some((m) => m.name.startsWith('wearly-fashion'));
-  } catch {
-    _fashionModelAvailable = false;
-  }
-  return _fashionModelAvailable ?? false;
+  const data = await _getOllamaTags();
+  _fashionModelAvailable = data?.models?.some((m) => m.name.startsWith('wearly-fashion')) ?? false;
+  return _fashionModelAvailable;
+}
+
+// Module 2 — outfit compatibility scorer
+export async function detectOutfitModel(): Promise<boolean> {
+  if (_outfitModelAvailable !== null) return _outfitModelAvailable;
+  const data = await _getOllamaTags();
+  _outfitModelAvailable = data?.models?.some((m) => m.name.startsWith('wearly-outfit')) ?? false;
+  return _outfitModelAvailable;
 }
 
 // ─── Backend detection ────────────────────────────────────────────────────────
@@ -55,6 +73,57 @@ export async function detectBackend(): Promise<AIBackend> {
 
   if (process.env.GROQ_API_KEY) return 'groq';
   return 'none';
+}
+
+// ─── Outfit scoring chat (Module 2) ──────────────────────────────────────────
+// Uses wearly-outfit-v1 fine-tuned model when available, falls back to base.
+
+export async function aiChatOutfit(
+  system: string,
+  userMessage: string,
+): Promise<{ text: string; backend: AIBackend; modelUsed: string }> {
+  const backend = await detectBackend();
+
+  if (backend === 'ollama') {
+    const useOutfitModel = await detectOutfitModel();
+    const model = useOutfitModel ? OLLAMA_OUTFIT_MODEL : OLLAMA_MODEL;
+    const ollama = new Ollama({ host: OLLAMA_HOST });
+    const res = await ollama.chat({
+      model,
+      messages: [
+        { role: 'system', content: system },
+        { role: 'user',   content: userMessage },
+      ],
+      format: 'json',
+      options: { temperature: 0.2 },
+    });
+    return {
+      text:      res.message.content,
+      backend:   useOutfitModel ? ('ollama-finetuned' as AIBackend) : backend,
+      modelUsed: useOutfitModel ? 'wearly-outfit-v1 (fine-tuned)' : 'gemma4:e4b (base)',
+    };
+  }
+
+  if (backend === 'groq') {
+    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+    const res = await groq.chat.completions.create({
+      model: GROQ_TEXT_MODEL,
+      messages: [
+        { role: 'system', content: system + '\n\nIMPORTANT: Reply with valid JSON only, no markdown fences.' },
+        { role: 'user',   content: userMessage },
+      ],
+      temperature: 0.2,
+      max_tokens:  600,
+      response_format: { type: 'json_object' },
+    });
+    return {
+      text:      res.choices[0].message.content ?? '{}',
+      backend,
+      modelUsed: 'llama-3.3-70b (groq)',
+    };
+  }
+
+  throw new Error('AI offline.');
 }
 
 // ─── Text chat ────────────────────────────────────────────────────────────────

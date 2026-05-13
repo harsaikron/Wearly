@@ -151,6 +151,8 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
   const [pairingLoading, setPairingLoading] = useState(false);
   const [pairingError, setPairingError]   = useState('');
   const [showPairings, setShowPairings]   = useState(false);
+  const [outfitScore, setOutfitScore]     = useState<{ score: number; verdict: string; reasons: string[]; suggestions: string[]; _model: string } | null>(null);
+  const [scoreLoading, setScoreLoading]   = useState(false);
   const [wearDate, setWearDate]           = useState<'today' | 'tomorrow' | null>(null);
   const [wornConfirmed, setWornConfirmed] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -179,7 +181,7 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
   const today   = new Date().toISOString().split('T')[0];
   const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
 
-  // ─── Pair suggestions ───────────────────────────────────────────────────────
+  // ─── Pair suggestions + compatibility score ─────────────────────────────────
   async function loadPairings() {
     if (pairings) { setShowPairings((v) => !v); return; }
     setPairingLoading(true);
@@ -196,7 +198,27 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
-      setPairings(data as PairingResult);
+      const result = data as PairingResult;
+      setPairings(result);
+
+      // Fire outfit score for the top 3 pairings in background
+      const topPairings = result.pairings.slice(0, 3);
+      if (topPairings.length >= 1) {
+        setScoreLoading(true);
+        const scoreItems = [
+          { name: item!.name, category: item!.category, color_name: item!.color_name, tags: item!.tags },
+          ...topPairings.map((p) => ({ name: p.item_name, category: p.role.toLowerCase(), color_name: p.color_name, tags: [p.occasion] })),
+        ];
+        fetch('/api/outfit-score', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ items: scoreItems, occasion: result.best_occasion ?? 'casual' }),
+        })
+          .then((r) => r.json())
+          .then((s) => { if (!s.error) setOutfitScore(s); })
+          .catch(() => null)
+          .finally(() => setScoreLoading(false));
+      }
     } catch (e) {
       setPairingError(String(e));
     } finally {
@@ -580,6 +602,69 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
                   <p className="text-xs font-semibold mb-0.5" style={{ color: '#6366f1' }}>💡 Stylist tip</p>
                   <p className="text-xs" style={{ color: 'var(--foreground)' }}>{pairings.style_tip}</p>
                 </div>
+
+                {/* Outfit compatibility score (Module 2) */}
+                {(scoreLoading || outfitScore) && (
+                  <div
+                    className="mb-4 p-3 rounded-xl slide-up"
+                    style={{ background: 'rgba(16,185,129,0.05)', border: '1px solid rgba(16,185,129,0.18)' }}
+                  >
+                    <p className="text-xs font-semibold mb-2 flex items-center gap-1.5" style={{ color: '#065f46' }}>
+                      <Sparkles size={11} style={{ color: '#10b981' }} /> Compatibility Score
+                      {outfitScore && (
+                        <span className="text-xs font-normal ml-auto" style={{ color: 'var(--muted)' }}>
+                          {outfitScore._model?.includes('fine-tuned') ? '✦ fine-tuned' : ''}
+                        </span>
+                      )}
+                    </p>
+                    {scoreLoading && !outfitScore && (
+                      <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--muted)' }}>
+                        <RefreshCw size={11} className="animate-spin" /> Scoring outfit…
+                      </div>
+                    )}
+                    {outfitScore && (
+                      <>
+                        <div className="flex items-center gap-3 mb-2">
+                          {/* Score ring */}
+                          <div className="relative w-14 h-14 shrink-0">
+                            <svg viewBox="0 0 56 56" className="w-14 h-14 -rotate-90">
+                              <circle cx="28" cy="28" r="23" fill="none" stroke="rgba(16,185,129,0.15)" strokeWidth="5" />
+                              <circle
+                                cx="28" cy="28" r="23" fill="none"
+                                stroke={outfitScore.score >= 80 ? '#10b981' : outfitScore.score >= 50 ? '#f59e0b' : '#ef4444'}
+                                strokeWidth="5"
+                                strokeLinecap="round"
+                                strokeDasharray={`${(outfitScore.score / 100) * 144.5} 144.5`}
+                                style={{ transition: 'stroke-dasharray 0.8s cubic-bezier(0.16,1,0.3,1)' }}
+                              />
+                            </svg>
+                            <span
+                              className="absolute inset-0 flex items-center justify-center text-sm font-bold"
+                              style={{ color: outfitScore.score >= 80 ? '#10b981' : outfitScore.score >= 50 ? '#f59e0b' : '#ef4444' }}
+                            >
+                              {outfitScore.score}
+                            </span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold leading-snug" style={{ color: 'var(--foreground)' }}>
+                              {outfitScore.verdict}
+                            </p>
+                          </div>
+                        </div>
+                        {outfitScore.reasons.slice(0, 2).map((r, i) => (
+                          <p key={i} className="text-xs mt-1 flex items-start gap-1" style={{ color: '#065f46' }}>
+                            <span>·</span> {r}
+                          </p>
+                        ))}
+                        {outfitScore.suggestions?.[0] && (
+                          <p className="text-xs mt-2 italic" style={{ color: '#6b7280' }}>
+                            💡 {outfitScore.suggestions[0]}
+                          </p>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
 
                 {/* Pairing cards — stagger animation */}
                 <div className="flex flex-col gap-3 stagger-grid">
