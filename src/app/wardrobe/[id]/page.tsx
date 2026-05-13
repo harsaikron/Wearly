@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useWardrobeStore } from '@/store/wardrobe';
 import { ClothingItem } from '@/types';
+import { badgeInlineStyle, categoryBadgeStyle } from '@/lib/badges';
 
 // ─── Carbon estimates (kg CO2e to produce) ───────────────────────────────────
 const CARBON_KG: Record<string, number> = {
@@ -34,11 +35,11 @@ const CATEGORY_LABEL: Record<string, string> = {
   watch: 'Watch', belt: 'Belt', accessory: 'Accessory',
 };
 
-// ─── Occasion colors ──────────────────────────────────────────────────────────
+// ─── Occasion colors (kept for legacy uses) ───────────────────────────────────
 const OCC_COLOR: Record<string, string> = {
-  office: 'var(--primary-mid)', casual: '#10b981', date_night: '#ec4899',
-  weekend: '#f59e0b', smart_casual: '#3b82f6', minimal: '#8b5cf6',
-  luxury: '#b45309', travel: '#0ea5e9', festive: '#ef4444', gym: '#84cc16',
+  office: '#2563EB', casual: '#C2570A', date_night: '#BE185D',
+  weekend: '#A16207', smart_casual: '#2C4A1E', minimal: '#6D28D9',
+  luxury: '#92400E', travel: '#0E7490', festive: '#B91C1C', gym: '#166534',
 };
 
 // ─── Shopping helpers ─────────────────────────────────────────────────────────
@@ -311,10 +312,10 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
       <div
         className="w-full rounded-3xl overflow-hidden mb-5 relative card-lift section-reveal section-reveal-2"
         style={{
-          background: 'var(--card)',
-          border: '1px solid var(--card-border)',
+          background: `linear-gradient(135deg, ${categoryBadgeStyle(item.category).bg} 0%, #ffffff 100%)`,
+          border: `1.5px solid ${categoryBadgeStyle(item.category).border}`,
           aspectRatio: '4/3',
-          boxShadow: 'var(--shadow-md)',
+          boxShadow: 'var(--shadow-lg)',
         }}
       >
         {item.image_url ? (
@@ -331,18 +332,39 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
             {!heroLoaded && <div className="absolute inset-0 skeleton" />}
           </>
         ) : (
-          <div className="w-full h-full flex items-center justify-center" style={{ color: 'var(--muted)' }}>
-            <ShoppingBag size={48} strokeWidth={1} />
+          <div className="w-full h-full flex items-center justify-center flex-col gap-3" style={{ color: 'var(--muted)' }}>
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ background: categoryBadgeStyle(item.category).bg }}>
+              <ShoppingBag size={30} style={{ color: categoryBadgeStyle(item.category).color }} strokeWidth={1.5} />
+            </div>
+            <span className="text-sm font-medium" style={{ color: 'var(--muted)' }}>No photo yet</span>
+          </div>
+        )}
+        {/* Glass bottom bar with item name */}
+        {item.image_url && heroLoaded && (
+          <div
+            className="absolute bottom-0 left-0 right-0 px-4 py-3"
+            style={{
+              background: 'linear-gradient(transparent, rgba(0,0,0,0.55))',
+              backdropFilter: 'blur(0px)',
+            }}
+          >
+            <p className="text-white font-bold text-sm leading-tight drop-shadow">{item.name}</p>
           </div>
         )}
         {item.favorite && (
           <div
-            className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center float"
-            style={{ background: 'rgba(236,72,153,0.18)', backdropFilter: 'blur(8px)' }}
+            className="absolute top-3 right-3 w-9 h-9 rounded-full flex items-center justify-center float badge-glass"
           >
-            <Heart size={15} fill="#ec4899" stroke="#ec4899" />
+            <Heart size={16} fill="#ec4899" stroke="#ec4899" />
           </div>
         )}
+        {/* Category glass badge top-left */}
+        <div
+          className="absolute top-3 left-3 badge-glass capitalize"
+          style={{ color: categoryBadgeStyle(item.category).color, fontSize: 11, fontWeight: 700 }}
+        >
+          {item.category.replace(/_/g, ' ')}
+        </div>
       </div>
 
       {/* ── Identity ────────────────────────────────────────────────── */}
@@ -363,25 +385,26 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
           {item.brand && <><span>·</span><span>{item.brand}</span></>}
         </div>
 
-        {/* Tags */}
-        {item.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mt-3">
-            {item.tags.map((tag, i) => (
-              <span
-                key={tag}
-                className="text-xs font-medium px-2.5 py-0.5 rounded-full capitalize tag-in"
-                style={{
-                  background: `${OCC_COLOR[tag] ?? 'var(--primary-mid)'}14`,
-                  color: OCC_COLOR[tag] ?? 'var(--primary-mid)',
-                  border: `1px solid ${OCC_COLOR[tag] ?? 'var(--primary-mid)'}28`,
-                  animationDelay: `${i * 50}ms`,
-                }}
-              >
-                {tag.replace('_', ' ')}
-              </span>
-            ))}
-          </div>
-        )}
+        {/* Tags — colorful badge system */}
+        <div className="flex flex-wrap gap-2 mt-3">
+          {/* Category badge */}
+          <span
+            className="capitalize tag-in"
+            style={{ ...badgeInlineStyle(item.category, 'category'), animationDelay: '0ms' }}
+          >
+            {item.category.replace(/_/g, ' ')}
+          </span>
+          {/* Occasion tags */}
+          {item.tags.map((tag, i) => (
+            <span
+              key={tag}
+              className="capitalize tag-in"
+              style={{ ...badgeInlineStyle(tag, 'occasion'), animationDelay: `${(i + 1) * 55}ms` }}
+            >
+              {tag.replace(/_/g, ' ')}
+            </span>
+          ))}
+        </div>
       </div>
 
       {/* ── Wear stats ──────────────────────────────────────────────── */}

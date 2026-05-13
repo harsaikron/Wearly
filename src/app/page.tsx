@@ -950,67 +950,88 @@ export default function HomePage() {
         )}
       </div>
 
-      {/* ── Ask AI input ──────────────────────────────────────── */}
+      {/* ── Ask AI input — glass frosted ─────────────────────── */}
       <div
-        className="flex items-center gap-3 rounded-2xl px-4 py-3 mb-4"
-        style={{ background: 'var(--card)', border: '1px solid var(--card-border)', boxShadow: 'var(--shadow-sm)' }}
+        className="flex items-center gap-3 rounded-2xl px-4 py-3.5 mb-4"
+        style={{
+          background: 'rgba(255,255,255,0.80)',
+          backdropFilter: 'blur(20px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+          border: '1.5px solid rgba(255,255,255,0.85)',
+          boxShadow: 'var(--shadow-md), inset 0 1px 0 rgba(255,255,255,0.9)',
+        }}
       >
-        <Sparkles size={16} style={{ color: 'var(--accent)' }} />
+        <Sparkles size={16} style={{ color: 'var(--primary-mid)' }} />
         <input
           type="text"
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && question.trim() && askAI(question)}
           placeholder="Ask AI anything… what to wear today?"
-          className="flex-1 bg-transparent outline-none text-sm"
+          className="flex-1 bg-transparent outline-none text-sm font-medium"
           style={{ color: 'var(--foreground)' }}
         />
         <button
           onClick={() => question.trim() && askAI(question)}
           disabled={!question.trim() || loading}
-          className="w-8 h-8 rounded-xl flex items-center justify-center disabled:opacity-40 transition-opacity"
-          style={{ background: 'linear-gradient(to bottom, var(--primary-mid), var(--primary))' }}
+          className="w-9 h-9 rounded-xl flex items-center justify-center disabled:opacity-40 btn-bounce"
+          style={{ background: 'linear-gradient(to bottom, var(--primary-mid), var(--primary))', boxShadow: 'var(--shadow-btn)' }}
         >
           <Send size={14} style={{ color: '#fff' }} />
         </button>
       </div>
 
-      {/* ── Quick prompts ─────────────────────────────────────── */}
+      {/* ── Quick prompts — colorful pills ───────────────────── */}
       <div className="flex flex-wrap gap-2 mb-8">
-        {QUICK.map((q) => (
-          <button
-            key={q}
-            onClick={() => { setQuestion(q); askAI(q); }}
-            className="px-3 py-1.5 rounded-full text-xs font-medium transition-all hover:opacity-80"
-            style={{ background: 'var(--card)', border: '1px solid var(--card-border)', color: 'var(--accent)', boxShadow: 'var(--shadow-sm)' }}
-          >
-            {q}
-          </button>
-        ))}
+        {QUICK.map((q, i) => {
+          const colors = [
+            { bg: '#E8EDF5', color: '#2563EB', border: '#BFCFE8' },   // blue
+            { bg: '#FEF3E8', color: '#C2570A', border: '#F8D5B0' },   // amber
+            { bg: '#FDE8F3', color: '#BE185D', border: '#F5BCD9' },   // pink
+            { bg: '#E8F3EE', color: '#2C4A1E', border: '#B0D4BC' },   // green
+          ];
+          const c = colors[i % colors.length];
+          return (
+            <button
+              key={q}
+              onClick={() => { setQuestion(q); askAI(q); }}
+              className="px-3 py-2 rounded-full text-xs font-semibold transition-all btn-bounce"
+              style={{ background: c.bg, color: c.color, border: `1.5px solid ${c.border}`, boxShadow: '0 2px 8px rgba(0,0,0,0.07)' }}
+            >
+              {q}
+            </button>
+          );
+        })}
       </div>
 
-      {/* ── Wardrobe status ───────────────────────────────────── */}
+      {/* ── Wardrobe status — glass card ─────────────────────── */}
       <div
         className="rounded-2xl p-4 flex items-center justify-between"
-        style={{ background: 'var(--card)', border: '1px solid var(--card-border)', boxShadow: 'var(--shadow-sm)' }}
+        style={{
+          background: 'rgba(255,255,255,0.78)',
+          backdropFilter: 'blur(16px) saturate(160%)',
+          WebkitBackdropFilter: 'blur(16px) saturate(160%)',
+          border: '1.5px solid rgba(255,255,255,0.80)',
+          boxShadow: 'var(--shadow-md), inset 0 1px 0 rgba(255,255,255,0.9)',
+        }}
       >
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'var(--accent-muted)' }}>
-            <Shirt size={18} style={{ color: 'var(--accent)' }} />
+          <div className="w-11 h-11 rounded-2xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #E8F3EE, #D0EDD8)', border: '1.5px solid #B0D4BC' }}>
+            <Shirt size={18} style={{ color: 'var(--primary-mid)' }} />
           </div>
           <div>
-            <p className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>
-              {items.length === 0 ? 'Wardrobe empty' : `${items.length} item${items.length !== 1 ? 's' : ''} in wardrobe`}
+            <p className="text-sm font-bold" style={{ color: 'var(--foreground)' }}>
+              {items.length === 0 ? 'Wardrobe empty' : `${items.length} item${items.length !== 1 ? 's' : ''}`}
             </p>
             <p className="text-xs" style={{ color: 'var(--muted)' }}>
-              {items.length === 0 ? 'Add clothes so AI can suggest outfits' : 'AI suggestions based on your clothes'}
+              {items.length === 0 ? 'Add clothes so AI can suggest outfits' : 'AI picks from your wardrobe'}
             </p>
           </div>
         </div>
         <Link
           href="/wardrobe"
-          className="px-4 py-2 rounded-xl text-xs font-semibold transition-all hover:opacity-90"
-          style={{ background: 'linear-gradient(to bottom, var(--primary-mid), var(--primary))', color: '#fff' }}
+          className="btn-primary"
+          style={{ padding: '10px 18px', fontSize: 13 }}
         >
           {items.length === 0 ? 'Add Clothes' : 'View'}
         </Link>

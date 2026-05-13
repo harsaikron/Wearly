@@ -138,13 +138,54 @@ button, a { -webkit-tap-highlight-color: transparent; }
   box-shadow: var(--shadow-sm);
 }
 
+/* ── Glass / frosted effects ─────────────────────────────────── */
+
+/* Light frosted glass — for cards over cream bg */
 .glass-card {
-  background: rgba(255,255,255,0.75);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255,255,255,0.6);
+  background: rgba(255,255,255,0.72);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255,255,255,0.75);
   border-radius: 20px;
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-md), inset 0 1px 0 rgba(255,255,255,0.9);
+}
+
+/* Strong frosted — for modals and overlays */
+.glass-strong {
+  background: rgba(255,255,255,0.88);
+  backdrop-filter: blur(32px) saturate(200%);
+  -webkit-backdrop-filter: blur(32px) saturate(200%);
+  border: 1px solid rgba(255,255,255,0.80);
+  border-radius: 24px;
+  box-shadow: var(--shadow-xl), inset 0 1px 0 rgba(255,255,255,0.95);
+}
+
+/* Tinted frosted — for suggestion chips / search overlay */
+.glass-tinted {
+  background: rgba(242,237,230,0.80);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  border: 1px solid rgba(255,255,255,0.70);
+  border-radius: 18px;
+  box-shadow: var(--shadow-sm), inset 0 1px 0 rgba(255,255,255,0.85);
+}
+
+/* Dark frosted — for overlays / bottom sheets */
+.glass-dark {
+  background: rgba(26,26,24,0.72);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 24px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.40);
+}
+
+/* Navbar / bottom bar glass */
+.glass-nav {
+  background: rgba(242,237,230,0.93);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border-bottom: 1px solid rgba(0,0,0,0.06);
 }
 
 /* Inset sunken panel (like Alma macro tracker background) */
@@ -153,6 +194,85 @@ button, a { -webkit-tap-highlight-color: transparent; }
   border-radius: 20px;
   border: 1px solid rgba(0,0,0,0.05);
   box-shadow: inset 0 2px 8px rgba(0,0,0,0.04);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   COLORFUL BADGE SYSTEM  (Alma-inspired vibrant tags)
+   Each occasion / category / status gets its own unique color.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* — Occasion tags — */
+.badge-office        { background: #E8EDF5; color: #2563EB; border: 1.5px solid #BFCFE8; }
+.badge-casual        { background: #FEF3E8; color: #C2570A; border: 1.5px solid #F8D5B0; }
+.badge-date_night    { background: #FDE8F3; color: #BE185D; border: 1.5px solid #F5BCD9; }
+.badge-weekend       { background: #FFFBDE; color: #A16207; border: 1.5px solid #EFE09A; }
+.badge-smart_casual  { background: #E8F5E9; color: #2C4A1E; border: 1.5px solid #B6D9B5; }
+.badge-minimal       { background: #F0ECFB; color: #6D28D9; border: 1.5px solid #D5C8F6; }
+.badge-luxury        { background: #FDF3E3; color: #92400E; border: 1.5px solid #EDD5A3; }
+.badge-travel        { background: #E0F7FA; color: #0E7490; border: 1.5px solid #A5DCE8; }
+.badge-festive       { background: #FEE8E8; color: #B91C1C; border: 1.5px solid #FACACA; }
+.badge-gym           { background: #ECFDE9; color: #166534; border: 1.5px solid #A3D9A0; }
+
+/* — Category tags — */
+.badge-shirt         { background: #E8F0FE; color: #1D4ED8; border: 1.5px solid #BFCEFC; }
+.badge-formal_shirt  { background: #1E293B; color: #E2E8F0; border: 1.5px solid #334155; }
+.badge-tshirt        { background: #ECFDF5; color: #065F46; border: 1.5px solid #A7F3D0; }
+.badge-pants         { background: #FDF4E3; color: #854D0E; border: 1.5px solid #EED5A3; }
+.badge-jeans         { background: #E0E9F7; color: #1560BD; border: 1.5px solid #A8BDE8; }
+.badge-shorts        { background: #FFFDE7; color: #B45309; border: 1.5px solid #FDE68A; }
+.badge-shoes         { background: #F3EDE8; color: #78350F; border: 1.5px solid #D9BEAB; }
+.badge-sneakers      { background: #F5F5F5; color: #374151; border: 1.5px solid #D1D5DB; }
+.badge-loafers       { background: #FAF0E6; color: #7C4A1E; border: 1.5px solid #E8C9A8; }
+.badge-jacket        { background: #E8F3EE; color: #2C4A1E; border: 1.5px solid #B0D4BC; }
+.badge-watch         { background: #FEF9E7; color: #92400E; border: 1.5px solid #EDCF7A; }
+.badge-belt          { background: #F1EBE4; color: #5C3D1E; border: 1.5px solid #D4BAA4; }
+.badge-accessory     { background: #F5ECF9; color: #6B21A8; border: 1.5px solid #DDB8F0; }
+
+/* — Status badges — */
+.badge-unused        { background: #FEE8E8; color: #B91C1C; border: 1.5px solid #FACACA; }
+.badge-overused      { background: #FEF3C7; color: #92400E; border: 1.5px solid #FDE68A; }
+.badge-new           { background: #ECFDF5; color: #065F46; border: 1.5px solid #A7F3D0; }
+.badge-trending      { background: #FDE8F3; color: #BE185D; border: 1.5px solid #F5BCD9; }
+.badge-eco           { background: #ECFDF5; color: #166534; border: 1.5px solid #A3D9A0; }
+.badge-sale          { background: #FEE8E8; color: #991B1B; border: 1.5px solid #FECACA; }
+
+/* Base badge shape — apply alongside color class */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+/* Large badge variant */
+.badge-lg {
+  padding: 7px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 999px;
+}
+
+/* Floating badge — glass + depth */
+.badge-glass {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255,255,255,0.82);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.75);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.9);
+  white-space: nowrap;
 }
 
 

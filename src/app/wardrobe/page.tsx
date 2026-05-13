@@ -9,6 +9,7 @@ import { useWardrobeStore } from '@/store/wardrobe';
 import { useListingsStore } from '@/store/listings';
 import { ClothingItem, ClothingCategory, OccasionTag, Listing, ListingCondition } from '@/types';
 import { categoryLabel, occasionLabel } from '@/lib/utils';
+import { categoryBadgeStyle, badgeInlineStyle } from '@/lib/badges';
 import { compressImage, stripDataPrefix } from '@/lib/image-utils';
 import {
   Plus, X, Search, Shirt, Loader, Sparkles, Trash2, Camera,
@@ -694,15 +695,23 @@ export default function WardrobePage() {
             </button>
           </div>
 
-          {/* Category pills */}
-          <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth:'none' }}>
-            {(['all', ...CATEGORIES] as FilterCat[]).map((c) => (
+          {/* Category pills — colorful badges */}
+          <div className="flex gap-2 overflow-x-auto pb-1 hide-scrollbar">
+            {(['all', ...CATEGORIES] as FilterCat[]).map((c) => {
+              const isActive = filter === c;
+              const s = c !== 'all' ? categoryBadgeStyle(c) : null;
+              return (
               <button key={c} onClick={() => setFilter(c)}
-                className="shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-all"
-                style={filter === c ? { background:'var(--accent)', color:'#fff' } : { background:'var(--card)', color:'var(--muted)', border:'1px solid var(--card-border)' }}>
-                {c === 'all' ? 'All' : categoryLabel(c)}
+                className="shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-all btn-bounce"
+                style={isActive && s
+                  ? { background: s.bg, color: s.color, border: `1.5px solid ${s.border}`, boxShadow: '0 2px 8px rgba(0,0,0,0.10)' }
+                  : isActive
+                  ? { background: 'var(--primary-muted)', color: 'var(--primary-mid)', border: '1.5px solid rgba(44,74,30,0.25)' }
+                  : { background: 'var(--card)', color: 'var(--muted)', border: '1px solid var(--card-border)', boxShadow: 'var(--shadow-xs)' }}>
+                {c === 'all' ? 'All items' : categoryLabel(c)}
               </button>
-            ))}
+              );
+            })}
           </div>
 
           {/* Grid */}
@@ -720,35 +729,40 @@ export default function WardrobePage() {
                 const isOverused = item.times_worn > 10;
                 return (
                   <div key={item.id} className="rounded-2xl overflow-hidden flex flex-col card-lift"
-                    style={{ background:'var(--card)', border:`1.5px solid ${item.favorite ? 'rgba(236,72,153,0.35)' : 'var(--card-border)'}`, boxShadow:'var(--shadow-md)' }}>
+                    style={{ background:'var(--card)', border:`1.5px solid ${item.favorite ? 'rgba(236,72,153,0.35)' : categoryBadgeStyle(item.category).border}`, boxShadow:'var(--shadow-md)' }}>
                     {/* Clickable area → detail page */}
                     <Link href={`/wardrobe/${item.id}`} className="block">
-                      <div className="relative w-full" style={{ height:160, background:'var(--muted-bg)' }}>
+                      <div className="relative w-full" style={{ height:160, background: `linear-gradient(135deg, ${categoryBadgeStyle(item.category).bg} 0%, #ffffff 100%)` }}>
                         {item.image_url ? (
                           <Image src={item.image_url} alt={item.name} fill className="object-cover"/>
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center flex-col gap-1">
-                            <div className="w-10 h-10 rounded-full" style={{ background: item.color_hex }}/>
-                            <Shirt size={20} style={{ color:'var(--muted)' }}/>
+                          <div className="w-full h-full flex items-center justify-center flex-col gap-2">
+                            <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: categoryBadgeStyle(item.category).bg, border: `1.5px solid ${categoryBadgeStyle(item.category).border}` }}>
+                              <Shirt size={22} style={{ color: categoryBadgeStyle(item.category).color }}/>
+                            </div>
+                            <div className="w-6 h-6 rounded-full border-2" style={{ background: item.color_hex, borderColor:'rgba(255,255,255,0.8)', boxShadow:'0 2px 6px rgba(0,0,0,0.15)' }}/>
                           </div>
                         )}
-                        <div className="absolute top-2 left-2 flex flex-col gap-1">
-                          {isUnused  && <span className="text-xs px-1.5 py-0.5 rounded-full font-semibold" style={{ background:'rgba(239,68,68,0.9)', color:'#fff', fontSize:9 }}>Unused</span>}
-                          {isOverused && <span className="text-xs px-1.5 py-0.5 rounded-full font-semibold" style={{ background:'rgba(245,158,11,0.9)', color:'#fff', fontSize:9 }}>Overused</span>}
+                        {/* Glass category badge */}
+                        <div className="absolute top-2 left-2 badge-glass capitalize" style={{ color: categoryBadgeStyle(item.category).color, fontSize:10, fontWeight:700 }}>
+                          {categoryLabel(item.category)}
                         </div>
-                        {item.favorite && (
-                          <div className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center" style={{ background:'rgba(236,72,153,0.15)' }}>
-                            <Heart size={12} fill="#ec4899" stroke="#ec4899"/>
-                          </div>
-                        )}
+                        <div className="absolute top-2 right-2 flex flex-col gap-1 items-end">
+                          {isUnused   && <span className="badge-glass text-xs font-bold" style={{ color:'#B91C1C', fontSize:9 }}>Unused</span>}
+                          {isOverused && <span className="badge-glass text-xs font-bold" style={{ color:'#92400E', fontSize:9 }}>Overused</span>}
+                          {item.favorite && (
+                            <div className="w-6 h-6 rounded-full flex items-center justify-center badge-glass">
+                              <Heart size={11} fill="#ec4899" stroke="#ec4899"/>
+                            </div>
+                          )}
+                        </div>
                       </div>
                       <div className="px-3 pt-3 pb-1 flex flex-col gap-1.5">
                         <div>
                           <p className="font-semibold text-sm leading-tight truncate" style={{ color:'var(--foreground)' }}>{item.name}</p>
-                          <p className="text-xs" style={{ color:'var(--muted)' }}>{categoryLabel(item.category)}</p>
                         </div>
                         <div className="flex items-center gap-1.5">
-                          <div className="w-4 h-4 rounded-full border" style={{ background: item.color_hex, borderColor:'rgba(0,0,0,0.1)' }}/>
+                          <div className="w-4 h-4 rounded-full border-2" style={{ background: item.color_hex, borderColor:'rgba(255,255,255,0.8)', boxShadow:'0 1px 4px rgba(0,0,0,0.12)' }}/>
                           <span className="text-xs" style={{ color:'var(--muted)' }}>{item.color_name}</span>
                         </div>
                         <div className="flex items-center gap-3 text-xs" style={{ color:'var(--muted)' }}>
@@ -1213,11 +1227,18 @@ export default function WardrobePage() {
 // ── Shared UI helpers ──────────────────────────────────────────────────────────
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
-    <div className="fixed inset-0 z-50 flex flex-col justify-end md:justify-center md:items-center" style={{ background:'rgba(15,23,42,0.5)', backdropFilter:'blur(4px)' }}>
-      <div className="w-full md:max-w-md rounded-t-3xl md:rounded-2xl overflow-hidden overflow-y-auto" style={{ background:'var(--card)', maxHeight:'90vh' }}>
-        <div className="flex items-center justify-between px-5 py-4 sticky top-0" style={{ background:'var(--card)', borderBottom:'1px solid var(--card-border)' }}>
-          <p className="font-bold text-sm" style={{ color:'var(--foreground)' }}>{title}</p>
-          <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background:'var(--muted-bg)' }}>
+    <div className="fixed inset-0 z-50 flex flex-col justify-end md:justify-center md:items-center"
+      style={{ background:'rgba(0,0,0,0.40)', backdropFilter:'blur(16px)', WebkitBackdropFilter:'blur(16px)' }}>
+      <div className="w-full md:max-w-md rounded-t-3xl md:rounded-3xl overflow-hidden overflow-y-auto slide-up"
+        style={{ background:'var(--card)', maxHeight:'92vh', boxShadow:'0 -8px 40px rgba(0,0,0,0.18)' }}>
+        {/* Handle bar */}
+        <div className="flex justify-center pt-3 pb-1 md:hidden">
+          <div className="w-10 h-1 rounded-full" style={{ background:'var(--card-border)' }}/>
+        </div>
+        <div className="flex items-center justify-between px-5 py-3.5 sticky top-0"
+          style={{ background:'rgba(255,255,255,0.90)', backdropFilter:'blur(16px)', WebkitBackdropFilter:'blur(16px)', borderBottom:'1px solid var(--card-border)' }}>
+          <p className="font-bold text-base" style={{ color:'var(--foreground)' }}>{title}</p>
+          <button onClick={onClose} className="btn-icon" style={{ width:34, height:34, borderRadius:'50%' }}>
             <X size={15} style={{ color:'var(--muted)' }}/>
           </button>
         </div>
