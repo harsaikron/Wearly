@@ -91,6 +91,33 @@ html, body {
 }
 .animate-fade-in { animation: fadeIn 0.35s ease forwards; }
 
+/* ── Mobile responsive helpers ───────────────────────────────────────────── */
+@media (max-width: 640px) {
+  /* tighten page padding on small screens */
+  .max-w-2xl { padding-left: 12px; padding-right: 12px; }
+
+  /* make stat grids wrap to 2-col on mobile */
+  .grid-cols-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+  /* font scale-down for large headings */
+  h1 { font-size: clamp(1.5rem, 6vw, 2.25rem); }
+
+  /* ensure horizontal scroll sections don't overflow */
+  .overflow-x-auto { -webkit-overflow-scrolling: touch; }
+}
+
+/* tap highlight off for interactive elements */
+button, a { -webkit-tap-highlight-color: transparent; }
+
+/* safe area insets for notched phones */
+body { padding-bottom: env(safe-area-inset-bottom); }
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-slide-down { animation: slideDown 0.18s ease forwards; }
+
 @keyframes shimmer {
   0%   { background-position: -200% 0; }
   100% { background-position:  200% 0; }
