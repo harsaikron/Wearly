@@ -905,16 +905,17 @@ a:focus-visible {
   outline-offset: 3px;
 }
 
-/* ── Touch target helpers — explicit classes only, never global a/Link ─── */
-/* Don't force display on <a>/<Link> — Tailwind classes must win */
+/* ── Touch target helpers ─────────────────────────────────────── */
 button:not(.btn-bare), [role="button"] {
   min-height: 44px;
   min-width: 44px;
 }
-/* Icon-only buttons that are smaller are exempt */
 .btn-icon {
   min-height: 40px;
   min-width: 40px;
+}
+a.block, a[href], nav a, span[role="button"] {
+  display: flex;
 }
 
 /* ── Badge / pill — prevent wrapping ─────────────────────────── */

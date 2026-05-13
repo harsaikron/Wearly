@@ -49,7 +49,7 @@ export default function Navbar() {
         <div className="max-w-3xl mx-auto px-4 h-16 flex items-center justify-between gap-3">
 
           {/* Left: Lottie logo */}
-          <Link href="/" className="flex items-center gap-2.5 shrink-0" onClick={() => setOpen(false)}>
+          <Link href="/" className="flex items-center gap-0.5 shrink-0" onClick={() => setOpen(false)}>
             {mounted ? (
               <LottieLogo size={44} loop={false} />
             ) : (
