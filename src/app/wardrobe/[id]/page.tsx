@@ -36,7 +36,7 @@ const CATEGORY_LABEL: Record<string, string> = {
 
 // ─── Occasion colors ──────────────────────────────────────────────────────────
 const OCC_COLOR: Record<string, string> = {
-  office: '#6366f1', casual: '#10b981', date_night: '#ec4899',
+  office: 'var(--primary-mid)', casual: '#10b981', date_night: '#ec4899',
   weekend: '#f59e0b', smart_casual: '#3b82f6', minimal: '#8b5cf6',
   luxury: '#b45309', travel: '#0ea5e9', festive: '#ef4444', gym: '#84cc16',
 };
@@ -371,9 +371,9 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
                 key={tag}
                 className="text-xs font-medium px-2.5 py-0.5 rounded-full capitalize tag-in"
                 style={{
-                  background: `${OCC_COLOR[tag] ?? '#6366f1'}14`,
-                  color: OCC_COLOR[tag] ?? '#6366f1',
-                  border: `1px solid ${OCC_COLOR[tag] ?? '#6366f1'}28`,
+                  background: `${OCC_COLOR[tag] ?? 'var(--primary-mid)'}14`,
+                  color: OCC_COLOR[tag] ?? 'var(--primary-mid)',
+                  border: `1px solid ${OCC_COLOR[tag] ?? 'var(--primary-mid)'}28`,
                   animationDelay: `${i * 50}ms`,
                 }}
               >
@@ -424,8 +424,8 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
                 key={d}
                 className="text-xs px-2 py-0.5 rounded-full tag-in"
                 style={{
-                  background: 'rgba(99,102,241,0.08)',
-                  color: '#6366f1',
+                  background: '0',
+                  color: 'var(--primary-mid)',
                   animationDelay: `${i * 40}ms`,
                 }}
               >
@@ -456,7 +456,7 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
               onClick={() => setWearDate(wearDate === d ? null : d)}
               className="flex-1 py-2.5 rounded-xl text-xs font-semibold ripple-btn btn-bounce flex items-center justify-center gap-1.5"
               style={wearDate === d
-                ? { background: '#6366f1', color: '#fff', boxShadow: '0 4px 12px rgba(99,102,241,0.3)' }
+                ? { background: 'var(--primary-mid)', color: '#fff', boxShadow: '0 4px 12px 0' }
                 : { background: 'var(--muted-bg)', color: 'var(--foreground)', border: '1px solid var(--card-border)' }
               }
             >
@@ -552,12 +552,12 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
           style={{ background: 'var(--card)' }}
         >
           <span className="flex items-center gap-2 text-sm font-semibold" style={{ color: 'var(--foreground)' }}>
-            <Sparkles size={15} style={{ color: '#6366f1' }} />
+            <Sparkles size={15} style={{ color: 'var(--primary-mid)' }} />
             AI Style Pairings
             {pairings && (
               <span
                 className="text-xs font-normal px-1.5 py-0.5 rounded-full tag-in pulse-ring"
-                style={{ background: 'rgba(99,102,241,0.1)', color: '#6366f1' }}
+                style={{ background: '0', color: 'var(--primary-mid)' }}
               >
                 {pairings.pairings.length} matches
               </span>
@@ -597,9 +597,9 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
                 {/* Style tip */}
                 <div
                   className="mb-4 p-3 rounded-xl slide-up"
-                  style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.12)' }}
+                  style={{ background: '0', border: '1px solid 0' }}
                 >
-                  <p className="text-xs font-semibold mb-0.5" style={{ color: '#6366f1' }}>💡 Stylist tip</p>
+                  <p className="text-xs font-semibold mb-0.5" style={{ color: 'var(--primary-mid)' }}>💡 Stylist tip</p>
                   <p className="text-xs" style={{ color: 'var(--foreground)' }}>{pairings.style_tip}</p>
                 </div>
 
@@ -713,7 +713,7 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
                               {[
                                 { label: 'Shopee', url: shopeeUrl(p.buy_query), bg: '#ff6130' },
                                 { label: 'Shein',  url: sheinUrl(p.buy_query),  bg: '#000' },
-                                { label: 'Zalora', url: zaloraUrl(p.buy_query), bg: '#6366f1' },
+                                { label: 'Zalora', url: zaloraUrl(p.buy_query), bg: 'var(--primary-mid)' },
                                 { label: '2nd hand', url: carousellUrl(p.buy_query), bg: '#10b981' },
                               ].map(({ label, url, bg }) => (
                                 <a
@@ -733,7 +733,7 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
                             <Link
                               href={`/wardrobe/${p.item_id}`}
                               className="text-xs font-semibold btn-bounce inline-flex items-center gap-0.5"
-                              style={{ color: '#6366f1' }}
+                              style={{ color: 'var(--primary-mid)' }}
                             >
                               View item →
                             </Link>
@@ -786,7 +786,7 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
           <Link
             href="/marketplace"
             className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-center btn-bounce ripple-btn"
-            style={{ background: 'rgba(99,102,241,0.1)', color: '#6366f1', border: '1px solid rgba(99,102,241,0.2)' }}
+            style={{ background: '0', color: 'var(--primary-mid)', border: '1px solid 0' }}
           >
             Rent out
           </Link>
@@ -803,7 +803,7 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
             <Edit3 size={13} /> Notes
           </p>
           {!editingNotes && (
-            <button onClick={() => setEditingNotes(true)} className="text-xs font-semibold btn-bounce" style={{ color: '#6366f1' }}>
+            <button onClick={() => setEditingNotes(true)} className="text-xs font-semibold btn-bounce" style={{ color: 'var(--primary-mid)' }}>
               Edit
             </button>
           )}
@@ -822,14 +822,14 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
                 color: 'var(--foreground)',
                 transition: 'border-color 0.2s',
               }}
-              onFocus={(e) => (e.target.style.borderColor = '#6366f1')}
+              onFocus={(e) => (e.target.style.borderColor = 'var(--primary-mid)')}
               onBlur={(e) => (e.target.style.borderColor = 'var(--card-border)')}
             />
             <div className="flex gap-2 mt-2">
               <button
                 onClick={saveNotes}
                 className="flex-1 py-2 rounded-xl text-xs font-semibold btn-bounce ripple-btn"
-                style={{ background: '#6366f1', color: '#fff' }}
+                style={{ background: 'var(--primary-mid)', color: '#fff' }}
               >
                 Save
               </button>

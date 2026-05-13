@@ -25,7 +25,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         style={{ background: 'var(--background)', color: 'var(--foreground)' }}
       >
         <Navbar />
-        <main className="flex-1 pb-[calc(60px+env(safe-area-inset-bottom))] md:pb-0">
+        <main className="flex-1 pb-[calc(70px+env(safe-area-inset-bottom))] md:pb-0">
           {children}
         </main>
       </body>

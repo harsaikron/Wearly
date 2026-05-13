@@ -107,7 +107,7 @@ interface HealthData {
 
 const PREDICTION_COLOR: Record<string, string> = {
   high_usage: '#22c55e', low_usage: '#94a3b8', seasonal_peak: '#f59e0b',
-  resale_ready: '#6366f1', donate: '#ef4444',
+  resale_ready: 'var(--primary-mid)', donate: '#ef4444',
 };
 const PREDICTION_LABEL: Record<string, string> = {
   high_usage: 'Keep using', low_usage: 'Consider selling', seasonal_peak: 'Seasonal peak',
@@ -158,13 +158,13 @@ interface TripPlan {
 }
 
 const ACTIVITY_COLOR: Record<string, string> = {
-  travel: '#6366f1', beach: '#f59e0b', temple: '#8b5cf6', city: '#3b82f6',
+  travel: 'var(--primary-mid)', beach: '#f59e0b', temple: '#8b5cf6', city: '#3b82f6',
   night_market: '#ec4899', fine_dining: '#ef4444', water_sports: '#06b6d4',
   shopping: '#10b981', resort: '#f97316', hiking: '#84cc16',
 };
 
 function ActivityIcon({ type, size = 13 }: { type: string; size?: number }) {
-  const color = ACTIVITY_COLOR[type] ?? '#6366f1';
+  const color = ACTIVITY_COLOR[type] ?? 'var(--primary-mid)';
   const s = { color };
   switch (type) {
     case 'beach':       return <Sun size={size} style={s}/>;
@@ -274,7 +274,7 @@ function CalendarSection({ wardrobeItems }: { wardrobeItems: ClothingItem[] }) {
   return (
     <div className="rounded-2xl overflow-hidden mb-5" style={{ background:'var(--card)', border:'1px solid var(--card-border)' }}>
       <div className="px-4 py-3 flex items-center justify-between"
-        style={{ background:'linear-gradient(135deg,rgba(99,102,241,0.07),rgba(59,130,246,0.05))', borderBottom:'1px solid var(--card-border)' }}>
+        style={{ background:'linear-gradient(135deg,rgba(44,74,30,0.06),rgba(59,130,246,0.05))', borderBottom:'1px solid var(--card-border)' }}>
         <div className="flex items-center gap-2">
           <CalendarDays size={15} style={{ color:'var(--accent)' }}/>
           <p className="text-sm font-bold" style={{ color:'var(--foreground)' }}>Google Calendar Sync</p>
@@ -305,17 +305,17 @@ function CalendarSection({ wardrobeItems }: { wardrobeItems: ClothingItem[] }) {
                   const isLoading = tripLoadings[eid];
                   const expandedDay = expandedDays[eid] ?? null;
                   return (
-                    <div key={eid} className="rounded-2xl overflow-hidden" style={{ border:'1px solid rgba(99,102,241,0.2)' }}>
+                    <div key={eid} className="rounded-2xl overflow-hidden" style={{ border:'1px solid rgba(44,74,30,0.18)' }}>
                       {/* Trip header */}
                       <div className="px-4 py-3 flex items-start justify-between gap-3"
-                        style={{ background:'linear-gradient(135deg,rgba(99,102,241,0.08),rgba(59,130,246,0.05))' }}>
+                        style={{ background:'linear-gradient(135deg,rgba(44,74,30,0.07),rgba(59,130,246,0.05))' }}>
                         <div className="flex items-start gap-2 flex-1 min-w-0">
                           <Plane size={15} style={{ color:'var(--accent)', marginTop:2, flexShrink:0 }}/>
                           <div>
                             <p className="text-sm font-bold" style={{ color:'var(--foreground)' }}>{tv.event.summary}</p>
                             <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                               {tv.event.location && <span className="flex items-center gap-1 text-xs" style={{ color:'var(--muted)' }}><MapPin size={9}/>{tv.event.location}</span>}
-                              <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{ background:'rgba(99,102,241,0.1)', color:'var(--accent)' }}>{tv.durationDays} days</span>
+                              <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{ background:'rgba(44,74,30,0.08)', color:'var(--accent)' }}>{tv.durationDays} days</span>
                               {plan && <span className="text-xs" style={{ color:'var(--muted)' }}>{plan.climate}</span>}
                             </div>
                           </div>
@@ -337,13 +337,13 @@ function CalendarSection({ wardrobeItems }: { wardrobeItems: ClothingItem[] }) {
                             <div className="px-4 py-2.5 flex items-center gap-2 flex-wrap" style={{ background:'rgba(99,102,241,0.04)' }}>
                               <span className="text-xs font-semibold shrink-0" style={{ color:'var(--accent)' }}>Must-pack:</span>
                               {plan.packing_essentials.slice(0, 5).map((e, i) => (
-                                <span key={i} className="text-xs px-2 py-0.5 rounded-full" style={{ background:'rgba(99,102,241,0.08)', color:'var(--accent)', border:'1px solid rgba(99,102,241,0.15)' }}>{e}</span>
+                                <span key={i} className="text-xs px-2 py-0.5 rounded-full" style={{ background:'rgba(44,74,30,0.07)', color:'var(--accent)', border:'1px solid rgba(44,74,30,0.14)' }}>{e}</span>
                               ))}
                             </div>
                           )}
 
                           {plan.days?.map((dayPlan) => {
-                            const acColor = ACTIVITY_COLOR[dayPlan.activity_type] ?? '#6366f1';
+                            const acColor = ACTIVITY_COLOR[dayPlan.activity_type] ?? 'var(--primary-mid)';
                             const isExpanded = expandedDay === dayPlan.day;
                             return (
                               <div key={dayPlan.day} style={{ background:'var(--card)' }}>
@@ -720,7 +720,7 @@ export default function WardrobePage() {
                 const isOverused = item.times_worn > 10;
                 return (
                   <div key={item.id} className="rounded-2xl overflow-hidden flex flex-col card-lift"
-                    style={{ background:'var(--card)', border:`1px solid ${item.favorite ? 'rgba(236,72,153,0.3)' : 'var(--card-border)'}`, boxShadow:'var(--shadow-sm)' }}>
+                    style={{ background:'var(--card)', border:`1.5px solid ${item.favorite ? 'rgba(236,72,153,0.35)' : 'var(--card-border)'}`, boxShadow:'var(--shadow-md)' }}>
                     {/* Clickable area → detail page */}
                     <Link href={`/wardrobe/${item.id}`} className="block">
                       <div className="relative w-full" style={{ height:160, background:'var(--muted-bg)' }}>
@@ -758,7 +758,7 @@ export default function WardrobePage() {
                       </div>
                     </Link>
                     <div className="px-3 pb-3 pt-1 flex gap-1.5 mt-auto">
-                      <Link href={`/wardrobe/${item.id}`} className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-xs font-semibold" style={{ background:'rgba(99,102,241,0.1)', color:'var(--accent)' }}>
+                      <Link href={`/wardrobe/${item.id}`} className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-xs font-semibold" style={{ background:'rgba(44,74,30,0.08)', color:'var(--accent)' }}>
                         <Sparkles size={11}/> Style
                       </Link>
                       <button onClick={() => openSell(item, 'sell')} className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-xs font-semibold" style={{ background:'rgba(34,197,94,0.1)', color:'#16a34a' }}>
@@ -800,7 +800,7 @@ export default function WardrobePage() {
           {health && !healthLoading && (
             <>
               {/* Score card */}
-              <div className="rounded-2xl p-5 flex items-center gap-5" style={{ background:'var(--card)', border:'1px solid var(--card-border)', boxShadow:'var(--shadow-sm)' }}>
+              <div className="rounded-2xl p-5 flex items-center gap-5" style={{ background:'var(--card)', border:'1px solid var(--card-border)', boxShadow:'var(--shadow-md)' }}>
                 <ScoreRing score={health.overall_score} grade={health.grade}/>
                 <div className="flex-1">
                   <p className="font-bold text-base" style={{ color:'var(--foreground)' }}>Closet Health Score</p>
@@ -834,7 +834,7 @@ export default function WardrobePage() {
                         <span className="text-xs" style={{ color:'var(--muted)' }}>{u.days_since}d idle</span>
                       </div>
                       <p className="text-xs mt-0.5" style={{ color:'var(--muted)' }}>{u.tip}</p>
-                      <p className="text-xs mt-0.5 font-medium" style={{ color:'#6366f1' }}>{u.resell_suggestion}</p>
+                      <p className="text-xs mt-0.5 font-medium" style={{ color:'var(--primary-mid)' }}>{u.resell_suggestion}</p>
                     </div>
                   ))}
                 </Section>
@@ -873,7 +873,7 @@ export default function WardrobePage() {
 
               {health.lifecycle?.length > 0 && (
                 <div className="rounded-2xl overflow-hidden" style={{ background:'var(--card)', border:'1px solid var(--card-border)' }}>
-                  <div className="flex items-center gap-2 px-4 py-3" style={{ borderBottom:'1px solid var(--card-border)', background:'linear-gradient(135deg,rgba(99,102,241,0.06),rgba(168,85,247,0.04))' }}>
+                  <div className="flex items-center gap-2 px-4 py-3" style={{ borderBottom:'1px solid var(--card-border)', background:'linear-gradient(135deg,rgba(44,74,30,0.06),rgba(168,85,247,0.04))' }}>
                     <Zap size={15} style={{ color:'var(--accent)' }}/>
                     <p className="text-sm font-bold" style={{ color:'var(--foreground)' }}>Smart Clothing Lifecycle AI</p>
                   </div>
@@ -931,7 +931,7 @@ export default function WardrobePage() {
                         <span className="text-xs" style={{ color:'var(--muted)' }}>{combo.calendar_label}</span>
                         <a href={comboCalUrl(combo)} target="_blank" rel="noopener noreferrer"
                           className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg"
-                          style={{ background:'rgba(99,102,241,0.1)', color:'var(--accent)' }}>
+                          style={{ background:'rgba(44,74,30,0.08)', color:'var(--accent)' }}>
                           <Calendar size={12}/> Save to Calendar
                         </a>
                       </div>
@@ -1165,7 +1165,7 @@ export default function WardrobePage() {
       {sellItem && (
         <Modal title={`${sellMode === 'sell' ? 'Sell' : 'Rent'} — ${sellItem.name}`} onClose={() => setSellItem(null)}>
           {(sellItem.times_worn === 0 || (sellItem.last_worn && Math.floor((Date.now()-new Date(sellItem.last_worn).getTime())/86400000) > 60)) && (
-            <div className="mb-4 rounded-xl px-3 py-2.5 flex items-start gap-2" style={{ background:'rgba(99,102,241,0.07)', border:'1px solid rgba(99,102,241,0.2)' }}>
+            <div className="mb-4 rounded-xl px-3 py-2.5 flex items-start gap-2" style={{ background:'rgba(44,74,30,0.06)', border:'1px solid rgba(44,74,30,0.18)' }}>
               <Lightbulb size={14} style={{ color:'var(--accent)', marginTop:2, flexShrink:0 }}/>
               <p className="text-xs leading-relaxed" style={{ color:'var(--foreground)' }}>
                 <span className="font-semibold">AI Suggestion: </span>

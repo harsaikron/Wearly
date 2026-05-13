@@ -209,7 +209,7 @@ export default function EvolvePage() {
       <div className="flex items-center gap-3 mb-5">
         <div
           className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-          style={{ background: 'linear-gradient(135deg, #6366f1, #818cf8)' }}
+          style={{ background: 'linear-gradient(to bottom, var(--primary-mid), var(--primary))' }}
         >
           <Zap size={20} style={{ color: '#fff' }} />
         </div>
@@ -245,7 +245,7 @@ export default function EvolvePage() {
             <div
               className="max-w-[85%] rounded-2xl px-4 py-3"
               style={msg.role === 'user'
-                ? { background: 'linear-gradient(135deg, #6366f1, #818cf8)', color: '#fff', borderBottomRightRadius: 6 }
+                ? { background: 'linear-gradient(to bottom, var(--primary-mid), var(--primary))', color: '#fff', borderBottomRightRadius: 6 }
                 : { background: 'var(--muted-bg)', border: '1px solid var(--card-border)', borderBottomLeftRadius: 6 }
               }
             >
@@ -272,7 +272,7 @@ export default function EvolvePage() {
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold justify-center transition-all hover:opacity-90"
-                        style={{ background: 'linear-gradient(135deg, #6366f1, #818cf8)', color: '#fff' }}
+                        style={{ background: 'linear-gradient(to bottom, var(--primary-mid), var(--primary))', color: '#fff' }}
                       >
                         <GitPullRequest size={13} />
                         View PR #{msg.result.pr_number} on GitHub
@@ -359,7 +359,7 @@ export default function EvolvePage() {
           onClick={() => send()}
           disabled={!input.trim() || busy}
           className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 disabled:opacity-40 transition-all hover:opacity-90"
-          style={{ background: 'linear-gradient(135deg, #6366f1, #818cf8)' }}
+          style={{ background: 'linear-gradient(to bottom, var(--primary-mid), var(--primary))' }}
         >
           {busy ? <Loader size={15} className="animate-spin" style={{ color: '#fff' }} /> : <Send size={15} style={{ color: '#fff' }} />}
         </button>
@@ -369,7 +369,7 @@ export default function EvolvePage() {
       {hasToken === false && (
         <div
           className="mt-3 px-4 py-3 rounded-xl flex items-start gap-2"
-          style={{ background: 'rgba(99,102,241,0.06)', border: '1px solid rgba(99,102,241,0.15)' }}
+          style={{ background: '0', border: '1px solid 0' }}
         >
           <XCircle size={14} className="mt-0.5 shrink-0" style={{ color: 'var(--accent)' }} />
           <p className="text-xs leading-relaxed" style={{ color: 'var(--muted)' }}>

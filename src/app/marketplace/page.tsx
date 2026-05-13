@@ -45,7 +45,7 @@ function ListingCard({ listing }: { listing: Listing }) {
           </div>
           {listing.is_mine && (
             <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded-full text-xs font-semibold"
-              style={{ background:'rgba(99,102,241,0.9)', color:'#fff' }}>
+              style={{ background:'0', color:'#fff' }}>
               My listing
             </div>
           )}
@@ -200,7 +200,7 @@ export default function MarketplacePage() {
           </p>
           {tab === 'mine' && (
             <Link href="/wardrobe" className="inline-flex items-center gap-1 mt-3 text-xs font-semibold px-3 py-1.5 rounded-xl"
-              style={{ background:'rgba(99,102,241,0.1)', color:'var(--accent)' }}>
+              style={{ background:'0', color:'var(--accent)' }}>
               <Tag size={12}/> Go to Wardrobe →
             </Link>
           )}

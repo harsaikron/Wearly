@@ -338,7 +338,7 @@ export default function HomePage() {
         {/* Header */}
         <div
           className="px-4 py-3 flex items-center justify-between"
-          style={{ background: 'linear-gradient(135deg, rgba(99,102,241,0.07) 0%, rgba(168,85,247,0.05) 100%)', borderBottom: '1px solid var(--card-border)' }}
+          style={{ background: 'linear-gradient(135deg, rgba(44,74,30,0.06) 0%, rgba(44,74,30,0.04) 100%)', borderBottom: '1px solid var(--card-border)' }}
         >
           <div className="flex items-center gap-2">
             <Zap size={15} style={{ color: 'var(--accent)' }} />
@@ -346,7 +346,7 @@ export default function HomePage() {
             {ootd && (
               <span
                 className="text-xs px-2 py-0.5 rounded-full font-semibold"
-                style={{ background: 'rgba(99,102,241,0.1)', color: 'var(--accent)', border: '1px solid rgba(99,102,241,0.2)' }}
+                style={{ background: 'rgba(44,74,30,0.08)', color: 'var(--accent)', border: '1px solid rgba(44,74,30,0.18)' }}
               >
                 {ootd.mood}
               </span>
@@ -389,7 +389,7 @@ export default function HomePage() {
             <a
               href="/wardrobe"
               className="mt-1 text-xs font-semibold px-3 py-1.5 rounded-xl"
-              style={{ background: 'rgba(99,102,241,0.1)', color: 'var(--accent)' }}
+              style={{ background: 'rgba(44,74,30,0.08)', color: 'var(--accent)' }}
             >
               Go to Wardrobe →
             </a>
@@ -447,7 +447,7 @@ export default function HomePage() {
             {ootd.style_tip && (
               <div
                 className="rounded-xl px-3 py-2.5 flex items-start gap-2"
-                style={{ background: 'rgba(99,102,241,0.05)', border: '1px solid rgba(99,102,241,0.15)' }}
+                style={{ background: 'rgba(44,74,30,0.05)', border: '1px solid rgba(44,74,30,0.14)' }}
               >
                 <Sparkles size={12} style={{ color: 'var(--accent)', marginTop: 2, flexShrink: 0 }} />
                 <p className="text-xs leading-relaxed" style={{ color: 'var(--foreground)' }}>
@@ -472,7 +472,7 @@ export default function HomePage() {
           {events.upcoming[0]?.daysAway === 0 && (
             <div
               className="rounded-2xl px-4 py-4 flex items-start gap-3"
-              style={{ background: 'linear-gradient(135deg, #6366f1 0%, #818cf8 100%)', color: '#fff' }}
+              style={{ background: 'linear-gradient(135deg, var(--primary-mid) 0%, var(--primary-light) 100%)', color: '#fff' }}
             >
               <EventIcon name={events.upcoming[0].name} size={32} color="#fff" />
               <div className="flex-1 min-w-0">
@@ -498,7 +498,7 @@ export default function HomePage() {
 
           {/* ② Season Spotlight */}
           <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--card)', border: '1px solid var(--card-border)', boxShadow: 'var(--shadow-sm)' }}>
-            <div className="px-4 pt-4 pb-3" style={{ background: 'linear-gradient(135deg, rgba(99,102,241,0.06) 0%, rgba(233,30,140,0.04) 100%)' }}>
+            <div className="px-4 pt-4 pb-3" style={{ background: 'linear-gradient(135deg, rgba(44,74,30,0.06) 0%, rgba(44,74,30,0.04) 100%)' }}>
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <SeasonIcon season={events.season.season} size={18} color="var(--accent)" />
@@ -507,7 +507,7 @@ export default function HomePage() {
                   </p>
                 </div>
                 <span className="text-xs px-2 py-0.5 rounded-full font-medium"
-                  style={{ background: 'rgba(99,102,241,0.1)', color: 'var(--accent)', border: '1px solid rgba(99,102,241,0.2)' }}>
+                  style={{ background: 'rgba(44,74,30,0.08)', color: 'var(--accent)', border: '1px solid rgba(44,74,30,0.18)' }}>
                   <Flag size={11} style={{ display: 'inline', marginRight: 3 }} /> Singapore
                 </span>
               </div>
@@ -593,7 +593,7 @@ export default function HomePage() {
                   href={`https://www.pinterest.com/search/pins/?q=${encodeURIComponent('men outfit Singapore ' + events.season.season)}`}
                   target="_blank" rel="noopener noreferrer"
                   className="shrink-0 rounded-2xl flex flex-col items-center justify-center gap-2 transition-all hover:opacity-80"
-                  style={{ width: 100, height: 175, background: 'linear-gradient(135deg, rgba(233,30,140,0.06), rgba(99,102,241,0.06))', border: '1px dashed rgba(233,30,140,0.3)', flexShrink: 0 }}
+                  style={{ width: 100, height: 175, background: 'linear-gradient(135deg, rgba(233,30,140,0.06), rgba(44,74,30,0.06))', border: '1px dashed rgba(233,30,140,0.3)', flexShrink: 0 }}
                 >
                   <ExternalLink size={18} style={{ color: '#e91e8c' }} />
                   <p className="text-xs font-semibold text-center" style={{ color: '#e91e8c', maxWidth: 72, lineHeight: 1.3 }}>
@@ -641,9 +641,9 @@ export default function HomePage() {
                   className="px-3 py-1 rounded-full text-xs font-medium transition-all hover:opacity-80"
                   style={{
                     background: i % 2 === 0
-                      ? 'linear-gradient(135deg, rgba(233,30,140,0.08), rgba(233,30,140,0.04))'
-                      : 'linear-gradient(135deg, rgba(99,102,241,0.08), rgba(99,102,241,0.04))',
-                    border: `1px solid ${i % 2 === 0 ? 'rgba(233,30,140,0.2)' : 'rgba(99,102,241,0.2)'}`,
+                      ? 'linear-gradient(135deg, rgba(233,30,140,0.08), rgba(44,74,30,0.04))'
+                      : 'linear-gradient(135deg, rgba(44,74,30,0.07), rgba(99,102,241,0.04))',
+                    border: `1px solid ${i % 2 === 0 ? 'rgba(233,30,140,0.2)' : 'rgba(44,74,30,0.18)'}`,
                     color: i % 2 === 0 ? '#c2185b' : 'var(--accent)',
                   }}
                 >
@@ -665,7 +665,7 @@ export default function HomePage() {
                   key={ev.date}
                   className="shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl"
                   style={{
-                    background: ev.daysAway === 0 ? 'rgba(99,102,241,0.08)' : 'var(--muted-bg)',
+                    background: ev.daysAway === 0 ? 'rgba(44,74,30,0.07)' : 'var(--muted-bg)',
                     border: `1px solid ${ev.daysAway === 0 ? 'rgba(99,102,241,0.25)' : 'var(--card-border)'}`,
                   }}
                   title={ev.outfit_tip}
@@ -731,7 +731,7 @@ export default function HomePage() {
               <button
                 onClick={() => setShowCamera(true)}
                 className="flex-1 flex flex-col items-center gap-1.5 py-3 rounded-xl font-semibold text-sm transition-all hover:opacity-90"
-                style={{ background: 'linear-gradient(135deg, #6366f1, #818cf8)', color: '#fff', boxShadow: '0 2px 8px rgba(99,102,241,0.25)' }}
+                style={{ background: 'linear-gradient(to bottom, var(--primary-mid), var(--primary))', color: '#fff', boxShadow: 'var(--shadow-btn)' }}
               >
                 <Camera size={18} />
                 <span className="text-xs">Camera</span>
@@ -846,7 +846,7 @@ export default function HomePage() {
             {suggestion.style_tip && (
               <div
                 className="flex items-start gap-2 px-3 py-2.5 rounded-xl"
-                style={{ background: 'var(--accent-muted)', border: '1px solid rgba(99,102,241,0.15)' }}
+                style={{ background: 'var(--accent-muted)', border: '1px solid rgba(44,74,30,0.14)' }}
               >
                 <Lightbulb size={14} style={{ color: 'var(--accent)', flexShrink: 0 }} />
                 <p className="text-xs font-medium leading-relaxed" style={{ color: 'var(--accent)' }}>
@@ -969,7 +969,7 @@ export default function HomePage() {
           onClick={() => question.trim() && askAI(question)}
           disabled={!question.trim() || loading}
           className="w-8 h-8 rounded-xl flex items-center justify-center disabled:opacity-40 transition-opacity"
-          style={{ background: 'linear-gradient(135deg, #6366f1, #818cf8)' }}
+          style={{ background: 'linear-gradient(to bottom, var(--primary-mid), var(--primary))' }}
         >
           <Send size={14} style={{ color: '#fff' }} />
         </button>
@@ -1010,7 +1010,7 @@ export default function HomePage() {
         <Link
           href="/wardrobe"
           className="px-4 py-2 rounded-xl text-xs font-semibold transition-all hover:opacity-90"
-          style={{ background: 'linear-gradient(135deg, #6366f1, #818cf8)', color: '#fff' }}
+          style={{ background: 'linear-gradient(to bottom, var(--primary-mid), var(--primary))', color: '#fff' }}
         >
           {items.length === 0 ? 'Add Clothes' : 'View'}
         </Link>

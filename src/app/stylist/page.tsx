@@ -211,7 +211,7 @@ export default function StylistPage() {
                     style={{
                       background: selectedDay === i ? 'linear-gradient(135deg,#6366f1,#818cf8)' : 'var(--muted-bg)',
                       color: selectedDay === i ? '#fff' : 'var(--foreground)',
-                      border: i === todayIdx && selectedDay !== i ? '1px dashed rgba(99,102,241,0.5)' : '1px solid transparent',
+                      border: i === todayIdx && selectedDay !== i ? '1px dashed 0' : '1px solid transparent',
                       minWidth: 44,
                     }}>
                     {d}
@@ -232,7 +232,7 @@ export default function StylistPage() {
                   return (
                     <button key={o.label} onClick={() => { setSelectedOccasion(active ? null : o.label); setSelectedEvent(null); }}
                       className="flex flex-col items-center gap-1 py-2.5 rounded-xl transition-all hover:opacity-80"
-                      style={{ background: active ? 'var(--accent-muted)' : 'var(--muted-bg)', border:`1px solid ${active ? 'rgba(99,102,241,0.35)' : 'var(--card-border)'}` }}>
+                      style={{ background: active ? 'var(--accent-muted)' : 'var(--muted-bg)', border:`1px solid ${active ? '0' : 'var(--card-border)'}` }}>
                       <OccasionIcon label={o.label} size={22} color={active ? 'var(--accent)' : 'var(--muted)'}/>
                       <span style={{ fontSize:9, fontWeight:600, color: active ? 'var(--accent)' : 'var(--muted)', textAlign:'center', lineHeight:1.2, maxWidth:52 }}>{o.label}</span>
                     </button>
@@ -268,7 +268,7 @@ export default function StylistPage() {
                   {selectedEvent && (() => {
                     const ev = sgEvents.find((e) => e.name === selectedEvent);
                     return ev ? (
-                      <div className="mt-2.5 px-3 py-2.5 rounded-xl text-xs leading-relaxed" style={{ background:'var(--accent-muted)', border:'1px solid rgba(99,102,241,0.2)', color:'var(--accent)' }}>
+                      <div className="mt-2.5 px-3 py-2.5 rounded-xl text-xs leading-relaxed" style={{ background:'var(--accent-muted)', border:'1px solid 0', color:'var(--accent)' }}>
                         <strong>Dress code:</strong> {ev.dress_code} · {ev.outfit_tip}
                         <div className="flex gap-1.5 mt-1.5">{ev.colors.map((c,i) => <div key={i} className="w-4 h-4 rounded-full" style={{ background:c, border:'1px solid rgba(0,0,0,0.1)' }}/>)}</div>
                       </div>
@@ -286,7 +286,7 @@ export default function StylistPage() {
                 </div>
                 <button onClick={() => ask()} disabled={loading}
                   className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-xl font-bold text-sm transition-all hover:opacity-90 disabled:opacity-40"
-                  style={{ background:'linear-gradient(135deg,#6366f1,#818cf8)', color:'#fff', boxShadow:'0 2px 8px rgba(99,102,241,0.3)' }}>
+                  style={{ background:'linear-gradient(135deg,#6366f1,#818cf8)', color:'#fff', boxShadow:'0 2px 8px 0' }}>
                   {loading ? <Loader size={14} className="animate-spin"/> : <Sparkles size={14}/>}
                   Get Outfit
                 </button>
@@ -313,10 +313,10 @@ export default function StylistPage() {
                     {msg.suggestion?.outfit_items && msg.suggestion.outfit_items.length > 0 && (
                       <div className="w-full rounded-2xl overflow-hidden" style={{ background:'var(--card)', border:'1px solid var(--card-border)', boxShadow:'var(--shadow-sm)' }}>
                         {msg.suggestion.headline && (
-                          <div className="px-4 py-3" style={{ background:'var(--accent-muted)', borderBottom:'1px solid rgba(99,102,241,0.15)' }}>
+                          <div className="px-4 py-3" style={{ background:'var(--accent-muted)', borderBottom:'1px solid 0' }}>
                             <p className="font-bold text-sm" style={{ color:'var(--accent)' }}>{msg.suggestion.headline}</p>
                             {msg.suggestion.occasion && (
-                              <span className="text-xs px-2 py-0.5 rounded-full font-medium mt-1 inline-block capitalize" style={{ background:'rgba(99,102,241,0.12)', color:'var(--accent)', border:'1px solid rgba(99,102,241,0.2)' }}>
+                              <span className="text-xs px-2 py-0.5 rounded-full font-medium mt-1 inline-block capitalize" style={{ background:'0', color:'var(--accent)', border:'1px solid 0' }}>
                                 {msg.suggestion.occasion}
                               </span>
                             )}
@@ -336,7 +336,7 @@ export default function StylistPage() {
                           </div>
                         ))}
                         {msg.suggestion.style_tip && (
-                          <div className="px-4 py-3" style={{ background:'rgba(99,102,241,0.04)', borderTop:'1px solid var(--card-border)' }}>
+                          <div className="px-4 py-3" style={{ background:'0', borderTop:'1px solid var(--card-border)' }}>
                             <p className="text-xs leading-relaxed" style={{ color:'var(--accent)' }}>
                               <Lightbulb size={13} style={{ flexShrink:0 }}/> {msg.suggestion.style_tip}
                             </p>
