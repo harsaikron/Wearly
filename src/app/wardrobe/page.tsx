@@ -659,7 +659,7 @@ export default function WardrobePage() {
   ];
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6">
+    <div className="max-w-2xl mx-auto px-4 py-6 page-enter">
 
       {/* Header */}
       <div className="mb-4">
@@ -713,13 +713,13 @@ export default function WardrobePage() {
               <p className="text-xs mt-1" style={{ color:'var(--muted)' }}>Add clothes using camera or gallery</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3 stagger-grid">
               {filtered.map((item) => {
                 const daysSince = item.last_worn ? Math.floor((Date.now() - new Date(item.last_worn).getTime()) / 86400000) : null;
                 const isUnused  = !item.last_worn || (daysSince !== null && daysSince > 60);
                 const isOverused = item.times_worn > 10;
                 return (
-                  <div key={item.id} className="rounded-2xl overflow-hidden flex flex-col"
+                  <div key={item.id} className="rounded-2xl overflow-hidden flex flex-col card-lift"
                     style={{ background:'var(--card)', border:`1px solid ${item.favorite ? 'rgba(236,72,153,0.3)' : 'var(--card-border)'}`, boxShadow:'var(--shadow-sm)' }}>
                     {/* Clickable area → detail page */}
                     <Link href={`/wardrobe/${item.id}`} className="block">

@@ -47,7 +47,7 @@ export default function AIStatus() {
 
   return (
     <div
-      className="fixed bottom-[calc(60px+env(safe-area-inset-bottom)+8px)] md:bottom-4 right-4 z-40 flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium"
+      className="fixed bottom-[calc(60px+env(safe-area-inset-bottom)+8px)] md:bottom-4 right-4 z-40 flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium float"
       style={{
         background: config.bg,
         border: `1px solid ${config.border}`,
