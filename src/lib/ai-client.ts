@@ -1,16 +1,39 @@
 /**
  * Smart AI client — Gemma 4 locally via Ollama, falls back to Groq cloud.
- * Local:  gemma4:e4b  via Ollama  (private, runs on Apple Silicon)
- * Cloud:  llama-3.3-70b  via Groq  (free tier, needs GROQ_API_KEY)
+ *
+ * Model priority:
+ *   1. wearly-fashion-v1  (fine-tuned Gemma 4 via Unsloth — clothing vision only)
+ *   2. gemma4:e4b          (base Gemma 4 via Ollama — all other tasks)
+ *   3. llama-3.3-70b       (Groq cloud fallback — when Ollama unavailable)
  */
 import { Ollama } from 'ollama';
 import Groq from 'groq-sdk';
 
-const OLLAMA_MODEL      = 'gemma4:e4b';
-const GROQ_TEXT_MODEL   = 'llama-3.3-70b-versatile';
-const GROQ_VISION_MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct';
+const OLLAMA_MODEL        = 'gemma4:e4b';
+const OLLAMA_FASHION_MODEL = 'wearly-fashion-v1'; // fine-tuned clothing classifier
+const GROQ_TEXT_MODEL     = 'llama-3.3-70b-versatile';
+const GROQ_VISION_MODEL   = 'meta-llama/llama-4-scout-17b-16e-instruct';
 
 export const OLLAMA_HOST = process.env.OLLAMA_HOST ?? 'http://localhost:11434';
+
+// ─── Fine-tuned model detection ───────────────────────────────────────────────
+// Checks if the Unsloth-exported wearly-fashion-v1 model is available in Ollama.
+// Falls back silently to the base gemma4:e4b if not found.
+
+let _fashionModelAvailable: boolean | null = null;
+
+export async function detectFashionModel(): Promise<boolean> {
+  if (_fashionModelAvailable !== null) return _fashionModelAvailable;
+  try {
+    const res  = await fetch(`${OLLAMA_HOST}/api/tags`, { signal: AbortSignal.timeout(1500) });
+    if (!res.ok) { _fashionModelAvailable = false; return false; }
+    const data = await res.json() as { models: { name: string }[] };
+    _fashionModelAvailable = data.models?.some((m) => m.name.startsWith('wearly-fashion'));
+  } catch {
+    _fashionModelAvailable = false;
+  }
+  return _fashionModelAvailable ?? false;
+}
 
 // ─── Backend detection ────────────────────────────────────────────────────────
 
@@ -129,6 +152,9 @@ export async function aiChatText(
 }
 
 // ─── Vision (image) chat ──────────────────────────────────────────────────────
+// When the fine-tuned wearly-fashion-v1 model is available in Ollama, it is
+// used instead of the base model for clothing image analysis — giving higher
+// accuracy on category classification, colour naming, and occasion tagging.
 
 export async function aiChatWithImage(
   system: string,
@@ -139,16 +165,24 @@ export async function aiChatWithImage(
 
   if (backend === 'ollama') {
     const ollama = new Ollama({ host: OLLAMA_HOST });
+
+    // Prefer fine-tuned clothing model if available
+    const useFashionModel = await detectFashionModel();
+    const model = useFashionModel ? OLLAMA_FASHION_MODEL : OLLAMA_MODEL;
+
     const res = await ollama.chat({
-      model: OLLAMA_MODEL,
+      model,
       messages: [
         { role: 'system', content: system },
         { role: 'user', content: userMessage, images: [imageBase64] },
       ],
       format: 'json',
-      options: { temperature: 0.3 },
+      options: { temperature: 0.1 }, // lower temp for fine-tuned classifier
     });
-    return { text: res.message.content, backend };
+    return {
+      text: res.message.content,
+      backend: useFashionModel ? ('ollama-finetuned' as AIBackend) : backend,
+    };
   }
 
   if (backend === 'groq') {

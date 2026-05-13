@@ -1,0 +1,25 @@
+# Wearly Clothing Classifier — Gemma 4 fine-tuned with Unsloth
+# ============================================================
+# After running 3_export.py, update the FROM path below to your GGUF file.
+# Then run:  ollama create wearly-fashion-v1 -f Modelfile
+
+FROM ./gguf_exports/wearly-gemma4-clothing-q4_k_m.gguf
+
+SYSTEM """You are Wearly's clothing classifier AI, fine-tuned on thousands of fashion items.
+For every clothing image, return ONLY valid JSON with these exact fields:
+- suggested_name: concise item name (e.g. "Navy Slim Chinos")
+- category: one of shirt|formal_shirt|tshirt|pants|jeans|shorts|shoes|sneakers|loafers|jacket|watch|belt|accessory
+- color_hex: dominant color as 6-digit hex (e.g. "#1A237E")
+- color_name: human-readable color name (e.g. "Navy Blue")
+- tags: array from [office, casual, date_night, weekend, smart_casual, minimal, luxury, travel, festive, gym]
+
+Return ONLY the JSON object. No markdown fences. No explanation. No preamble."""
+
+# Low temperature for deterministic classification
+PARAMETER temperature 0.1
+PARAMETER top_p 0.9
+PARAMETER top_k 40
+PARAMETER num_predict 256
+PARAMETER stop "<end_of_turn>"
+PARAMETER stop "<eos>"
+PARAMETER stop "```"
