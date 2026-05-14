@@ -122,7 +122,7 @@ function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void 
         display: 'inline-block',
         position: 'relative',
         width: 52,
-        height: 30,
+        height: 32,
         borderRadius: 999,
         flexShrink: 0,
         cursor: 'pointer',
@@ -136,8 +136,8 @@ function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void 
     >
       <span style={{
         position: 'absolute',
-        top: 3,
-        left: on ? 25 : 3,
+        top: 4,
+        left: on ? 25 : 4,
         width: 24,
         height: 24,
         borderRadius: '50%',
