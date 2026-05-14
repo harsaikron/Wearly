@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Geist } from 'next/font/google';
 import './globals.css';
 import Navbar from '@/components/Navbar';
+import ColorBlindProvider from '@/components/ColorBlindProvider';
 
 const geist = Geist({ variable: '--font-geist-sans', subsets: ['latin'] });
 
@@ -24,6 +25,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         className="min-h-full flex flex-col"
         style={{ background: 'var(--background)', color: 'var(--foreground)' }}
       >
+        <ColorBlindProvider />
+        {/* Floating CBM indicator — only visible when data-cbm="1" */}
+        <div className="cbm-indicator" aria-hidden="true">👁 Color Blind Mode</div>
         <Navbar />
         <main className="flex-1 pb-[calc(70px+env(safe-area-inset-bottom))] md:pb-0">
           {children}

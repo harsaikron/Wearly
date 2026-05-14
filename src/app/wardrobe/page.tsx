@@ -5,6 +5,10 @@ import Image from 'next/image';
 import Link from 'next/link';
 import CameraCapture from '@/components/Camera';
 import UploadZone from '@/components/UploadZone';
+import MakeupAddSheet, { type MakeupSaveData } from '@/components/MakeupAddSheet';
+import FragranceAddSheet, { type FragranceSaveData } from '@/components/FragranceAddSheet';
+import GroomingAddSheet, { type GroomingSaveData } from '@/components/GroomingAddSheet';
+import CategoryPickerSheet, { type AddCategory } from '@/components/CategoryPickerSheet';
 import { useWardrobeStore } from '@/store/wardrobe';
 import { useListingsStore } from '@/store/listings';
 import { ClothingItem, ClothingCategory, OccasionTag, Listing, ListingCondition } from '@/types';
@@ -593,7 +597,11 @@ export default function WardrobePage() {
   // ── Closet state ──
   const [filter, setFilter]         = useState<FilterCat>('all');
   const [search, setSearch]         = useState('');
-  const [showAdd, setShowAdd]       = useState(false);
+  const [showAdd, setShowAdd]             = useState(false);
+  const [showCategoryPicker, setShowCategoryPicker] = useState(false);
+  const [showMakeupSheet,    setShowMakeupSheet]    = useState(false);
+  const [showFragranceSheet, setShowFragranceSheet] = useState(false);
+  const [showGroomingSheet,  setShowGroomingSheet]  = useState(false);
   const [showCamera, setShowCamera] = useState(false);
   const [preview, setPreview]       = useState('');
   const [analyzing, setAnalyzing]   = useState(false);
@@ -668,6 +676,29 @@ export default function WardrobePage() {
     });
     setShowAdd(false); setPreview('');
     setForm({ name:'', category:'shirt', color_hex:'#FFFFFF', color_name:'White', tags:[], spf:'', grooming_type:'' });
+  }
+
+  // ── Category picker → route to right sheet ───────────────────────────────────
+  function handleCategoryPick(cat: AddCategory) {
+    setShowCategoryPicker(false);
+    if (cat === 'makeup')    { setShowMakeupSheet(true);    return; }
+    if (cat === 'fragrance') { setShowFragranceSheet(true); return; }
+    if (cat === 'grooming')  { setShowGroomingSheet(true);  return; }
+    setPreview(''); setShowAdd(true);
+  }
+
+  // ── Specialized sheet save handlers ──────────────────────────────────────────
+  function saveMakeup(data: MakeupSaveData) {
+    addItem({ id: crypto.randomUUID(), user_id: 'local', image_url: '', times_worn: 0, created_at: new Date().toISOString(), straps: [], ...data });
+    setShowMakeupSheet(false);
+  }
+  function saveFragrance(data: FragranceSaveData) {
+    addItem({ id: crypto.randomUUID(), user_id: 'local', image_url: '', times_worn: 0, created_at: new Date().toISOString(), straps: [], ...data });
+    setShowFragranceSheet(false);
+  }
+  function saveGrooming(data: GroomingSaveData) {
+    addItem({ id: crypto.randomUUID(), user_id: 'local', image_url: '', times_worn: 0, created_at: new Date().toISOString(), straps: [], ...data });
+    setShowGroomingSheet(false);
   }
 
   // ── Sell/Rent helpers ──
@@ -760,7 +791,7 @@ export default function WardrobePage() {
   ];
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 page-enter">
+    <div className="max-w-2xl mx-auto px-4 py-6 page-enter" style={{ paddingBottom: 'calc(160px + env(safe-area-inset-bottom))' }}>
 
       {/* Header */}
       <div className="mb-4">
@@ -808,17 +839,23 @@ export default function WardrobePage() {
 
           {/* Mobile FAB — sits above the bottom nav, only on mobile */}
           <button
-            onClick={() => { setPreview(''); setShowAdd(true); }}
+            onClick={() => {
+              if (filter === 'makeup')    { setShowMakeupSheet(true);    return; }
+              if (filter === 'fragrance') { setShowFragranceSheet(true); return; }
+              if (filter === 'grooming')  { setShowGroomingSheet(true);  return; }
+              if (filter === 'all')       { setShowCategoryPicker(true); return; }
+              setPreview(''); setShowAdd(true);
+            }}
             className="fab"
-            aria-label="Add new clothing item"
+            aria-label="Add new item"
           >
             <Plus size={20} />
-            Add Clothes
+            {filter === 'makeup' ? 'Add Makeup' : filter === 'fragrance' ? 'Add Fragrance' : filter === 'grooming' ? 'Add Grooming' : 'Add Item'}
           </button>
 
           {/* Category pills — colorful badges */}
           <div className="flex gap-2 overflow-x-auto pb-1 hide-scrollbar">
-            {(['all', ...CATEGORIES] as FilterCat[]).map((c) => {
+            {(['all', 'makeup', 'fragrance', 'grooming', ...CATEGORIES.filter((c) => c !== 'makeup' && c !== 'fragrance' && c !== 'grooming')] as FilterCat[]).map((c) => {
               const isActive = filter === c;
               const s = c !== 'all' ? categoryBadgeStyle(c) : null;
               return (
@@ -898,7 +935,7 @@ export default function WardrobePage() {
                         {/* Color dot + worn count row */}
                         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:4 }}>
                           <div style={{ display:'flex', alignItems:'center', gap:4 }}>
-                            <div style={{ width:10, height:10, borderRadius:'50%', background:item.color_hex, border:'1.5px solid rgba(255,255,255,0.7)', flexShrink:0 }}/>
+                            <div className="cbm-dot" data-cn={item.color_name} style={{ width:10, height:10, borderRadius:'50%', background:item.color_hex, border:'1.5px solid rgba(255,255,255,0.7)', flexShrink:0 }}/>
                             <span style={{ color:'rgba(255,255,255,0.78)', fontSize:10 }}>{item.color_name}</span>
                           </div>
                           <span style={{ color:'rgba(255,255,255,0.65)', fontSize:10 }}>
@@ -909,7 +946,7 @@ export default function WardrobePage() {
                         {item.category === 'watch' && item.straps && item.straps.length > 0 && (
                           <div style={{ display:'flex', alignItems:'center', gap:3, marginTop:5 }}>
                             {item.straps.slice(0,6).map((s) => (
-                              <div key={s.id} title={`${s.color_name} ${s.material}`}
+                              <div key={s.id} className="cbm-dot" data-cn={s.color_name} title={`${s.color_name} ${s.material}`}
                                 style={{ width:9, height:9, borderRadius:'50%', background:s.color_hex, border:'1.5px solid rgba(255,255,255,0.7)', flexShrink:0 }}/>
                             ))}
                             {item.straps.length > 6 && <span style={{ color:'rgba(255,255,255,0.6)', fontSize:9 }}>+{item.straps.length-6}</span>}
@@ -1457,6 +1494,30 @@ export default function WardrobePage() {
           </button>
         </Modal>
       )}
+
+      {/* ── Category picker ── */}
+      <CategoryPickerSheet
+        open={showCategoryPicker}
+        onClose={() => setShowCategoryPicker(false)}
+        onPick={handleCategoryPick}
+      />
+
+      {/* ── Specialised bottom sheets ── */}
+      <MakeupAddSheet
+        open={showMakeupSheet}
+        onClose={() => setShowMakeupSheet(false)}
+        onSave={saveMakeup}
+      />
+      <FragranceAddSheet
+        open={showFragranceSheet}
+        onClose={() => setShowFragranceSheet(false)}
+        onSave={saveFragrance}
+      />
+      <GroomingAddSheet
+        open={showGroomingSheet}
+        onClose={() => setShowGroomingSheet(false)}
+        onSave={saveGrooming}
+      />
 
       {showCamera && (
         <div className="fixed inset-0 z-50 flex flex-col" style={{ background:'#000' }}>

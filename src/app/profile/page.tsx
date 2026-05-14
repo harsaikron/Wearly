@@ -7,7 +7,7 @@ import { useWishlistStore } from '@/store/wishlist';
 import { useWardrobeStore } from '@/store/wardrobe';
 import {
   Camera, Pencil, Check, X, ChevronRight,
-  Sparkles, Zap, Leaf, Bell,
+  Sparkles, Zap, Leaf, Bell, Eye,
   Cpu, Wifi, WifiOff, CloudLightning, AlertCircle,
   Globe, Brain, Star, Heart, Ruler, ChevronDown, ChevronUp,
   Droplets, Sun, RefreshCw, Send, GitPullRequest, ExternalLink, Trash2, Loader,
@@ -183,7 +183,7 @@ function CapBar({ name, score, color, delay = 0 }: { name: string; score: number
         <span style={{ fontSize: 12, color, fontWeight: 700 }}>{score}</span>
       </div>
       <div style={{ height: 5, borderRadius: 99, background: 'rgba(0,0,0,0.07)', overflow: 'hidden' }}>
-        <div style={{ height: '100%', borderRadius: 99, background: `linear-gradient(to right, ${color}90, ${color})`, width: `${w}%`, transition: `width 0.9s cubic-bezier(0.4,0,0.2,1) ${delay}ms` }} />
+        <div className="cbm-bar" style={{ height: '100%', borderRadius: 99, background: `linear-gradient(to right, ${color}90, ${color})`, width: `${w}%`, transition: `width 0.9s cubic-bezier(0.4,0,0.2,1) ${delay}ms` }} />
       </div>
     </div>
   );
@@ -251,10 +251,36 @@ export default function ProfilePage() {
   const [evolveLoading,  setEvolveLoading]  = useState(false);
   const [evolveResult,   setEvolveResult]   = useState<{ prUrl?: string; prNumber?: number; aiPlan?: string; prCreated?: boolean } | null>(null);
   const [evolveError,    setEvolveError]    = useState('');
+  const [refreshing,     setRefreshing]     = useState(false);
+  const [copied,         setCopied]         = useState<string | null>(null);
+  const aiStatusRef = useRef<AIStatus | null>(null);
+
+  const fetchAIStatus = useCallback(async (showSpinner = false) => {
+    if (showSpinner) setRefreshing(true);
+    try {
+      const data = await fetch('/api/ai-status').then((r) => r.json()) as AIStatus;
+      setAiStatus(data);
+      aiStatusRef.current = data;
+    } catch { /* offline */ }
+    setAiLoading(false);
+    if (showSpinner) setRefreshing(false);
+  }, []);
+
+  const copyCommand = useCallback((cmd: string, id: string) => {
+    navigator.clipboard.writeText(cmd).catch(() => {});
+    setCopied(id);
+    setTimeout(() => setCopied(null), 2000);
+  }, []);
 
   useEffect(() => {
-    fetch('/api/ai-status').then((r) => r.json()).then(setAiStatus).catch(() => {}).finally(() => setAiLoading(false));
-  }, []);
+    fetchAIStatus();
+    const id = setInterval(() => {
+      const s = aiStatusRef.current;
+      const anyUntrained = !s || !s.models.fashion.available || !s.models.outfit.available || !s.models.makeup.available;
+      if (anyUntrained) fetchAIStatus();
+    }, 10_000);
+    return () => clearInterval(id);
+  }, [fetchAIStatus]);
 
   const submitEvolve = useCallback(async () => {
     if (!evolveTitle.trim() || !evolveDesc.trim()) return;
@@ -477,7 +503,7 @@ export default function ProfilePage() {
                     return (
                       <button key={id} onClick={() => profile.setSkinTone(id)} title={label}
                         style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}>
-                        <div style={{
+                        <div className="cbm-skin-swatch" data-cn={label} style={{
                           width: 56, height: 56, borderRadius: '50%', background: hex,
                           border: active ? '3px solid var(--primary)' : '2.5px solid rgba(0,0,0,0.08)',
                           boxShadow: active ? `0 0 0 3px rgba(44,74,30,0.18), 0 4px 14px ${hex}60` : `0 2px 8px ${hex}50`,
@@ -631,7 +657,7 @@ export default function ProfilePage() {
                           onClick={() => toggleFave(hex)}
                           title={name}
                           style={{ flexShrink: 0, position: 'relative', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-                          <div style={{
+                          <div className="cbm-swatch" data-cn={name} style={{
                             width: 52, height: 52, borderRadius: '50%', background: hex,
                             border: faved ? '3px solid var(--foreground)' : '2.5px solid rgba(255,255,255,0.9)',
                             boxShadow: faved ? `0 0 0 2px rgba(0,0,0,0.15), 0 4px 16px ${hex}60` : `0 3px 12px ${hex}50`,
@@ -715,8 +741,9 @@ export default function ProfilePage() {
                 ))}
               </div>
               {[
-                { label: 'Notifications', desc: 'Daily outfit reminders', v: profile.notificationsEnabled, fn: profile.setNotifications, icon: Bell },
-                { label: 'Eco Mode',       desc: 'Prefer sustainable items', v: profile.ecoMode, fn: profile.setEcoMode, icon: Leaf },
+                { label: 'Notifications',      desc: 'Daily outfit reminders',                              v: profile.notificationsEnabled, fn: profile.setNotifications,    icon: Bell },
+                { label: 'Eco Mode',           desc: 'Prefer sustainable items',                           v: profile.ecoMode,              fn: profile.setEcoMode,           icon: Leaf },
+                { label: 'Color Blind Mode',   desc: 'Labels & patterns on all colour elements',           v: profile.colorBlindMode,       fn: profile.setColorBlindMode,    icon: Eye  },
               ].map(({ label, desc, v, fn, icon: Icon }) => (
                 <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
                   <Icon size={15} style={{ color: 'var(--muted)', flexShrink: 0 }} />
@@ -729,25 +756,33 @@ export default function ProfilePage() {
               ))}
             </Section>
 
-            {/* AI Intelligence */}
-            <div style={{ background: '#fff', borderRadius: 20, border: '1px solid rgba(0,0,0,0.07)', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', marginBottom: 14, overflow: 'hidden' }}>
+            {/* AI Intelligence — hidden */}
+            {false && <div style={{ background: '#fff', borderRadius: 20, border: '1px solid rgba(0,0,0,0.07)', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', marginBottom: 14, overflow: 'hidden' }}>
               {/* Header */}
               <div style={{ padding: '18px 18px 16px', display: 'flex', alignItems: 'center', gap: 13 }}>
                 <div style={{ width: 44, height: 44, borderRadius: 15, background: 'linear-gradient(135deg, #2C4A1E, #5A9240)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <Brain size={22} style={{ color: '#fff' }} />
                 </div>
-                <div>
+                <div style={{ flex: 1, minWidth: 0 }}>
                   <h2 style={{ fontSize: 16, fontWeight: 800, color: 'var(--foreground)', margin: 0 }}>Wearly AI Brain</h2>
                   <p style={{ fontSize: 12, color: 'var(--muted)', margin: '2px 0 0' }}>Gemma 4 · Unsloth LoRA · Groq fallback</p>
                 </div>
+                {/* Refresh button */}
+                <button
+                  onClick={() => fetchAIStatus(true)}
+                  disabled={refreshing}
+                  title="Check for new models"
+                  style={{ width: 36, height: 36, borderRadius: 12, border: '1.5px solid rgba(0,0,0,0.10)', background: refreshing ? 'rgba(90,146,64,0.08)' : 'var(--muted-bg)', cursor: refreshing ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.2s' }}>
+                  <RefreshCw size={15} style={{ color: refreshing ? '#5A9240' : 'var(--muted)', animation: refreshing ? 'spin 0.8s linear infinite' : 'none' }} />
+                </button>
               </div>
 
               <div style={{ padding: '0 18px 18px' }}>
                 {/* Score + backend */}
-                <div style={{ display: 'flex', gap: 20, alignItems: 'center', padding: '14px 16px', borderRadius: 16, background: 'var(--muted-bg)', marginBottom: 16 }}>
+                <div style={{ display: 'flex', gap: 20, alignItems: 'center', padding: '14px 16px', borderRadius: 16, background: 'var(--muted-bg)', marginBottom: 14 }}>
                   {aiLoading
                     ? <div style={{ width: 88, height: 88, borderRadius: '50%', background: 'rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Cpu size={24} style={{ color: 'var(--muted)' }} /></div>
-                    : <ScoreRing score={aiStatus?.overallScore ?? 0} color={scoreColor} />
+                    : <ScoreRing key={aiStatus?.overallScore ?? 0} score={aiStatus?.overallScore ?? 0} color={scoreColor} />
                   }
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--foreground)', marginBottom: 3 }}>
@@ -762,21 +797,40 @@ export default function ProfilePage() {
                   </div>
                 </div>
 
+                {/* Score contribution breakdown */}
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>
+                  {[
+                    { label: 'Base Gemma', pts: aiStatus?.models.base.available ? 72 : 65, color: '#f59e0b', avail: true },
+                    { label: 'Fashion', pts: 10, color: '#5A9240', avail: modelAvail.fashion },
+                    { label: 'Outfit', pts: 9, color: '#3b82f6', avail: modelAvail.outfit },
+                    { label: 'Makeup', pts: 9, color: '#ec4899', avail: modelAvail.makeup },
+                  ].map(({ label, pts, color, avail }) => (
+                    <div key={label} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, background: avail ? `${color}14` : 'rgba(0,0,0,0.04)', border: `1px solid ${avail ? `${color}30` : 'rgba(0,0,0,0.07)'}` }}>
+                      <span style={{ fontSize: 11, fontWeight: 800, color: avail ? color : 'var(--muted)' }}>+{pts}</span>
+                      <span style={{ fontSize: 10, fontWeight: 600, color: avail ? color : 'var(--muted)', opacity: 0.85 }}>{label}</span>
+                      {!avail && <span style={{ fontSize: 9, color: 'var(--muted)', opacity: 0.7 }}>🔒</span>}
+                    </div>
+                  ))}
+                </div>
+
                 {/* Model cards */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {AI_MODULES.map((mod) => {
                     const avail = modelAvail[mod.id as keyof typeof modelAvail];
                     const expanded = expandedModel === mod.id;
+                    const ollamaCmd = mod.id === 'base' ? '' : `ollama create wearly-${mod.id}-v1 -f training/modelfiles/Modelfile.${mod.id}`;
+                    const nbName = mod.id === 'base' ? '' : `wearly_${mod.id}_finetune.ipynb`;
+                    const copiedKey = `cmd-${mod.id}`;
                     return (
-                      <div key={mod.id} style={{ borderRadius: 14, border: `1.5px solid ${avail ? `${mod.color}30` : 'rgba(0,0,0,0.07)'}`, background: avail ? `${mod.color}0C` : 'rgba(0,0,0,0.02)', overflow: 'hidden', transition: 'all 0.2s' }}>
+                      <div key={mod.id} style={{ borderRadius: 14, border: `1.5px solid ${avail ? `${mod.color}30` : 'rgba(0,0,0,0.07)'}`, background: avail ? `${mod.color}0C` : 'rgba(0,0,0,0.02)', overflow: 'hidden', transition: 'all 0.3s' }}>
                         <button onClick={() => setExpandedModel(expanded ? null : mod.id)}
                           style={{ width: '100%', padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 11, background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
-                          <div style={{ width: 9, height: 9, borderRadius: '50%', flexShrink: 0, background: avail ? mod.color : 'rgba(0,0,0,0.15)', boxShadow: avail ? `0 0 0 3px ${mod.color}25` : 'none' }} />
+                          <div style={{ width: 9, height: 9, borderRadius: '50%', flexShrink: 0, background: avail ? mod.color : 'rgba(0,0,0,0.15)', boxShadow: avail ? `0 0 0 3px ${mod.color}25` : 'none', transition: 'all 0.4s' }} />
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                               <span style={{ fontSize: 13, fontWeight: 700, color: avail ? 'var(--foreground)' : 'var(--muted)' }}>{mod.label}</span>
-                              <span style={{ fontSize: 10, fontWeight: 700, color: avail ? mod.color : 'var(--muted)', background: avail ? `${mod.color}18` : 'rgba(0,0,0,0.06)', padding: '2px 7px', borderRadius: 20 }}>
-                                {avail ? 'ACTIVE' : 'UNTRAINED'}
+                              <span style={{ fontSize: 10, fontWeight: 700, color: avail ? mod.color : 'var(--muted)', background: avail ? `${mod.color}18` : 'rgba(0,0,0,0.06)', padding: '2px 7px', borderRadius: 20, transition: 'all 0.3s' }}>
+                                {avail ? '● ACTIVE' : 'UNTRAINED'}
                               </span>
                             </div>
                             <p style={{ fontSize: 11, color: 'var(--muted)', margin: '1px 0 0' }}>{mod.desc}</p>
@@ -790,12 +844,69 @@ export default function ProfilePage() {
                               <code style={{ fontSize: 11, color: 'var(--muted)', fontFamily: 'monospace' }}>Model: {mod.id === 'base' ? 'gemma4:e4b' : `wearly-${mod.id}-v1`}</code>
                             </div>
                             {mod.capabilities.map((c, i) => <CapBar key={c.name} name={c.name} score={avail ? c.score : Math.round(c.score * 0.75)} color={avail ? mod.color : 'rgba(0,0,0,0.22)'} delay={i * 110} />)}
-                            {!avail && (
-                              <div style={{ marginTop: 10, padding: '9px 12px', borderRadius: 11, background: 'rgba(0,0,0,0.04)', display: 'flex', gap: 8 }}>
-                                <AlertCircle size={13} style={{ color: 'var(--muted)', flexShrink: 0, marginTop: 1 }} />
-                                <p style={{ fontSize: 11, color: 'var(--muted)', margin: 0, lineHeight: 1.5 }}>
-                                  Run <code style={{ fontSize: 10 }}>training/notebooks/wearly_{mod.id}_finetune.ipynb</code> on Colab, then <code style={{ fontSize: 10 }}>ollama create wearly-{mod.id}-v1</code>
-                                </p>
+
+                            {/* Training guide for non-base untrained models */}
+                            {!avail && mod.id !== 'base' && (
+                              <div style={{ marginTop: 12, borderRadius: 13, border: '1px solid rgba(0,0,0,0.07)', overflow: 'hidden' }}>
+                                {/* Step header */}
+                                <div style={{ padding: '9px 13px', background: `${mod.color}0E`, borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+                                  <span style={{ fontSize: 11, fontWeight: 700, color: mod.color, textTransform: 'uppercase', letterSpacing: '0.06em' }}>How to train &amp; install</span>
+                                </div>
+                                {[
+                                  {
+                                    step: 1, label: 'Run on Google Colab',
+                                    desc: `Open training/notebooks/${nbName} in Colab and run all cells (free GPU).`,
+                                    action: <a href={`https://colab.research.google.com/`} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700, color: mod.color, textDecoration: 'none' }}>Open Colab <ExternalLink size={10} /></a>,
+                                  },
+                                  {
+                                    step: 2, label: 'Download GGUF',
+                                    desc: 'After training, download the exported unsloth.Q4_K_M.gguf file from Colab Files panel.',
+                                    action: null,
+                                  },
+                                  {
+                                    step: 3, label: 'Register with Ollama',
+                                    desc: ollamaCmd,
+                                    isCode: true,
+                                    action: (
+                                      <button onClick={() => copyCommand(ollamaCmd, copiedKey)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700, color: copied === copiedKey ? '#5A9240' : mod.color, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                                        {copied === copiedKey ? '✓ Copied!' : 'Copy'}
+                                      </button>
+                                    ),
+                                  },
+                                ].map(({ step, label, desc, isCode, action }) => (
+                                  <div key={step} style={{ padding: '11px 13px', display: 'flex', gap: 11, borderBottom: step < 3 ? '1px solid rgba(0,0,0,0.05)' : 'none', alignItems: 'flex-start' }}>
+                                    <div style={{ width: 22, height: 22, borderRadius: '50%', background: `${mod.color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
+                                      <span style={{ fontSize: 11, fontWeight: 800, color: mod.color }}>{step}</span>
+                                    </div>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                      <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--foreground)', marginBottom: 3 }}>{label}</div>
+                                      {isCode
+                                        ? <code style={{ fontSize: 10, color: 'var(--muted)', fontFamily: 'monospace', wordBreak: 'break-all', display: 'block', lineHeight: 1.5 }}>{desc}</code>
+                                        : <p style={{ fontSize: 11, color: 'var(--muted)', margin: 0, lineHeight: 1.5 }}>{desc}</p>}
+                                      {action && <div style={{ marginTop: 5 }}>{action}</div>}
+                                    </div>
+                                  </div>
+                                ))}
+
+                                {/* Score unlock callout */}
+                                <div style={{ padding: '9px 13px', background: 'rgba(0,0,0,0.02)', display: 'flex', alignItems: 'center', gap: 7 }}>
+                                  <Star size={11} style={{ color: mod.color, flexShrink: 0 }} />
+                                  <span style={{ fontSize: 11, color: 'var(--muted)' }}>
+                                    Training unlocks <strong style={{ color: mod.color }}>+{mod.id === 'fashion' ? 10 : 9} pts</strong> to your AI Intelligence score
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+
+                            {avail && mod.id !== 'base' && (
+                              <div style={{ marginTop: 10, padding: '8px 12px', borderRadius: 11, background: `${mod.color}0C`, border: `1px solid ${mod.color}20`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                  <Check size={12} style={{ color: mod.color }} />
+                                  <span style={{ fontSize: 11, fontWeight: 600, color: mod.color }}>Model active &amp; scoring</span>
+                                </div>
+                                <button onClick={() => copyCommand(ollamaCmd, copiedKey)} style={{ fontSize: 10, fontWeight: 700, color: copied === copiedKey ? '#5A9240' : mod.color, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                                  {copied === copiedKey ? '✓ Copied' : 'Copy cmd'}
+                                </button>
                               </div>
                             )}
                           </div>
@@ -805,8 +916,14 @@ export default function ProfilePage() {
                   })}
                 </div>
 
+                {/* Polling indicator */}
+                <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 7 }}>
+                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#5A9240', animation: 'pulse 2s ease infinite' }} />
+                  <span style={{ fontSize: 11, color: 'var(--muted)' }}>Auto-checking for new models every 10s</span>
+                </div>
+
                 {/* Footer */}
-                <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <p style={{ fontSize: 11, color: 'var(--muted)', margin: 0 }}>Gemma 4 · Unsloth LoRA r=32 · Q4_K_M GGUF</p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                     <Star size={11} style={{ color: '#f59e0b' }} />
@@ -814,7 +931,7 @@ export default function ProfilePage() {
                   </div>
                 </div>
               </div>
-            </div>
+            </div>}
 
           </div>{/* end right col */}
         </div>{/* end grid */}

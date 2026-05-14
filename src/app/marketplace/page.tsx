@@ -29,7 +29,7 @@ function ListingCard({ listing }: { listing: Listing }) {
             style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }}/>
         ) : (
           /* Gradient colour fill + big initial letter */
-          <div style={{
+          <div className="cbm-card-bg" data-cn={listing.color_name || 'Colour'} style={{
             position:'absolute', inset:0,
             background: `linear-gradient(145deg, ${bg}dd 0%, ${bg}88 100%)`,
             display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:12,

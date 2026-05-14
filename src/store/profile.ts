@@ -46,6 +46,7 @@ interface ProfileStore {
   region: string;
   notificationsEnabled: boolean;
   ecoMode: boolean;
+  colorBlindMode: boolean;
 
   // ── Actions ───────────────────────────────────────────────────
   setName: (v: string) => void;
@@ -67,6 +68,7 @@ interface ProfileStore {
   setRegion: (v: string) => void;
   setNotifications: (v: boolean) => void;
   setEcoMode: (v: boolean) => void;
+  setColorBlindMode: (v: boolean) => void;
 }
 
 export const useProfileStore = create<ProfileStore>()(
@@ -92,6 +94,7 @@ export const useProfileStore = create<ProfileStore>()(
       region: 'Singapore',
       notificationsEnabled: false,
       ecoMode: false,
+      colorBlindMode: false,
 
       setName: (v) => set({ name: v }),
       setBio: (v) => set({ bio: v }),
@@ -117,6 +120,7 @@ export const useProfileStore = create<ProfileStore>()(
       setRegion: (v) => set({ region: v }),
       setNotifications: (v) => set({ notificationsEnabled: v }),
       setEcoMode: (v) => set({ ecoMode: v }),
+      setColorBlindMode: (v) => set({ colorBlindMode: v }),
     }),
     { name: 'wearly-profile' }
   )

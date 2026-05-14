@@ -627,7 +627,8 @@ export default function HomePage() {
                       </div>
                     ) : (
                       <div
-                        className="rounded-2xl flex items-center justify-center"
+                        className="cbm-card-bg rounded-2xl flex items-center justify-center"
+                        data-cn={item.color_name ?? ''}
                         style={{
                           width: ootd.items.length <= 2 ? 110 : ootd.items.length === 3 ? 95 : 80,
                           height: ootd.items.length <= 2 ? 130 : ootd.items.length === 3 ? 112 : 96,
@@ -676,7 +677,8 @@ export default function HomePage() {
                   >
                     {/* Color swatch */}
                     <div
-                      className="w-8 h-8 rounded-lg shrink-0 border"
+                      className="cbm-swatch w-8 h-8 rounded-lg shrink-0 border"
+                      data-cn={item.color_name ?? ''}
                       style={{ background: item.color_hex ?? '#e5e7eb', borderColor: 'rgba(0,0,0,0.08)' }}
                     />
                     <div className="flex-1 min-w-0">

@@ -338,7 +338,9 @@ export default function StylistPage() {
                     return ev ? (
                       <div className="mt-2.5 px-3 py-2.5 rounded-xl text-xs leading-relaxed" style={{ background:'var(--accent-muted)', border:'1px solid 0', color:'var(--accent)' }}>
                         <strong>Dress code:</strong> {ev.dress_code} · {ev.outfit_tip}
-                        <div className="flex gap-1.5 mt-1.5">{ev.colors.map((c,i) => <div key={i} className="w-4 h-4 rounded-full" style={{ background:c, border:'1px solid rgba(0,0,0,0.1)' }}/>)}</div>
+                        <div className="flex gap-1.5 mt-1.5 flex-wrap">{ev.colors.map((c,i) => (
+                          <div key={i} className="cbm-swatch" data-cn={c} title={c} style={{ width:16, height:16, borderRadius:'50%', background:c, border:'1px solid rgba(0,0,0,0.1)', flexShrink:0 }}/>
+                        ))}</div>
                       </div>
                     ) : null;
                   })()}
@@ -393,7 +395,7 @@ export default function StylistPage() {
                         {msg.suggestion.outfit_items.map((item, i) => (
                           <div key={i} className="px-4 py-3" style={{ borderBottom: i < msg.suggestion!.outfit_items!.length - 1 ? '1px solid var(--card-border)' : 'none' }}>
                             <div className="flex items-center gap-3 mb-2">
-                              <div className="w-9 h-9 rounded-xl shrink-0" style={{ background: item.color_hex, border:'1px solid rgba(0,0,0,0.08)' }}/>
+                              <div className="cbm-swatch w-9 h-9 rounded-xl shrink-0" data-cn={item.color_name} style={{ background: item.color_hex, border:'1px solid rgba(0,0,0,0.08)' }}/>
                               <div className="flex-1 min-w-0">
                                 <p className="text-sm font-semibold" style={{ color:'var(--foreground)' }}>{item.piece}</p>
                                 {item.note && <p className="text-xs" style={{ color:'var(--muted)' }}>{item.note}</p>}
