@@ -1,274 +1,175 @@
+/**
+ * POST /api/evolve
+ *
+ * Self-evolving pipeline:
+ *   1. User submits a feature idea (title + description + category)
+ *   2. Gemma AI drafts a full implementation plan
+ *   3. GitHub PR is created automatically with the plan as the PR body
+ *      and a markdown spec file committed to features/
+ *
+ * Requires: GITHUB_TOKEN env var (fine-grained PAT with Contents + PRs write)
+ * Repo:     harsaikron/Wearly
+ */
 import { NextRequest, NextResponse } from 'next/server';
-import { aiChat, aiChatText, safeParseJSON } from '@/lib/ai-client';
+import { aiChatText } from '@/lib/ai-client';
 
-const GITHUB_OWNER = 'harsaikron';
-const GITHUB_REPO  = 'Wearly';
+const REPO  = 'harsaikron/Wearly';
+const GH    = 'https://api.github.com';
+const TOKEN = process.env.GITHUB_TOKEN;
 
-// Files the AI is allowed to read and modify (UI/styling only — never API or config)
-const READABLE_FILES = [
-  'src/app/globals.css',
-  'src/app/page.tsx',
-  'src/app/wardrobe/page.tsx',
-  'src/app/stylist/page.tsx',
-  'src/components/Navbar.tsx',
-  'src/components/ClothingCard.tsx',
-  'src/components/UploadZone.tsx',
-  'src/components/Camera.tsx',
-];
+const PLAN_SYSTEM = `You are a senior Next.js / TypeScript / Tailwind CSS engineer working on "Wearly",
+an AI-powered wardrobe & beauty styling app. A user has submitted a feature request.
 
-// ─── GitHub helpers ───────────────────────────────────────────────────────────
+Generate a detailed, actionable implementation plan that includes:
+1. Feature summary (2-3 sentences)
+2. Files to create or modify (with exact paths like src/app/profile/page.tsx)
+3. Data model changes (TypeScript types, Zustand store fields if needed)
+4. UI component breakdown (props, layout description, key interactions)
+5. API route design if needed (endpoint path, request/response JSON shape)
+6. AI prompt changes if this needs Gemma/Groq updates
+7. Estimated complexity: Low / Medium / High and why
+8. Acceptance criteria (bullet list of what done looks like)
 
-function ghHeaders(token: string) {
+Be specific about names. Do NOT write actual TypeScript/JSX code — write a clear plan.`;
+
+function slugify(str: string) {
+  return str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 50);
+}
+
+function ghHeaders() {
   return {
-    Authorization: `token ${token}`,
-    Accept: 'application/vnd.github.v3+json',
+    Authorization: `Bearer ${TOKEN}`,
+    Accept: 'application/vnd.github+json',
+    'X-GitHub-Api-Version': '2022-11-28',
     'Content-Type': 'application/json',
   };
 }
 
-async function ghGet(path: string, token: string) {
-  const res = await fetch(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/${path}`, {
-    headers: ghHeaders(token),
-  });
-  if (!res.ok) throw new Error(`GitHub GET ${path} → ${res.status}`);
-  return res.json();
+async function getMainSha(): Promise<string> {
+  const res = await fetch(`${GH}/repos/${REPO}/git/ref/heads/main`, { headers: ghHeaders() });
+  if (!res.ok) throw new Error(`GitHub: cannot get main SHA (HTTP ${res.status})`);
+  const data = await res.json() as { object: { sha: string } };
+  return data.object.sha;
 }
 
-async function ghPost(path: string, body: unknown, token: string) {
-  const res = await fetch(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/${path}`, {
-    method: 'POST',
-    headers: ghHeaders(token),
-    body: JSON.stringify(body),
+async function createBranch(branchName: string, sha: string) {
+  const res = await fetch(`${GH}/repos/${REPO}/git/refs`, {
+    method: 'POST', headers: ghHeaders(),
+    body: JSON.stringify({ ref: `refs/heads/${branchName}`, sha }),
   });
   if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`GitHub POST ${path} → ${res.status}: ${err}`);
+    const err = await res.json().catch(() => ({})) as Record<string, unknown>;
+    throw new Error(`GitHub: cannot create branch — ${JSON.stringify(err)}`);
   }
-  return res.json();
 }
 
-async function getFile(filePath: string, token: string): Promise<{ content: string; sha: string }> {
-  const data = await ghGet(`contents/${filePath}`, token);
-  return {
-    content: Buffer.from(data.content as string, 'base64').toString('utf-8'),
-    sha: data.sha as string,
-  };
+async function commitFile(branch: string, path: string, content: string, msg: string) {
+  const encoded = Buffer.from(content, 'utf-8').toString('base64');
+  const res = await fetch(`${GH}/repos/${REPO}/contents/${path}`, {
+    method: 'PUT', headers: ghHeaders(),
+    body: JSON.stringify({ message: msg, content: encoded, branch }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({})) as Record<string, unknown>;
+    throw new Error(`GitHub: cannot commit file — ${JSON.stringify(err)}`);
+  }
 }
 
-async function createPR(
-  token: string,
-  headSha: string,
-  branchName: string,
-  changes: { file: string; newContent: string }[],
-  prTitle: string,
-  prBody: string,
-  reviewComment: string
-): Promise<{ url: string; number: number }> {
-
-  // 1. Get current tree SHA
-  const commit = await ghGet(`git/commits/${headSha}`, token);
-  const baseTreeSha = commit.tree.sha as string;
-
-  // 2. Create blobs for each changed file
-  const treeEntries = await Promise.all(
-    changes.map(async (c) => {
-      const blob = await ghPost('git/blobs', { content: c.newContent, encoding: 'utf-8' }, token);
-      return { path: c.file, mode: '100644', type: 'blob', sha: blob.sha };
-    })
-  );
-
-  // 3. Create new tree
-  const newTree = await ghPost('git/trees', { base_tree: baseTreeSha, tree: treeEntries }, token);
-
-  // 4. Create commit
-  const newCommit = await ghPost('git/commits', {
-    message: `feat: ${prTitle}\n\nAuto-generated by Wearly AI Evolution (Gemma 4)`,
-    tree:    newTree.sha,
-    parents: [headSha],
-  }, token);
-
-  // 5. Create branch
-  await ghPost('git/refs', {
-    ref: `refs/heads/${branchName}`,
-    sha: newCommit.sha,
-  }, token);
-
-  // 6. Create PR
-  const pr = await ghPost('pulls', {
-    title: prTitle,
-    body:  prBody,
-    head:  branchName,
-    base:  'main',
-  }, token);
-
-  // 7. Post AI review comment
-  await ghPost(`pulls/${pr.number}/reviews`, {
-    body:  reviewComment,
-    event: 'COMMENT',
-  }, token);
-
-  return { url: pr.html_url as string, number: pr.number as number };
+async function createPR(branch: string, title: string, body: string): Promise<{ url: string; number: number }> {
+  const res = await fetch(`${GH}/repos/${REPO}/pulls`, {
+    method: 'POST', headers: ghHeaders(),
+    body: JSON.stringify({ title, body, head: branch, base: 'main', draft: true }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({})) as Record<string, unknown>;
+    throw new Error(`GitHub: cannot create PR — ${JSON.stringify(err)}`);
+  }
+  const data = await res.json() as { html_url: string; number: number };
+  return { url: data.html_url, number: data.number };
 }
-
-// ─── Main handler ─────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
-  const token = process.env.GITHUB_TOKEN;
-
-  const { feedback } = await req.json() as { feedback: string };
-  if (!feedback?.trim()) {
-    return NextResponse.json({ error: 'Feedback is required.' }, { status: 400 });
-  }
-
   try {
-    // 1. Read source files — from GitHub if token available, else import local files
-    const fileContents: Record<string, string> = {};
-
-    if (token) {
-      await Promise.allSettled(
-        READABLE_FILES.map(async (f) => {
-          try {
-            const { content } = await getFile(f, token);
-            fileContents[f] = content;
-          } catch { /* skip */ }
-        })
-      );
-    }
-    // In preview mode (no token) we proceed with an empty fileContents;
-    // the AI is prompted with the app description instead of actual code.
-
-    const APP_DESCRIPTION = `Wearly is an AI wardrobe portal for men in Singapore.
-Stack: Next.js 16 App Router, TypeScript, Tailwind CSS, Zustand, lucide-react icons.
-CSS variables: --background #f5f6fa, --card #ffffff, --card-border #e4e7ef, --accent #6366f1, --muted #8b93a7, --accent-muted rgba(99,102,241,0.08), --muted-bg #f0f2f8, --shadow-sm, --shadow-md.
-Pages: / (home — weather strip, events widget, AI stylist chat), /wardrobe (clothing grid), /stylist (detailed chat), /evolve (this page).
-Components: Navbar.tsx, ClothingCard.tsx, Camera.tsx, OllamaStatus.tsx.
-Store: useWardrobeStore() with items array of { id, name, category, color_hex, color_name, tags }.`;
-
-    const codeContext = Object.keys(fileContents).length > 0
-      ? Object.entries(fileContents)
-          .map(([p, code]) => `=== ${p} ===\n${code.slice(0, 3000)}`)
-          .join('\n\n')
-      : `App description (no source access in preview mode):\n${APP_DESCRIPTION}`;
-
-    // 2. Ask AI to analyze feedback and plan code changes
-    const analysisSystem = `You are an expert Next.js/React developer working on "Wearly" — an AI wardrobe portal.
-Analyze user feedback and output precise, working code changes.
-App stack: Next.js App Router, TypeScript, Tailwind CSS, Zustand, CSS variables for theming.
-Color scheme: background #f5f6fa, card #ffffff, accent #6366f1 (indigo), muted #8b93a7.
-
-IMPORTANT: Output valid JSON only. No markdown fences. No explanations outside JSON.
-{
-  "pr_title": "short imperative title under 60 chars",
-  "pr_description": "markdown description of what changed and why",
-  "files_changed": ["src/path/to/file.tsx"],
-  "changes": [
-    {
-      "file": "src/app/...",
-      "summary": "one sentence: what changes in this file",
-      "new_content": "complete updated file content — valid TypeScript/CSS"
-    }
-  ]
-}
-
-Rules:
-- Only modify files: ${READABLE_FILES.join(', ')}
-- Maximum 2 files per PR
-- Preserve imports/types/functionality unless explicitly asked to change
-- Keep same code style and CSS variable references
-- new_content must be the COMPLETE file, not a snippet`;
-
-    const analysisMessage = `User feedback: "${feedback}"
-
-Current codebase:
-${codeContext}
-
-Generate precise code changes.`;
-
-    const { text: analysisRaw } = await aiChat(analysisSystem, analysisMessage, {
-      temperature: 0.3,
-      maxTokens: 6000,
-    });
-
-    let analysis: {
-      pr_title: string;
-      pr_description: string;
-      files_changed: string[];
-      changes: { file: string; summary: string; new_content: string }[];
+    const { title, description, category, featureId } = await req.json() as {
+      title: string; description: string; category: string; featureId: string;
     };
 
-    try {
-      analysis = safeParseJSON(analysisRaw) as typeof analysis;
-    } catch {
-      return NextResponse.json(
-        { error: 'AI failed to generate structured changes. Try rephrasing your feedback.' },
-        { status: 422 }
-      );
+    if (!title?.trim() || !description?.trim()) {
+      return NextResponse.json({ error: 'title and description are required' }, { status: 400 });
     }
 
-    if (!analysis.changes?.length) {
-      return NextResponse.json(
-        { error: 'AI could not determine what to change for this feedback. Try being more specific.' },
-        { status: 422 }
-      );
+    // ── 1. Gemma AI generates the implementation plan ─────────────
+    const userMsg = `Feature Request — ${category}\n\nTitle: ${title}\n\nDescription:\n${description}\n\nPlease write the full implementation plan.`;
+    const { text: aiPlan } = await aiChatText(PLAN_SYSTEM, userMsg, { temperature: 0.35, maxTokens: 1800 });
+
+    // ── 2. Create GitHub PR (skip if token placeholder) ───────────
+    const tokenReady = TOKEN && TOKEN !== 'your_github_token' && TOKEN.length > 10;
+    if (!tokenReady) {
+      return NextResponse.json({ aiPlan, prCreated: false, reason: 'GITHUB_TOKEN not configured — add your PAT to .env.local' });
     }
 
-    // 3. AI review comment
-    const reviewSystem = `You are a senior code reviewer for the Wearly app. Write a concise PR review.
-Cover: what changed, why it's a good solution, edge cases to watch.
-Under 150 words. Professional but friendly.`;
+    const slug       = slugify(title);
+    const ts         = Date.now();
+    const branchName = `feature/user-${ts}-${slug}`;
+    const filePath   = `features/${ts}-${slug}.md`;
 
-    const { text: reviewComment } = await aiChatText(
-      reviewSystem,
-      `PR: ${analysis.pr_title}\nFiles: ${analysis.changes.map((c) => c.file).join(', ')}\nRequest: "${feedback}"\n\nWrite review:`,
-      { temperature: 0.5, maxTokens: 250 }
-    );
+    const fileContent = `# [User Request] ${title}
 
-    // ── Preview mode (no GitHub token) ───────────────────────────────────────
-    if (!token) {
-      return NextResponse.json({
-        preview: {
-          pr_title:        analysis.pr_title,
-          files_changed:   analysis.files_changed ?? analysis.changes.map((c) => c.file),
-          review_comment:  reviewComment,
-          preview_changes: analysis.changes.map((c) => ({ file: c.file, summary: c.summary ?? 'updated' })),
-        },
-      });
-    }
+> **Category:** ${category}
+> **Submitted:** ${new Date().toISOString()}
+> **Feature ID:** ${featureId}
 
-    // ── Full PR mode ─────────────────────────────────────────────────────────
-    const refData = await ghGet('git/ref/heads/main', token);
-    const headSha = refData.object.sha as string;
+## What the user wants
 
-    const branchName = `evolve/${Date.now()}-${analysis.pr_title
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .slice(0, 40)}`;
+${description}
 
+---
+
+## AI Implementation Plan
+
+${aiPlan}
+
+---
+
+*Auto-generated by Wearly's self-evolving pipeline via /api/evolve*
+`;
+
+    const prBody = `## 🚀 User Feature Request
+
+**Category:** \`${category}\`
+**Submitted:** ${new Date().toLocaleDateString('en-SG')}
+
+### User's description
+
+> ${description.split('\n').join('\n> ')}
+
+---
+
+### 🤖 Gemma AI Implementation Plan
+
+${aiPlan}
+
+---
+
+> Created automatically by Wearly's self-evolving pipeline.
+> Spec: \`${filePath}\` on branch \`${branchName}\`
+
+/cc @harsaikron`;
+
+    const mainSha = await getMainSha();
+    await createBranch(branchName, mainSha);
+    await commitFile(branchName, filePath, fileContent, `feat: user request — ${title}`);
     const { url: prUrl, number: prNumber } = await createPR(
-      token,
-      headSha,
       branchName,
-      analysis.changes.map((c) => ({ file: c.file, newContent: c.new_content })),
-      analysis.pr_title,
-      `## Summary\n\n${analysis.pr_description}\n\n---\n> 🤖 Auto-generated by **Wearly AI Evolution**\n>\n> **User feedback:** "${feedback}"`,
-      reviewComment
+      `[User Request] ${title}`,
+      prBody
     );
 
-    return NextResponse.json({
-      pr_url:         prUrl,
-      pr_number:      prNumber,
-      pr_title:       analysis.pr_title,
-      pr_description: analysis.pr_description,
-      files_changed:  analysis.files_changed ?? analysis.changes.map((c) => c.file),
-      review_comment: reviewComment,
-      branch:         branchName,
-    });
+    return NextResponse.json({ aiPlan, prCreated: true, prUrl, prNumber, branchName });
 
   } catch (err) {
-    console.error('[evolve]', err);
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Evolution failed.' },
-      { status: 500 }
-    );
+    const msg = err instanceof Error ? err.message : 'Evolve pipeline failed';
+    console.error('[/api/evolve]', msg);
+    return NextResponse.json({ error: msg }, { status: 503 });
   }
 }

@@ -7,11 +7,12 @@ import { useWishlistStore } from '@/store/wishlist';
 import { useWardrobeStore } from '@/store/wardrobe';
 import {
   Camera, Pencil, Check, X, ChevronRight, Settings,
-  Bookmark, Shirt, Sparkles, Zap, Leaf, Bell,
+  Sparkles, Zap, Leaf, Bell,
   Cpu, Wifi, WifiOff, CloudLightning, AlertCircle,
   Globe, Brain, Star, Heart, Ruler, ChevronDown, ChevronUp,
-  Droplets, Sun, Wind,
+  Droplets, Sun, RefreshCw, Send, GitPullRequest, ExternalLink, Trash2, Loader,
 } from 'lucide-react';
+import { useEvolveStore, FeatureCategory } from '@/store/evolve';
 
 // ─── Shade data ───────────────────────────────────────────────────────────────
 
@@ -113,18 +114,40 @@ const AI_MODULES = [
 
 function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
   return (
-    <button onClick={() => onChange(!on)} style={{
-      width: 50, height: 29, borderRadius: 14.5, padding: 0,
-      background: on ? 'var(--primary)' : 'rgba(0,0,0,0.14)',
-      border: 'none', cursor: 'pointer', position: 'relative', flexShrink: 0,
-      transition: 'background 0.22s',
-    }}>
+    <button
+      role="switch"
+      aria-checked={on}
+      onClick={() => onChange(!on)}
+      style={{
+        /* track */
+        display: 'inline-block',
+        position: 'relative',
+        width: 52,
+        height: 30,
+        borderRadius: 999,
+        flexShrink: 0,
+        cursor: 'pointer',
+        border: 'none',
+        padding: 0,
+        outline: 'none',
+        background: on ? '#2C4A1E' : '#D1D5DB',
+        transition: 'background 0.2s ease',
+        WebkitTapHighlightColor: 'transparent',
+      }}
+    >
+      {/* thumb */}
       <span style={{
-        position: 'absolute', top: 3, left: on ? 24 : 3,
-        width: 23, height: 23, borderRadius: '50%', background: '#fff',
-        boxShadow: '0 2px 6px rgba(0,0,0,0.22)',
-        transition: 'left 0.22s cubic-bezier(0.4,0,0.2,1)',
+        position: 'absolute',
+        top: 3,
+        left: on ? 25 : 3,
+        width: 24,
+        height: 24,
+        borderRadius: '50%',
+        background: '#ffffff',
+        boxShadow: '0 1px 4px rgba(0,0,0,0.25), 0 2px 6px rgba(0,0,0,0.15)',
+        transition: 'left 0.2s cubic-bezier(0.4,0,0.2,1)',
         display: 'block',
+        pointerEvents: 'none',
       }} />
     </button>
   );
@@ -212,6 +235,8 @@ export default function ProfilePage() {
   const wishlist = useWishlistStore();
   const wardrobe = useWardrobeStore();
 
+  const evolve = useEvolveStore();
+
   const [editingName, setEditingName] = useState(false);
   const [editingBio,  setEditingBio]  = useState(false);
   const [tempName,    setTempName]    = useState('');
@@ -223,9 +248,52 @@ export default function ProfilePage() {
   const [expandedModel, setExpandedModel] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // Self-evolve state
+  const [evolveTitle,    setEvolveTitle]    = useState('');
+  const [evolveDesc,     setEvolveDesc]     = useState('');
+  const [evolveCategory, setEvolveCategory] = useState<FeatureCategory>('UI / Design');
+  const [evolveLoading,  setEvolveLoading]  = useState(false);
+  const [evolveResult,   setEvolveResult]   = useState<{ prUrl?: string; prNumber?: number; aiPlan?: string; prCreated?: boolean } | null>(null);
+  const [evolveError,    setEvolveError]    = useState('');
+
   useEffect(() => {
     fetch('/api/ai-status').then((r) => r.json()).then(setAiStatus).catch(() => {}).finally(() => setAiLoading(false));
   }, []);
+
+  const submitEvolve = useCallback(async () => {
+    if (!evolveTitle.trim() || !evolveDesc.trim()) return;
+    setEvolveLoading(true);
+    setEvolveError('');
+    setEvolveResult(null);
+    const featureId = `feat-${Date.now()}`;
+    try {
+      const res = await fetch('/api/evolve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: evolveTitle, description: evolveDesc, category: evolveCategory, featureId }),
+      });
+      const data = await res.json() as { aiPlan?: string; prUrl?: string; prNumber?: number; prCreated?: boolean; error?: string };
+      if (data.error) throw new Error(data.error);
+      setEvolveResult(data);
+      evolve.addFeature({
+        id: featureId,
+        title: evolveTitle,
+        description: evolveDesc,
+        category: evolveCategory,
+        status: data.prCreated ? 'pr_created' : 'submitted',
+        prUrl: data.prUrl,
+        prNumber: data.prNumber,
+        aiPlan: data.aiPlan,
+        submittedAt: new Date().toISOString(),
+      });
+      setEvolveTitle('');
+      setEvolveDesc('');
+    } catch (e) {
+      setEvolveError(e instanceof Error ? e.message : 'Submission failed');
+    } finally {
+      setEvolveLoading(false);
+    }
+  }, [evolveTitle, evolveDesc, evolveCategory, evolve]);
 
   const handleAvatarUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -760,6 +828,207 @@ export default function ProfilePage() {
 
           </div>{/* end right col */}
         </div>{/* end grid */}
+
+        {/* ── Self-Evolving App ─────────────────────────────────────── */}
+        <div style={{
+          background: '#fff',
+          borderRadius: 24,
+          border: '1px solid rgba(0,0,0,0.07)',
+          boxShadow: '0 4px 24px rgba(0,0,0,0.07)',
+          marginBottom: 14,
+          overflow: 'hidden',
+        }}>
+          {/* Card header */}
+          <div style={{
+            background: 'linear-gradient(135deg, #1A1A2E 0%, #16213E 50%, #0F3460 100%)',
+            padding: '24px 22px 20px',
+            position: 'relative',
+            overflow: 'hidden',
+          }}>
+            {/* Stars decoration */}
+            {['10%,20%','70%,60%','40%,80%','90%,30%','55%,10%'].map((pos, i) => (
+              <div key={i} style={{ position:'absolute', left: pos.split(',')[0], top: pos.split(',')[1], width: 3, height: 3, borderRadius:'50%', background:'rgba(255,255,255,0.6)', pointerEvents:'none' }} />
+            ))}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, position: 'relative' }}>
+              <div style={{ width: 48, height: 48, borderRadius: 16, background: 'linear-gradient(135deg, #7C3AED, #4F46E5)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 4px 20px rgba(124,58,237,0.45)' }}>
+                <RefreshCw size={22} style={{ color: '#fff' }} />
+              </div>
+              <div>
+                <h2 style={{ fontSize: 18, fontWeight: 800, color: '#fff', margin: 0, letterSpacing: '-0.02em' }}>Self-Evolving App</h2>
+                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.60)', margin: '3px 0 0', lineHeight: 1.3 }}>
+                  Describe an idea → Gemma AI plans it → GitHub PR opens automatically
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ padding: '22px 22px 24px' }}>
+            {/* Category chips */}
+            <div style={{ marginBottom: 16 }}>
+              <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 10 }}>Category</p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+                {(['UI / Design', 'AI Feature', 'Performance', 'Bug Fix', 'New Section', 'Other'] as FeatureCategory[]).map((cat) => {
+                  const active = evolveCategory === cat;
+                  const colors: Record<string, string> = { 'UI / Design': '#3b82f6', 'AI Feature': '#7C3AED', Performance: '#10b981', 'Bug Fix': '#ef4444', 'New Section': '#f59e0b', Other: '#6B7280' };
+                  const c = colors[cat] ?? '#6B7280';
+                  return (
+                    <button key={cat} onClick={() => setEvolveCategory(cat)} style={{
+                      padding: '7px 14px', borderRadius: 20, cursor: 'pointer',
+                      border: active ? `2px solid ${c}` : '1.5px solid rgba(0,0,0,0.10)',
+                      background: active ? `${c}12` : 'transparent',
+                      fontSize: 12, fontWeight: 600,
+                      color: active ? c : 'var(--foreground-mid)',
+                      transition: 'all 0.15s',
+                    }}>{cat}</button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Title input */}
+            <div style={{ marginBottom: 12 }}>
+              <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 7 }}>Feature title</p>
+              <input
+                value={evolveTitle}
+                onChange={(e) => setEvolveTitle(e.target.value)}
+                placeholder="e.g. Dark mode, Voice commands, Size recommendations…"
+                style={{
+                  width: '100%', borderRadius: 14, border: '1.5px solid rgba(0,0,0,0.12)',
+                  padding: '12px 14px', fontSize: 14, fontWeight: 500,
+                  background: 'var(--muted-bg)', color: 'var(--foreground)',
+                  outline: 'none', fontFamily: 'inherit',
+                  transition: 'border-color 0.15s',
+                  boxSizing: 'border-box',
+                }}
+                onFocus={(e) => (e.target.style.borderColor = '#7C3AED')}
+                onBlur={(e) => (e.target.style.borderColor = 'rgba(0,0,0,0.12)')}
+              />
+            </div>
+
+            {/* Description textarea */}
+            <div style={{ marginBottom: 18 }}>
+              <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 7 }}>Describe the feature</p>
+              <textarea
+                value={evolveDesc}
+                onChange={(e) => setEvolveDesc(e.target.value)}
+                placeholder="What should it do? How should it feel? Any edge cases or references?"
+                rows={4}
+                style={{
+                  width: '100%', borderRadius: 14, border: '1.5px solid rgba(0,0,0,0.12)',
+                  padding: '12px 14px', fontSize: 14, resize: 'vertical',
+                  background: 'var(--muted-bg)', color: 'var(--foreground)',
+                  outline: 'none', fontFamily: 'inherit', lineHeight: 1.5,
+                  transition: 'border-color 0.15s',
+                  boxSizing: 'border-box',
+                }}
+                onFocus={(e) => (e.target.style.borderColor = '#7C3AED')}
+                onBlur={(e) => (e.target.style.borderColor = 'rgba(0,0,0,0.12)')}
+              />
+            </div>
+
+            {/* Submit */}
+            <button
+              onClick={submitEvolve}
+              disabled={evolveLoading || !evolveTitle.trim() || !evolveDesc.trim()}
+              style={{
+                width: '100%', padding: '14px', borderRadius: 16, border: 'none',
+                background: evolveLoading || !evolveTitle.trim() || !evolveDesc.trim()
+                  ? 'rgba(0,0,0,0.10)'
+                  : 'linear-gradient(135deg, #7C3AED, #4F46E5)',
+                color: evolveLoading || !evolveTitle.trim() || !evolveDesc.trim() ? 'var(--muted)' : '#fff',
+                fontSize: 15, fontWeight: 700, cursor: evolveLoading || !evolveTitle.trim() || !evolveDesc.trim() ? 'not-allowed' : 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                boxShadow: evolveLoading || !evolveTitle.trim() ? 'none' : '0 4px 20px rgba(124,58,237,0.35)',
+                transition: 'all 0.2s',
+              }}
+            >
+              {evolveLoading
+                ? <><Loader size={17} style={{ animation: 'spin 1s linear infinite' }} /> Gemma AI is planning…</>
+                : <><Send size={17} /> Submit · Gemma AI will plan &amp; open a GitHub PR</>
+              }
+            </button>
+
+            {/* Error */}
+            {evolveError && (
+              <div style={{ marginTop: 14, padding: '12px 14px', borderRadius: 13, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                <AlertCircle size={14} style={{ color: '#ef4444', flexShrink: 0, marginTop: 1 }} />
+                <p style={{ fontSize: 13, color: '#ef4444', margin: 0 }}>{evolveError}</p>
+              </div>
+            )}
+
+            {/* Success result */}
+            {evolveResult && (
+              <div style={{ marginTop: 16, padding: '16px', borderRadius: 16, background: 'linear-gradient(135deg, rgba(124,58,237,0.06), rgba(79,70,229,0.04))', border: '1px solid rgba(124,58,237,0.15)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 10, background: evolveResult.prCreated ? 'rgba(16,185,129,0.15)' : 'rgba(124,58,237,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {evolveResult.prCreated ? <GitPullRequest size={15} style={{ color: '#10b981' }} /> : <Brain size={15} style={{ color: '#7C3AED' }} />}
+                  </div>
+                  <div>
+                    <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--foreground)', margin: 0 }}>
+                      {evolveResult.prCreated ? `✅ PR #${evolveResult.prNumber} created!` : '✅ AI plan generated'}
+                    </p>
+                    <p style={{ fontSize: 12, color: 'var(--muted)', margin: '1px 0 0' }}>
+                      {evolveResult.prCreated ? 'Draft PR opened on GitHub — ready for review' : 'Add GITHUB_TOKEN to .env.local to auto-open PRs'}
+                    </p>
+                  </div>
+                </div>
+                {evolveResult.prUrl && (
+                  <a href={evolveResult.prUrl} target="_blank" rel="noopener noreferrer"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 12, background: 'rgba(124,58,237,0.12)', color: '#7C3AED', fontSize: 13, fontWeight: 700, textDecoration: 'none', marginBottom: 12 }}>
+                    <ExternalLink size={13} /> View PR on GitHub
+                  </a>
+                )}
+                {evolveResult.aiPlan && (
+                  <details style={{ marginTop: 4 }}>
+                    <summary style={{ fontSize: 12, fontWeight: 600, color: '#7C3AED', cursor: 'pointer', marginBottom: 8 }}>View Gemma AI plan ▾</summary>
+                    <div style={{ fontSize: 12, color: 'var(--foreground-mid)', lineHeight: 1.7, whiteSpace: 'pre-wrap', background: 'rgba(0,0,0,0.03)', borderRadius: 10, padding: '10px 12px', maxHeight: 300, overflowY: 'auto', fontFamily: 'monospace' }}>
+                      {evolveResult.aiPlan}
+                    </div>
+                  </details>
+                )}
+              </div>
+            )}
+
+            {/* Previous submissions */}
+            {evolve.features.length > 0 && (
+              <div style={{ marginTop: 22 }}>
+                <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 12 }}>Your contributions ({evolve.features.length})</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {evolve.features.map((f) => {
+                    const statusColor = f.status === 'pr_created' || f.status === 'merged' ? '#10b981' : f.status === 'closed' ? '#ef4444' : '#7C3AED';
+                    const statusLabel = f.status === 'pr_created' ? 'PR Open' : f.status === 'merged' ? 'Merged ✓' : f.status === 'closed' ? 'Closed' : 'Submitted';
+                    return (
+                      <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px', borderRadius: 14, background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.06)' }}>
+                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: statusColor, flexShrink: 0 }} />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--foreground)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.title}</p>
+                          <p style={{ fontSize: 11, color: 'var(--muted)', margin: '2px 0 0' }}>
+                            {f.category} · {new Date(f.submittedAt).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}
+                          </p>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: statusColor, background: `${statusColor}14`, padding: '3px 9px', borderRadius: 20 }}>{statusLabel}</span>
+                          {f.prUrl && (
+                            <a href={f.prUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 8, background: 'rgba(0,0,0,0.05)', color: 'var(--muted)', textDecoration: 'none' }}>
+                              <ExternalLink size={12} />
+                            </a>
+                          )}
+                          <button onClick={() => evolve.removeFeature(f.id)} style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(239,68,68,0.08)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Trash2 size={12} style={{ color: '#ef4444' }} />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Spin animation for loader */}
+        <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+
       </div>{/* end content */}
     </main>
   );
