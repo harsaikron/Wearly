@@ -1,0 +1,11 @@
+unsloth
+datasets>=2.18
+transformers>=4.40
+trl>=0.8
+peft>=0.10
+accelerate>=0.28
+bitsandbytes>=0.43
+torch>=2.2
+huggingface_hub
+tqdm
+requests
