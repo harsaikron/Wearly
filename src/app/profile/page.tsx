@@ -119,7 +119,6 @@ function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void 
       aria-checked={on}
       onClick={() => onChange(!on)}
       style={{
-        /* track */
         display: 'inline-block',
         position: 'relative',
         width: 52,
@@ -135,7 +134,6 @@ function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void 
         WebkitTapHighlightColor: 'transparent',
       }}
     >
-      {/* thumb */}
       <span style={{
         position: 'absolute',
         top: 3,
@@ -161,8 +159,8 @@ function ScoreRing({ score, size = 88, color = '#5A9240' }: { score: number; siz
   return (
     <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
       <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
-        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(0,0,0,0.07)" strokeWidth={10} />
-        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={10}
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(0,0,0,0.07)" strokeWidth={10} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={10}
           strokeLinecap="round" strokeDasharray={circ}
           strokeDashoffset={circ * (1 - (animated ? score / 100 : 0))}
           style={{ transition: 'stroke-dashoffset 1.3s cubic-bezier(0.4,0,0.2,1)' }} />
@@ -191,7 +189,6 @@ function CapBar({ name, score, color, delay = 0 }: { name: string; score: number
   );
 }
 
-// Expandable section card
 function Section({ title, subtitle, icon: Icon, accent = 'var(--primary)', children, defaultOpen = false }: {
   title: string; subtitle?: string;
   icon: React.ComponentType<{ size?: number; style?: React.CSSProperties }>;
@@ -200,10 +197,7 @@ function Section({ title, subtitle, icon: Icon, accent = 'var(--primary)', child
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div style={{ background: '#fff', borderRadius: 20, border: '1px solid rgba(0,0,0,0.07)', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', marginBottom: 14, overflow: 'hidden' }}>
-      <button onClick={() => setOpen((v) => !v)} style={{
-        width: '100%', background: 'none', border: 'none', cursor: 'pointer',
-        display: 'flex', alignItems: 'center', gap: 14, padding: '16px 18px', textAlign: 'left',
-      }}>
+      <button onClick={() => setOpen((v) => !v)} style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14, padding: '16px 18px', textAlign: 'left' }}>
         <div style={{ width: 40, height: 40, borderRadius: 13, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: `${accent}18` }}>
           <Icon size={18} style={{ color: accent }} />
         </div>
@@ -211,7 +205,9 @@ function Section({ title, subtitle, icon: Icon, accent = 'var(--primary)', child
           <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--foreground)' }}>{title}</div>
           {subtitle && <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 1 }}>{subtitle}</div>}
         </div>
-        {open ? <ChevronUp size={16} style={{ color: 'var(--muted)', flexShrink: 0 }} /> : <ChevronDown size={16} style={{ color: 'var(--muted)', flexShrink: 0 }} />}
+        {open
+          ? <ChevronUp size={16} style={{ color: 'var(--muted)', flexShrink: 0 }} />
+          : <ChevronDown size={16} style={{ color: 'var(--muted)', flexShrink: 0 }} />}
       </button>
       {open && <div style={{ padding: '0 18px 18px' }}>{children}</div>}
     </div>
@@ -425,7 +421,7 @@ export default function ProfilePage() {
         </div>
 
         {/* Desktop: two columns */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 0, alignItems: 'start' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '12px', alignItems: 'start' }}>
           {/* ── LEFT COLUMN ───────────────────────────────── */}
           <div style={{ minWidth: 0 }}>
 
