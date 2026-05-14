@@ -35,6 +35,12 @@ interface ProfileStore {
   autoMakeupSuggest: boolean;
   smartColorMatch: boolean;
 
+  // ── Makeup Preferences ────────────────────────────────────────
+  favoriteLipShades: string[];    // hex strings
+  favoriteEyeShades: string[];
+  favoriteBlushShades: string[];
+  skinFinish: 'dewy' | 'matte' | 'satin' | 'natural' | null;
+
   // ── App Settings ──────────────────────────────────────────────
   currency: string;
   region: string;
@@ -49,6 +55,10 @@ interface ProfileStore {
   setSkinTone: (v: SkinTone | null) => void;
   toggleFashionStyle: (v: FashionStyle) => void;
   setSizes: (v: Partial<ProfileSizes>) => void;
+  toggleLipShade: (hex: string) => void;
+  toggleEyeShade: (hex: string) => void;
+  toggleBlushShade: (hex: string) => void;
+  setSkinFinish: (v: ProfileStore['skinFinish']) => void;
   setEnhancement: (
     key: 'autoAnalyzePhotos' | 'autoOOTD' | 'autoGroomingSuggest' | 'autoMakeupSuggest' | 'smartColorMatch',
     v: boolean
@@ -74,6 +84,10 @@ export const useProfileStore = create<ProfileStore>()(
       autoGroomingSuggest: false,
       autoMakeupSuggest: false,
       smartColorMatch: true,
+      favoriteLipShades: [],
+      favoriteEyeShades: [],
+      favoriteBlushShades: [],
+      skinFinish: null,
       currency: 'SGD',
       region: 'Singapore',
       notificationsEnabled: false,
@@ -91,6 +105,13 @@ export const useProfileStore = create<ProfileStore>()(
             : [...s.fashionStyles, v],
         })),
       setSizes: (v) => set((s) => ({ sizes: { ...s.sizes, ...v } })),
+      toggleLipShade: (hex) =>
+        set((s) => ({ favoriteLipShades: s.favoriteLipShades.includes(hex) ? s.favoriteLipShades.filter((x) => x !== hex) : [...s.favoriteLipShades, hex] })),
+      toggleEyeShade: (hex) =>
+        set((s) => ({ favoriteEyeShades: s.favoriteEyeShades.includes(hex) ? s.favoriteEyeShades.filter((x) => x !== hex) : [...s.favoriteEyeShades, hex] })),
+      toggleBlushShade: (hex) =>
+        set((s) => ({ favoriteBlushShades: s.favoriteBlushShades.includes(hex) ? s.favoriteBlushShades.filter((x) => x !== hex) : [...s.favoriteBlushShades, hex] })),
+      setSkinFinish: (v) => set({ skinFinish: v }),
       setEnhancement: (key, v) => set({ [key]: v }),
       setCurrency: (v) => set({ currency: v }),
       setRegion: (v) => set({ region: v }),
