@@ -6,7 +6,7 @@ import { useProfileStore, SkinTone, FashionStyle, Gender } from '@/store/profile
 import { useWishlistStore } from '@/store/wishlist';
 import { useWardrobeStore } from '@/store/wardrobe';
 import {
-  Camera, Pencil, Check, X, ChevronRight, Settings,
+  Camera, Pencil, Check, X, ChevronRight,
   Sparkles, Zap, Leaf, Bell,
   Cpu, Wifi, WifiOff, CloudLightning, AlertCircle,
   Globe, Brain, Star, Heart, Ruler, ChevronDown, ChevronUp,
@@ -327,12 +327,6 @@ export default function ProfilePage() {
         <div style={{ position: 'absolute', top: -60, right: -60, width: 240, height: 240, borderRadius: '50%', background: 'rgba(122,182,72,0.12)', pointerEvents: 'none' }} />
         <div style={{ position: 'absolute', bottom: -30, left: -50, width: 180, height: 180, borderRadius: '50%', background: 'rgba(255,255,255,0.05)', pointerEvents: 'none' }} />
 
-        {/* Top bar: settings icon */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 24 }}>
-          <button style={{ width: 40, height: 40, borderRadius: 13, background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-            <Settings size={18} style={{ color: 'rgba(255,255,255,0.9)' }} />
-          </button>
-        </div>
 
         {/* Avatar + name row */}
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: 18, maxWidth: 640, margin: '0 auto' }}>
