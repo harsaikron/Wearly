@@ -61,8 +61,13 @@ function detectTravel(ev: GCalEvent) {
 
 // ── Planner constants ──────────────────────────────────────────────────────────
 const CATEGORIES: ClothingCategory[] = [
+  // clothing
   'shirt','formal_shirt','tshirt','pants','jeans','shorts',
-  'shoes','sneakers','loafers','jacket','watch','belt','accessory',
+  'shoes','sneakers','loafers','jacket',
+  // accessories
+  'watch','belt','chain','bracelet','earring','sunglasses','ring','bag','accessory',
+  // grooming / makeup
+  'skincare','fragrance','grooming','makeup',
 ];
 const OCCASIONS: OccasionTag[] = [
   'office','casual','date_night','weekend','smart_casual',
@@ -595,6 +600,7 @@ export default function WardrobePage() {
   const [form, setForm] = useState({
     name: '', category: 'shirt' as ClothingCategory,
     color_hex: '#FFFFFF', color_name: 'White', tags: [] as OccasionTag[],
+    spf: '' as string, grooming_type: '' as string,
   });
 
   // ── Sell/Rent state ──
@@ -638,7 +644,7 @@ export default function WardrobePage() {
       });
       if (res.ok) {
         const d = await res.json();
-        setForm({ name: d.suggested_name??'', category: d.category??'shirt', color_hex: d.color_hex??'#FFFFFF', color_name: d.color_name??'White', tags: d.tags??[] });
+        setForm({ name: d.suggested_name??'', category: d.category??'shirt', color_hex: d.color_hex??'#FFFFFF', color_name: d.color_name??'White', tags: d.tags??[], spf: d.spf ? String(d.spf) : '', grooming_type: d.grooming_type??'' });
       }
     } catch { /* keep blank */ } finally { setAnalyzing(false); }
   }
@@ -656,9 +662,12 @@ export default function WardrobePage() {
       category: form.category, color_hex: form.color_hex, color_name: form.color_name,
       image_url: preview, brand: undefined, tags: form.tags,
       times_worn: 0, created_at: new Date().toISOString(),
+      ...(form.spf ? { spf: parseInt(form.spf, 10) } : {}),
+      ...(form.grooming_type ? { grooming_type: form.grooming_type } : {}),
+      straps: [],
     });
     setShowAdd(false); setPreview('');
-    setForm({ name:'', category:'shirt', color_hex:'#FFFFFF', color_name:'White', tags:[] });
+    setForm({ name:'', category:'shirt', color_hex:'#FFFFFF', color_name:'White', tags:[], spf:'', grooming_type:'' });
   }
 
   // ── Sell/Rent helpers ──
@@ -839,59 +848,89 @@ export default function WardrobePage() {
                 const daysSince = item.last_worn ? Math.floor((Date.now() - new Date(item.last_worn).getTime()) / 86400000) : null;
                 const isUnused  = !item.last_worn || (daysSince !== null && daysSince > 60);
                 const isOverused = item.times_worn > 10;
+                const bs = categoryBadgeStyle(item.category);
                 return (
-                  <div key={item.id} className="rounded-2xl overflow-hidden flex flex-col card-lift"
-                    style={{ background:'var(--card)', border:`1.5px solid ${item.favorite ? 'rgba(236,72,153,0.35)' : categoryBadgeStyle(item.category).border}`, boxShadow:'var(--shadow-md)' }}>
-                    {/* Clickable area → detail page */}
-                    <Link href={`/wardrobe/${item.id}`} className="block">
-                      <div className="relative w-full" style={{ height:160, background: `linear-gradient(135deg, ${categoryBadgeStyle(item.category).bg} 0%, #ffffff 100%)` }}>
-                        {item.image_url ? (
-                          <Image src={item.image_url} alt={item.name} fill className="object-cover"/>
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center flex-col gap-2">
-                            <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: categoryBadgeStyle(item.category).bg, border: `1.5px solid ${categoryBadgeStyle(item.category).border}` }}>
-                              <Shirt size={22} style={{ color: categoryBadgeStyle(item.category).color }}/>
-                            </div>
-                            <div className="w-6 h-6 rounded-full border-2" style={{ background: item.color_hex, borderColor:'rgba(255,255,255,0.8)', boxShadow:'0 2px 6px rgba(0,0,0,0.15)' }}/>
-                          </div>
-                        )}
-                        {/* Glass category badge */}
-                        <div className="absolute top-2 left-2 badge-glass capitalize" style={{ color: categoryBadgeStyle(item.category).color, fontSize:10, fontWeight:700 }}>
-                          {categoryLabel(item.category)}
+                  <div key={item.id} className="rounded-2xl overflow-hidden card-lift"
+                    style={{ position:'relative', width:'100%', background: bs.bg, border:`1.5px solid ${item.favorite ? 'rgba(236,72,153,0.35)' : bs.border}`, boxShadow:'var(--shadow-md)', aspectRatio:'3/4' }}>
+
+                    {/* ── Full-bleed image ── */}
+                    <Link href={`/wardrobe/${item.id}`} style={{ position:'absolute', top:0, left:0, right:0, bottom:0, display:'block' }}>
+                      {item.image_url ? (
+                        <Image src={item.image_url} alt={item.name} fill style={{ objectFit:'cover' }}/>
+                      ) : (
+                        /* No photo — colour-fill with big initial */
+                        <div style={{ position:'absolute', top:0, left:0, right:0, bottom:0, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:10, background:`linear-gradient(145deg, ${item.color_hex}cc 0%, ${item.color_hex}66 100%)` }}>
+                          <span style={{ fontSize:48, fontWeight:800, color:'rgba(255,255,255,0.35)', lineHeight:1, userSelect:'none' }}>
+                            {item.name[0]?.toUpperCase() ?? '?'}
+                          </span>
+                          <div style={{ width:20, height:20, borderRadius:'50%', background:'rgba(255,255,255,0.5)', border:'2px solid rgba(255,255,255,0.8)' }}/>
                         </div>
-                        <div className="absolute top-2 right-2 flex flex-col gap-1 items-end">
-                          {isUnused   && <span className="badge-glass text-xs font-bold" style={{ color:'#B91C1C', fontSize:9 }}>Unused</span>}
-                          {isOverused && <span className="badge-glass text-xs font-bold" style={{ color:'#92400E', fontSize:9 }}>Overused</span>}
+                      )}
+
+                      {/* ── Top badges row ── */}
+                      <div style={{ position:'absolute', top:8, left:8, right:8, display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:4 }}>
+                        {/* Category pill */}
+                        <span className="badge-glass capitalize" style={{ color:bs.color, fontSize:9, fontWeight:700, padding:'3px 8px' }}>
+                          {categoryLabel(item.category)}
+                        </span>
+                        {/* Right: status + fav */}
+                        <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:3 }}>
+                          {isUnused   && <span className="badge-glass" style={{ color:'#B91C1C', fontSize:8, fontWeight:700, padding:'2px 6px' }}>Unused</span>}
+                          {isOverused && <span className="badge-glass" style={{ color:'#92400E', fontSize:8, fontWeight:700, padding:'2px 6px' }}>Overused</span>}
                           {item.favorite && (
-                            <div className="w-6 h-6 rounded-full flex items-center justify-center badge-glass">
+                            <div style={{ width:22, height:22, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center' }} className="badge-glass">
                               <Heart size={11} fill="#ec4899" stroke="#ec4899"/>
                             </div>
                           )}
                         </div>
                       </div>
-                      <div className="px-3 pt-3 pb-1 flex flex-col gap-1.5">
-                        <div>
-                          <p className="font-semibold text-sm leading-tight truncate" style={{ color:'var(--foreground)' }}>{item.name}</p>
+
+                      {/* ── Bottom glass info strip ── */}
+                      <div style={{
+                        position:'absolute', bottom:0, left:0, right:0,
+                        padding:'28px 10px 10px',
+                        background:'linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.28) 65%, transparent 100%)',
+                      }}>
+                        {/* Name */}
+                        <p style={{ color:'#fff', fontWeight:700, fontSize:12, lineHeight:1.25, marginBottom:4, overflow:'hidden', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical' }}>
+                          {item.name}
+                        </p>
+                        {/* Color dot + worn count row */}
+                        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:4 }}>
+                          <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+                            <div style={{ width:10, height:10, borderRadius:'50%', background:item.color_hex, border:'1.5px solid rgba(255,255,255,0.7)', flexShrink:0 }}/>
+                            <span style={{ color:'rgba(255,255,255,0.78)', fontSize:10 }}>{item.color_name}</span>
+                          </div>
+                          <span style={{ color:'rgba(255,255,255,0.65)', fontSize:10 }}>
+                            {item.times_worn}× worn
+                          </span>
                         </div>
-                        <div className="flex items-center gap-1.5">
-                          <div className="w-4 h-4 rounded-full border-2" style={{ background: item.color_hex, borderColor:'rgba(255,255,255,0.8)', boxShadow:'0 1px 4px rgba(0,0,0,0.12)' }}/>
-                          <span className="text-xs" style={{ color:'var(--muted)' }}>{item.color_name}</span>
-                        </div>
-                        <div className="flex items-center gap-3 text-xs" style={{ color:'var(--muted)' }}>
-                          <span className="flex items-center gap-0.5"><Heart size={10}/> {item.times_worn}×</span>
-                          <span>{daysSince !== null ? `${daysSince}d ago` : 'Never worn'}</span>
-                        </div>
+                        {/* Watch strap dots */}
+                        {item.category === 'watch' && item.straps && item.straps.length > 0 && (
+                          <div style={{ display:'flex', alignItems:'center', gap:3, marginTop:5 }}>
+                            {item.straps.slice(0,6).map((s) => (
+                              <div key={s.id} title={`${s.color_name} ${s.material}`}
+                                style={{ width:9, height:9, borderRadius:'50%', background:s.color_hex, border:'1.5px solid rgba(255,255,255,0.7)', flexShrink:0 }}/>
+                            ))}
+                            {item.straps.length > 6 && <span style={{ color:'rgba(255,255,255,0.6)', fontSize:9 }}>+{item.straps.length-6}</span>}
+                          </div>
+                        )}
                       </div>
                     </Link>
-                    <div className="px-3 pb-3 pt-1 flex gap-1.5 mt-auto">
-                      <Link href={`/wardrobe/${item.id}`} className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-xs font-semibold" style={{ background:'rgba(44,74,30,0.08)', color:'var(--accent)' }}>
-                        <Sparkles size={11}/> Style
-                      </Link>
-                      <button onClick={() => openSell(item, 'sell')} className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-xs font-semibold" style={{ background:'rgba(34,197,94,0.1)', color:'#16a34a' }}>
-                        <Tag size={11}/> Sell
+
+                    {/* ── Action buttons floating bottom ── */}
+                    <div style={{ position:'absolute', bottom:8, right:8, display:'flex', flexDirection:'column', gap:5 }}>
+                      <button
+                        onClick={(e) => { e.preventDefault(); openSell(item, 'sell'); }}
+                        title="Sell"
+                        style={{ width:28, height:28, borderRadius:'50%', background:'rgba(22,163,74,0.88)', border:'none', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', backdropFilter:'blur(6px)', boxShadow:'0 2px 8px rgba(0,0,0,0.25)' }}>
+                        <Tag size={13} color="#fff"/>
                       </button>
-                      <button onClick={() => openSell(item, 'rent')} className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-xs font-semibold" style={{ background:'rgba(245,158,11,0.1)', color:'#d97706' }}>
-                        <ShoppingBag size={11}/> Rent
+                      <button
+                        onClick={(e) => { e.preventDefault(); openSell(item, 'rent'); }}
+                        title="Rent"
+                        style={{ width:28, height:28, borderRadius:'50%', background:'rgba(217,119,6,0.88)', border:'none', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', backdropFilter:'blur(6px)', boxShadow:'0 2px 8px rgba(0,0,0,0.25)' }}>
+                        <ShoppingBag size={13} color="#fff"/>
                       </button>
                     </div>
                   </div>
@@ -1276,12 +1315,100 @@ export default function WardrobePage() {
                 className="w-full rounded-2xl outline-none"
                 style={{ background:'var(--muted-bg)', color:'var(--foreground)', border:'1.5px solid var(--card-border)', padding:'14px 16px', width:'100%' }}
                 value={form.category}
-                onChange={(e) => setForm({...form, category: e.target.value as ClothingCategory})}
+                onChange={(e) => setForm({...form, category: e.target.value as ClothingCategory, spf:'', grooming_type:''})}
                 aria-label="Item category"
               >
-                {CATEGORIES.map((c) => <option key={c} value={c}>{categoryLabel(c)}</option>)}
+                <optgroup label="👕 Clothing">
+                  {(['shirt','formal_shirt','tshirt','pants','jeans','shorts','shoes','sneakers','loafers','jacket'] as ClothingCategory[]).map((c) => (
+                    <option key={c} value={c}>{categoryLabel(c)}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="💍 Accessories">
+                  {(['watch','belt','chain','bracelet','earring','sunglasses','ring','bag','accessory'] as ClothingCategory[]).map((c) => (
+                    <option key={c} value={c}>{categoryLabel(c)}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="🧴 Grooming &amp; Skincare">
+                  {(['skincare','fragrance','grooming'] as ClothingCategory[]).map((c) => (
+                    <option key={c} value={c}>{categoryLabel(c)}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="💄 Makeup">
+                  <option value="makeup">Makeup</option>
+                </optgroup>
               </select>
             </Field>
+            {/* Grooming / Makeup specific fields */}
+            {['skincare','fragrance','grooming','makeup'].includes(form.category) && (
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <Field label="Product Type">
+                    <select
+                      className="w-full rounded-2xl outline-none"
+                      style={{ background:'var(--muted-bg)', color:'var(--foreground)', border:'1.5px solid var(--card-border)', padding:'14px 16px', width:'100%' }}
+                      value={form.grooming_type}
+                      onChange={(e) => setForm({...form, grooming_type: e.target.value})}
+                      aria-label="Grooming product type"
+                    >
+                      <option value="">Select type…</option>
+                      {form.category === 'skincare' && <>
+                        <option value="sunscreen">Sunscreen / SPF</option>
+                        <option value="moisturiser">Moisturiser</option>
+                        <option value="serum">Serum</option>
+                        <option value="toner">Toner</option>
+                        <option value="cleanser">Cleanser</option>
+                        <option value="lip_balm">Lip Balm</option>
+                        <option value="eye_cream">Eye Cream</option>
+                      </>}
+                      {form.category === 'fragrance' && <>
+                        <option value="eau_de_parfum">Eau de Parfum</option>
+                        <option value="eau_de_toilette">Eau de Toilette</option>
+                        <option value="cologne">Cologne</option>
+                        <option value="body_mist">Body Mist</option>
+                      </>}
+                      {form.category === 'grooming' && <>
+                        <option value="hair_gel">Hair Gel / Wax</option>
+                        <option value="face_wash">Face Wash</option>
+                        <option value="shaving">Shaving Product</option>
+                        <option value="deodorant">Deodorant</option>
+                        <option value="body_lotion">Body Lotion</option>
+                      </>}
+                      {form.category === 'makeup' && <>
+                        <option value="lipstick">Lipstick</option>
+                        <option value="lip_gloss">Lip Gloss</option>
+                        <option value="lip_liner">Lip Liner</option>
+                        <option value="foundation">Foundation</option>
+                        <option value="concealer">Concealer</option>
+                        <option value="blush">Blush</option>
+                        <option value="bronzer">Bronzer</option>
+                        <option value="highlighter">Highlighter</option>
+                        <option value="eyeshadow">Eyeshadow</option>
+                        <option value="mascara">Mascara</option>
+                        <option value="eyeliner">Eyeliner</option>
+                        <option value="setting_spray">Setting Spray</option>
+                        <option value="primer">Primer</option>
+                      </>}
+                    </select>
+                  </Field>
+                </div>
+                {form.grooming_type === 'sunscreen' && (
+                  <div style={{ flex: '0 0 100px' }}>
+                    <Field label="SPF">
+                      <input
+                        type="number"
+                        className="w-full rounded-2xl outline-none"
+                        style={{ background:'var(--muted-bg)', color:'var(--foreground)', border:'1.5px solid var(--card-border)', padding:'14px 16px', width:'100%' }}
+                        placeholder="e.g. 50"
+                        value={form.spf}
+                        onChange={(e) => setForm({...form, spf: e.target.value})}
+                        min={0} max={100}
+                        aria-label="SPF value"
+                      />
+                    </Field>
+                  </div>
+                )}
+              </div>
+            )}
             <div className="flex gap-3">
               <div style={{ flex: '0 0 64px' }}>
                 <Field label="Color">

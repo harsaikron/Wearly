@@ -2,7 +2,7 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { ClothingItem, Outfit, PlannedOutfit } from '@/types';
+import { ClothingItem, Outfit, PlannedOutfit, WatchStrap } from '@/types';
 
 interface WardrobeStore {
   items: ClothingItem[];
@@ -26,6 +26,10 @@ interface WardrobeStore {
   addPlannedOutfit: (outfit: PlannedOutfit) => void;
   removePlannedOutfit: (id: string) => void;
   updatePlannedOutfitDate: (id: string, newDate: string) => void;
+
+  // Watch strap management
+  addStrap: (watchId: string, strap: WatchStrap) => void;
+  removeStrap: (watchId: string, strapId: string) => void;
 }
 
 export const useWardrobeStore = create<WardrobeStore>()(
@@ -115,6 +119,24 @@ export const useWardrobeStore = create<WardrobeStore>()(
           plannedOutfits: s.plannedOutfits.map((p) =>
             p.id === id ? { ...p, date: newDate } : p
           ).sort((a, b) => a.date.localeCompare(b.date)),
+        })),
+
+      addStrap: (watchId, strap) =>
+        set((s) => ({
+          items: s.items.map((item) =>
+            item.id === watchId
+              ? { ...item, straps: [...(item.straps ?? []), strap] }
+              : item
+          ),
+        })),
+
+      removeStrap: (watchId, strapId) =>
+        set((s) => ({
+          items: s.items.map((item) =>
+            item.id === watchId
+              ? { ...item, straps: (item.straps ?? []).filter((s) => s.id !== strapId) }
+              : item
+          ),
         })),
     }),
     {

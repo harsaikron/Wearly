@@ -915,7 +915,7 @@ button:not(.btn-bare), [role="button"] {
   min-width: 40px;
 }
 a.block, a[href], nav a, span[role="button"] {
-  display: flex;
+  display: grid-lanes;
 }
 
 /* ── Badge / pill — prevent wrapping ─────────────────────────── */

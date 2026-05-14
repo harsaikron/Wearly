@@ -717,9 +717,9 @@ wearly/
 
 ---
 
-## 12. Prize Track Justification
+## 12.Track Justification
 
-### 🥇 Ollama Prize — $10,000
+### Ollama
 
 **Criteria:** Best project that utilises and showcases the capabilities of Gemma 4 running locally via Ollama.
 
@@ -729,7 +729,7 @@ wearly/
 - No internet required when Ollama is running — fully private
 - Confirmed working: `curl http://localhost:11434/api/tags` shows `gemma4:e4b` loaded
 
-### 🥇 Cactus Prize — $10,000
+### Cactus Prize 
 
 **Criteria:** Best local-first mobile or wearable application that intelligently routes tasks between models.
 
@@ -739,7 +739,7 @@ wearly/
 - Two different models used: `gemma4:e4b` (Ollama, local) and `llama-3.3-70b` (Groq, cloud)
 - Same prompt schema works on both — user never sees the switch
 
-### 🥇 Unsloth Prize — $10,000
+### Unsloth Prize 
 
 **Criteria:** Best fine-tuned Gemma 4 model created using Unsloth, optimised for a specific, impactful task.
 

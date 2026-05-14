@@ -33,6 +33,18 @@ export const CATEGORY_BADGE: Record<string, { bg: string; color: string; border:
   watch:        { bg: '#FEF9E7', color: '#92400E', border: '#EDCF7A' },
   belt:         { bg: '#F1EBE4', color: '#5C3D1E', border: '#D4BAA4' },
   accessory:    { bg: '#F5ECF9', color: '#6B21A8', border: '#DDB8F0' },
+  // ── New accessories ────────────────────────────────────────────
+  chain:        { bg: '#FDF8EE', color: '#B45309', border: '#F6D9A0' },
+  bracelet:     { bg: '#FFF0F5', color: '#9D174D', border: '#F9B8D4' },
+  earring:      { bg: '#FEF3FF', color: '#7E22CE', border: '#E9B8FA' },
+  sunglasses:   { bg: '#EFF6FF', color: '#1E40AF', border: '#BFDBFE' },
+  ring:         { bg: '#FFFBEB', color: '#92400E', border: '#FDE68A' },
+  bag:          { bg: '#F5F3FF', color: '#5B21B6', border: '#DDD6FE' },
+  // ── Grooming / skincare ────────────────────────────────────────
+  skincare:     { bg: '#FDF2F8', color: '#BE185D', border: '#FBCFE8' },
+  fragrance:    { bg: '#F5F0FF', color: '#7C3AED', border: '#DDD6FE' },
+  grooming:     { bg: '#ECFDF5', color: '#047857', border: '#A7F3D0' },
+  makeup:       { bg: '#FFF1F5', color: '#BE185D', border: '#FBCFE8' },
 };
 
 // ── Fallback for unknown keys ────────────────────────────────────

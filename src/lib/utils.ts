@@ -84,8 +84,32 @@ export function categoryLabel(cat: string): string {
     sneakers: 'Sneakers',
     loafers: 'Loafers',
     accessory: 'Accessory',
+    // accessories
+    chain: 'Chain / Necklace',
+    bracelet: 'Bracelet',
+    earring: 'Earring',
+    sunglasses: 'Sunglasses',
+    ring: 'Ring',
+    bag: 'Bag',
+    // grooming
+    skincare: 'Skincare',
+    fragrance: 'Fragrance',
+    grooming: 'Grooming',
+    makeup: 'Makeup',
   };
   return map[cat] ?? cat;
+}
+
+export function isGroomingCategory(cat: string): boolean {
+  return ['skincare', 'fragrance', 'grooming', 'makeup'].includes(cat);
+}
+
+export function isAccessoryCategory(cat: string): boolean {
+  return ['watch', 'belt', 'chain', 'bracelet', 'earring', 'sunglasses', 'ring', 'bag', 'accessory'].includes(cat);
+}
+
+export function isClothingCategory(cat: string): boolean {
+  return ['shirt', 'pants', 'jeans', 'shoes', 'jacket', 'tshirt', 'shorts', 'formal_shirt', 'sneakers', 'loafers'].includes(cat);
 }
 
 export function daysAgo(dateStr: string): number {

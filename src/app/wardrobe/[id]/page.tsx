@@ -8,11 +8,18 @@ import {
   ArrowLeft, Heart, ShoppingBag, Trash2, Sparkles, Leaf,
   Calendar, CheckCircle, Clock, RefreshCw,
   ShoppingCart, ChevronDown, ChevronUp, Edit3,
-  Sun, CloudRain, Award,
+  Sun, CloudRain, Award, Plus, X, Watch, Droplets, Gem, Bookmark, BookmarkCheck,
 } from 'lucide-react';
 import { useWardrobeStore } from '@/store/wardrobe';
-import { ClothingItem, PlannedOutfit } from '@/types';
+import { useWishlistStore } from '@/store/wishlist';
+import { ClothingItem, PlannedOutfit, WatchStrap, WishlistItem } from '@/types';
 import { badgeInlineStyle, categoryBadgeStyle } from '@/lib/badges';
+
+// ─── Shopping helpers (local) ─────────────────────────────────────────────────
+const _shopeeUrl    = (q: string) => `https://shopee.sg/search?keyword=${encodeURIComponent(q)}`;
+const _sheinUrl     = (q: string) => `https://sg.shein.com/search?q=${encodeURIComponent(q)}`;
+const _zaloraUrl    = (q: string) => `https://www.zalora.com.sg/search/?q=${encodeURIComponent(q)}`;
+const _carousellUrl = (q: string) => `https://www.carousell.sg/search/${encodeURIComponent(q)}/`;
 
 // ─── Carbon estimates (kg CO2e to produce) ───────────────────────────────────
 const CARBON_KG: Record<string, number> = {
@@ -145,7 +152,8 @@ function PairingImage({ p, itemFromWardrobe }: { p: Pairing; itemFromWardrobe?: 
 export default function ItemDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
-  const { items, removeItem, toggleFavorite, markWornOn, updateItem, addPlannedOutfit } = useWardrobeStore();
+  const { items, removeItem, toggleFavorite, markWornOn, updateItem, addPlannedOutfit, addStrap, removeStrap } = useWardrobeStore();
+  const { addItem: addWishlist, removeItem: removeWishlist, hasItem: inWishlist } = useWishlistStore();
   const item = items.find((i) => i.id === id) as ClothingItem | undefined;
 
   const [pairings, setPairings]           = useState<PairingResult | null>(null);
@@ -164,6 +172,22 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
   const [favAnim, setFavAnim]             = useState(false);
   const [heroLoaded, setHeroLoaded]       = useState(false);
   const heartRef = useRef<HTMLButtonElement>(null);
+
+  // ─── Makeup / Complete-the-Look state ────────────────────────────────────────
+  interface BuySuggestion { name: string; category: string; color_name: string; color_hex: string; buy_query: string; price_estimate?: string; why: string; }
+  interface FromWardrobe  { name: string; category: string; color_name: string; color_hex: string; why: string; }
+  interface MakeupResult  { from_wardrobe?: FromWardrobe[]; buy_suggestions?: BuySuggestion[]; overall_vibe?: string; makeup?: Record<string,unknown>; jewelry?: unknown[] }
+  const [makeupResult, setMakeupResult] = useState<MakeupResult | null>(null);
+  const [makeupLoading, setMakeupLoading] = useState(false);
+  const [showComplete, setShowComplete]   = useState(false);
+
+  // ─── Watch strap state ────────────────────────────────────────────────────────
+  const [showAddStrap, setShowAddStrap]   = useState(false);
+  const [strapForm, setStrapForm]         = useState<{ color_hex: string; color_name: string; material: WatchStrap['material'] }>({
+    color_hex: '#000000', color_name: 'Black', material: 'silicone',
+  });
+  const [strapSuggestion, setStrapSuggestion] = useState<{ strap_color: string; strap_hex: string; reason: string } | null>(null);
+  const [strapSugLoading, setStrapSugLoading] = useState(false);
 
   useEffect(() => {
     if (item) setNotes(item.notes ?? '');
@@ -255,6 +279,65 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
   function handleDelete() {
     removeItem(item!.id);
     router.push('/wardrobe');
+  }
+
+  // ─── Load "Complete the Look" suggestions ────────────────────────────────────
+  async function loadCompleteTheLook() {
+    if (makeupResult) { setShowComplete((v) => !v); return; }
+    setMakeupLoading(true); setShowComplete(true);
+    try {
+      const gender = (typeof window !== 'undefined' ? localStorage.getItem('wearly-gender') : null) ?? 'male';
+      const makeupItems = items.filter((i) => ['makeup','skincare','fragrance','grooming'].includes(i.category))
+        .map((i) => ({ name: i.name, grooming_type: i.grooming_type, color_name: i.color_name, color_hex: i.color_hex }));
+      const jewelryItems = items.filter((i) => ['watch','chain','bracelet','earring','ring','bag','sunglasses'].includes(i.category))
+        .map((i) => ({ name: i.name, category: i.category, color_name: i.color_name, color_hex: i.color_hex }));
+      const res = await fetch('/api/makeup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          outfit: [{ name: item!.name, category: item!.category, color_name: item!.color_name, color_hex: item!.color_hex }],
+          makeupItems, jewelryItems, gender,
+        }),
+      });
+      const d = await res.json();
+      if (!d.error) setMakeupResult(d as MakeupResult);
+    } catch { /* silent */ } finally { setMakeupLoading(false); }
+  }
+
+  // ─── Add watch strap ─────────────────────────────────────────────────────────
+  function saveStrap() {
+    if (!strapForm.color_name.trim()) return;
+    addStrap(item!.id, {
+      id: Math.random().toString(36).slice(2),
+      color_name: strapForm.color_name,
+      color_hex: strapForm.color_hex,
+      material: strapForm.material,
+    });
+    setStrapForm({ color_hex: '#000000', color_name: 'Black', material: 'silicone' });
+    setShowAddStrap(false);
+  }
+
+  // ─── AI strap suggestion ──────────────────────────────────────────────────────
+  async function suggestStrap() {
+    if (!item?.straps?.length) return;
+    setStrapSugLoading(true); setStrapSuggestion(null);
+    try {
+      const wardrobeOutfit = items
+        .filter((i) => i.category !== 'watch')
+        .slice(0, 5)
+        .map((i) => ({ name: i.name, category: i.category, color_name: i.color_name }));
+      const res = await fetch('/api/grooming', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          outfit: wardrobeOutfit,
+          groomingItems: [],
+          watchStraps: item.straps.map((s) => ({ color_name: s.color_name, color_hex: s.color_hex, material: s.material })),
+        }),
+      });
+      const d = await res.json();
+      if (d.strap_suggestion) setStrapSuggestion(d.strap_suggestion);
+    } catch { /* ignore */ } finally { setStrapSugLoading(false); }
   }
 
   return (
@@ -463,6 +546,181 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
               </span>
             )}
           </div>
+        </div>
+      )}
+
+      {/* ── Watch Straps (only for watches) ─────────────────────────── */}
+      {item.category === 'watch' && (
+        <div
+          className="p-4 rounded-2xl mb-5 section-reveal section-reveal-5"
+          style={{ background: 'var(--card)', border: '1px solid var(--card-border)' }}
+        >
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm font-semibold flex items-center gap-1.5" style={{ color: 'var(--foreground)' }}>
+              <Watch size={14} style={{ color: 'var(--primary-mid)' }} /> Watch Straps
+              {item.straps && item.straps.length > 0 && (
+                <span className="text-xs px-1.5 py-0.5 rounded-full font-semibold"
+                  style={{ background: 'var(--muted-bg)', color: 'var(--muted)', border: '1px solid var(--card-border)' }}>
+                  {item.straps.length}
+                </span>
+              )}
+            </p>
+            <div className="flex items-center gap-2">
+              {item.straps && item.straps.length > 0 && (
+                <button
+                  onClick={suggestStrap}
+                  disabled={strapSugLoading}
+                  className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg"
+                  style={{ background: 'rgba(44,74,30,0.08)', color: 'var(--accent)', border: 'none', cursor: 'pointer' }}
+                >
+                  {strapSugLoading ? <RefreshCw size={11} className="animate-spin"/> : <Sparkles size={11}/>}
+                  AI Pick
+                </button>
+              )}
+              <button
+                onClick={() => setShowAddStrap((v) => !v)}
+                className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg"
+                style={{ background: 'var(--primary-mid)', color: '#fff', border: 'none', cursor: 'pointer' }}
+              >
+                <Plus size={11}/> Add Strap
+              </button>
+            </div>
+          </div>
+
+          {/* AI strap suggestion */}
+          {strapSuggestion && (
+            <div className="mb-3 px-3 py-2.5 rounded-xl flex items-start gap-2 slide-up"
+              style={{ background: 'rgba(44,74,30,0.06)', border: '1px solid rgba(44,74,30,0.15)' }}>
+              <div className="w-5 h-5 rounded-full shrink-0 mt-0.5 border-2"
+                style={{ background: strapSuggestion.strap_hex, borderColor: 'rgba(255,255,255,0.8)' }}/>
+              <div>
+                <p className="text-xs font-semibold" style={{ color: 'var(--accent)' }}>
+                  ✦ Use your <strong>{strapSuggestion.strap_color}</strong> strap today
+                </p>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>{strapSuggestion.reason}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Existing straps */}
+          {(!item.straps || item.straps.length === 0) && !showAddStrap && (
+            <p className="text-xs mb-3" style={{ color: 'var(--muted)' }}>
+              No straps added yet. Add different strap colours for outfit matching.
+            </p>
+          )}
+          {item.straps && item.straps.length > 0 && (
+            <div className="flex flex-col gap-2 mb-3">
+              {item.straps.map((strap) => (
+                <div key={strap.id} className="flex items-center gap-3 px-3 py-2 rounded-xl"
+                  style={{ background: 'var(--muted-bg)', border: '1px solid var(--card-border)' }}>
+                  <div className="w-7 h-7 rounded-full border-2 shrink-0"
+                    style={{ background: strap.color_hex, borderColor: 'rgba(255,255,255,0.8)', boxShadow: '0 1px 4px rgba(0,0,0,0.15)' }}/>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold truncate" style={{ color: 'var(--foreground)' }}>{strap.color_name}</p>
+                    <p className="text-xs capitalize" style={{ color: 'var(--muted)' }}>{strap.material}</p>
+                  </div>
+                  <button
+                    onClick={() => removeStrap(item!.id, strap.id)}
+                    className="w-6 h-6 rounded-full flex items-center justify-center"
+                    style={{ background: 'rgba(220,38,38,0.1)', border: 'none', cursor: 'pointer' }}
+                    title="Remove strap"
+                  >
+                    <X size={11} style={{ color: '#dc2626' }}/>
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Add strap inline form */}
+          {showAddStrap && (
+            <div className="p-3 rounded-xl slide-up" style={{ background: 'var(--muted-bg)', border: '1px solid var(--card-border)' }}>
+              <p className="text-xs font-semibold mb-2" style={{ color: 'var(--foreground)' }}>New Strap</p>
+              <div className="flex gap-2 mb-2">
+                <input
+                  type="color"
+                  value={strapForm.color_hex}
+                  onChange={(e) => setStrapForm({ ...strapForm, color_hex: e.target.value })}
+                  className="rounded-lg cursor-pointer"
+                  style={{ width: 48, height: 42, padding: 2, border: '1.5px solid var(--card-border)' }}
+                  aria-label="Strap colour"
+                />
+                <input
+                  placeholder="Colour name (e.g. Midnight Black)"
+                  value={strapForm.color_name}
+                  onChange={(e) => setStrapForm({ ...strapForm, color_name: e.target.value })}
+                  className="flex-1 rounded-xl px-3 py-2 text-sm outline-none"
+                  style={{ background: 'var(--card)', color: 'var(--foreground)', border: '1.5px solid var(--card-border)' }}
+                />
+              </div>
+              <select
+                value={strapForm.material}
+                onChange={(e) => setStrapForm({ ...strapForm, material: e.target.value as WatchStrap['material'] })}
+                className="w-full rounded-xl px-3 py-2 text-sm outline-none mb-2"
+                style={{ background: 'var(--card)', color: 'var(--foreground)', border: '1.5px solid var(--card-border)' }}
+                aria-label="Strap material"
+              >
+                <option value="silicone">Silicone</option>
+                <option value="leather">Leather</option>
+                <option value="metal">Metal / Stainless</option>
+                <option value="nylon">Nylon</option>
+                <option value="rubber">Rubber</option>
+                <option value="fabric">Fabric</option>
+                <option value="other">Other</option>
+              </select>
+              <div className="flex gap-2">
+                <button onClick={saveStrap} disabled={!strapForm.color_name.trim()}
+                  className="flex-1 py-2 rounded-xl text-xs font-semibold disabled:opacity-40"
+                  style={{ background: 'var(--primary-mid)', color: '#fff', border: 'none', cursor: 'pointer' }}>
+                  Save Strap
+                </button>
+                <button onClick={() => setShowAddStrap(false)}
+                  className="flex-1 py-2 rounded-xl text-xs font-semibold"
+                  style={{ background: 'var(--card)', color: 'var(--muted)', border: '1px solid var(--card-border)', cursor: 'pointer' }}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Grooming / Skincare info (for grooming categories) ──────── */}
+      {['skincare', 'fragrance', 'grooming'].includes(item.category) && (
+        <div
+          className="p-4 rounded-2xl mb-5 section-reveal section-reveal-5"
+          style={{ background: 'linear-gradient(135deg, rgba(190,24,93,0.04) 0%, rgba(124,58,237,0.04) 100%)', border: '1px solid rgba(190,24,93,0.15)' }}
+        >
+          <p className="text-sm font-semibold mb-3 flex items-center gap-1.5" style={{ color: '#be185d' }}>
+            <Droplets size={14} style={{ color: '#be185d' }} />
+            {item.category === 'fragrance' ? 'Fragrance Info' : item.category === 'grooming' ? 'Grooming Product' : 'Skincare Info'}
+          </p>
+          <div className="flex flex-wrap gap-3">
+            {item.grooming_type && (
+              <div className="px-3 py-2 rounded-xl" style={{ background: 'rgba(190,24,93,0.06)', border: '1px solid rgba(190,24,93,0.15)' }}>
+                <p className="text-xs font-semibold" style={{ color: '#be185d' }}>Type</p>
+                <p className="text-sm font-bold capitalize" style={{ color: 'var(--foreground)' }}>
+                  {item.grooming_type.replace(/_/g, ' ')}
+                </p>
+              </div>
+            )}
+            {item.spf != null && item.spf > 0 && (
+              <div className="px-3 py-2 rounded-xl" style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
+                <p className="text-xs font-semibold" style={{ color: '#d97706' }}>SPF</p>
+                <p className="text-sm font-bold" style={{ color: 'var(--foreground)' }}>SPF {item.spf}</p>
+              </div>
+            )}
+          </div>
+          {item.category === 'skincare' && item.grooming_type === 'sunscreen' && (
+            <p className="text-xs mt-3 leading-relaxed" style={{ color: '#92400e' }}>
+              ☀️ Apply as the last step in your morning routine — after moisturiser, before makeup or going out.
+            </p>
+          )}
+          {item.category === 'fragrance' && (
+            <p className="text-xs mt-3 leading-relaxed" style={{ color: '#6d28d9' }}>
+              💨 Apply to pulse points — wrists, neck, behind ears. Don&apos;t rub after spraying.
+            </p>
+          )}
         </div>
       )}
 
@@ -857,6 +1115,160 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
                   </div>
                 )}
               </>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* ── Complete the Look ───────────────────────────────────────── */}
+      <div
+        className="rounded-2xl mb-5 overflow-hidden section-reveal section-reveal-7"
+        style={{ border: '1px solid var(--card-border)', boxShadow: 'var(--shadow-sm)' }}
+      >
+        <button
+          onClick={loadCompleteTheLook}
+          className="w-full flex items-center justify-between p-4 transition-all ripple-btn"
+          style={{ background: 'linear-gradient(135deg, rgba(190,24,93,0.05) 0%, rgba(124,58,237,0.04) 100%)' }}
+        >
+          <span className="flex items-center gap-2 text-sm font-semibold" style={{ color: 'var(--foreground)' }}>
+            <Gem size={15} style={{ color: '#be185d' }} />
+            Complete the Look
+            {makeupResult?.overall_vibe && (
+              <span className="text-xs font-normal px-2 py-0.5 rounded-full"
+                style={{ background: 'rgba(190,24,93,0.08)', color: '#be185d', border: '1px solid rgba(190,24,93,0.15)' }}>
+                {makeupResult.overall_vibe}
+              </span>
+            )}
+          </span>
+          <div style={{ transform: showComplete ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s' }}>
+            <ChevronDown size={16} style={{ color: 'var(--muted)' }} />
+          </div>
+        </button>
+
+        {showComplete && (
+          <div className="px-4 pb-4 slide-up" style={{ background: 'var(--card)' }}>
+            {makeupLoading && (
+              <div className="py-6 flex flex-col gap-3">
+                {[0,1,2].map((i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <div className="shimmer w-10 h-10 rounded-xl shrink-0"/>
+                    <div className="flex-1 flex flex-col gap-2">
+                      <div className="shimmer h-3 rounded w-1/2"/>
+                      <div className="shimmer h-2.5 rounded w-3/4"/>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {makeupResult && !makeupLoading && (
+              <div className="flex flex-col gap-5 pt-2">
+
+                {/* Section 1 — From Your Wardrobe */}
+                {makeupResult.from_wardrobe && makeupResult.from_wardrobe.length > 0 && (
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wide mb-2 flex items-center gap-1.5" style={{ color: 'var(--muted)' }}>
+                      <Heart size={11} style={{ color: '#ec4899' }}/> From Your Wardrobe
+                    </p>
+                    <div className="flex flex-col gap-2">
+                      {makeupResult.from_wardrobe.map((fw, i) => (
+                        <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-xl"
+                          style={{ background: 'rgba(16,185,129,0.05)', border: '1px solid rgba(16,185,129,0.18)' }}>
+                          <div className="w-9 h-9 rounded-xl shrink-0 border-2"
+                            style={{ background: fw.color_hex || '#e5e7eb', borderColor: 'rgba(255,255,255,0.8)' }}/>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold truncate" style={{ color: 'var(--foreground)' }}>{fw.name}</p>
+                            <p className="text-xs mt-0.5 capitalize" style={{ color: 'var(--muted)' }}>{fw.category} · {fw.color_name}</p>
+                          </div>
+                          <span className="text-xs px-2 py-0.5 rounded-full font-semibold shrink-0"
+                            style={{ background: 'rgba(16,185,129,0.1)', color: '#10b981' }}>
+                            Own it ✓
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Section 2 — Buy & Wishlist */}
+                {makeupResult.buy_suggestions && makeupResult.buy_suggestions.length > 0 && (
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wide mb-2 flex items-center gap-1.5" style={{ color: 'var(--muted)' }}>
+                      <ShoppingBag size={11} style={{ color: '#7c3aed' }}/> Complete the Look — Buy
+                    </p>
+                    <div className="flex flex-col gap-3">
+                      {makeupResult.buy_suggestions.map((s, i) => {
+                        const wid = `wish-${s.name}-${s.category}`;
+                        const wished = inWishlist(wid);
+                        return (
+                          <div key={i} className="rounded-2xl overflow-hidden"
+                            style={{ border: '1px solid var(--card-border)', background: 'var(--muted-bg)' }}>
+                            <div className="flex items-center gap-3 px-3 py-2.5">
+                              <div className="w-10 h-10 rounded-xl shrink-0 border-2 flex items-center justify-center"
+                                style={{ background: s.color_hex || '#e5e7eb', borderColor: 'rgba(255,255,255,0.8)' }}>
+                                <Gem size={14} style={{ color: 'rgba(255,255,255,0.7)' }}/>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-semibold truncate" style={{ color: 'var(--foreground)' }}>{s.name}</p>
+                                <p className="text-xs mt-0.5 capitalize" style={{ color: 'var(--muted)' }}>
+                                  {s.category} · {s.color_name}
+                                  {s.price_estimate && <span style={{ color: 'var(--accent)' }}> · {s.price_estimate}</span>}
+                                </p>
+                              </div>
+                              {/* Wishlist toggle */}
+                              <button
+                                onClick={() => wished
+                                  ? removeWishlist(wid)
+                                  : addWishlist({
+                                      id: wid, name: s.name, category: s.category,
+                                      color_name: s.color_name, color_hex: s.color_hex,
+                                      buy_query: s.buy_query, price_estimate: s.price_estimate,
+                                      reason: s.why, added_at: new Date().toISOString(),
+                                    } as WishlistItem)
+                                }
+                                title={wished ? 'Remove from wishlist' : 'Add to wishlist'}
+                                style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                                  background: wished ? 'rgba(124,58,237,0.15)' : 'var(--card)' }}>
+                                {wished
+                                  ? <BookmarkCheck size={15} style={{ color: '#7c3aed' }}/>
+                                  : <Bookmark size={15} style={{ color: 'var(--muted)' }}/>}
+                              </button>
+                            </div>
+                            {/* Why + buy links */}
+                            <div className="px-3 pb-2.5">
+                              <p className="text-xs mb-2 leading-snug" style={{ color: 'var(--muted)' }}>
+                                <Sparkles size={9} style={{ display:'inline', marginRight:3, color:'#be185d' }}/>
+                                {s.why}
+                              </p>
+                              <div className="flex flex-wrap gap-1.5">
+                                {[
+                                  { label: 'Shopee',    url: _shopeeUrl(s.buy_query),    bg: '#ff6130' },
+                                  { label: 'Shein',     url: _sheinUrl(s.buy_query),     bg: '#222' },
+                                  { label: 'Zalora',    url: _zaloraUrl(s.buy_query),    bg: 'var(--primary-mid)' },
+                                  { label: '2nd hand',  url: _carousellUrl(s.buy_query), bg: '#10b981' },
+                                ].map(({ label, url, bg }) => (
+                                  <a key={label} href={url} target="_blank" rel="noopener"
+                                    className="text-xs px-2.5 py-1 rounded-full font-semibold btn-bounce"
+                                    style={{ background: bg, color: '#fff' }}>
+                                    {label}
+                                  </a>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* No results fallback */}
+                {(!makeupResult.from_wardrobe?.length && !makeupResult.buy_suggestions?.length) && (
+                  <p className="text-xs text-center py-4" style={{ color: 'var(--muted)' }}>
+                    Upload makeup & jewelry to your wardrobe for personalised suggestions.
+                  </p>
+                )}
+              </div>
             )}
           </div>
         )}

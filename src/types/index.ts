@@ -11,7 +11,19 @@ export type ClothingCategory =
   | 'formal_shirt'
   | 'sneakers'
   | 'loafers'
-  | 'accessory';
+  | 'accessory'
+  // ── Accessories ──────────────────────
+  | 'chain'
+  | 'bracelet'
+  | 'earring'
+  | 'sunglasses'
+  | 'ring'
+  | 'bag'
+  // ── Grooming / Skincare / Makeup ──────
+  | 'skincare'
+  | 'fragrance'
+  | 'grooming'
+  | 'makeup';
 
 export type OccasionTag =
   | 'office'
@@ -24,6 +36,15 @@ export type OccasionTag =
   | 'travel'
   | 'festive'
   | 'gym';
+
+// ── Watch straps ──────────────────────────────────────────────────────────────
+export interface WatchStrap {
+  id: string;
+  color_name: string;
+  color_hex: string;
+  material: 'silicone' | 'leather' | 'metal' | 'nylon' | 'rubber' | 'fabric' | 'other';
+  image_url?: string;
+}
 
 export interface ClothingItem {
   id: string;
@@ -42,6 +63,11 @@ export interface ClothingItem {
   favorite?: boolean;
   worn_dates?: string[]; // ISO date strings of individual wear events
   notes?: string;
+  // ── Watch-specific ──
+  straps?: WatchStrap[];       // multiple strap options for a watch
+  // ── Grooming-specific ──
+  spf?: number;                // SPF value for sunscreens
+  grooming_type?: string;      // e.g. 'sunscreen', 'moisturiser', 'serum', 'toner', 'lip balm'
 }
 
 export interface Outfit {
@@ -108,6 +134,28 @@ export interface PlannedOutfit {
   created_at: string;
 }
 
+// ── Grooming suggestion ───────────────────────────────────────────────────────
+export interface GroomingSuggestion {
+  skincare_routine: {
+    step: string;
+    product_name?: string;       // matched from user's uploaded items
+    recommendation: string;      // what to use and why
+    icon: string;                // emoji
+  }[];
+  strap_suggestion?: {
+    strap_color: string;
+    strap_hex: string;
+    reason: string;
+  };
+  accessory_tips: {
+    type: string;
+    tip: string;
+    color_suggestion: string;
+  }[];
+  fragrance_note?: string;
+  weather_note: string;
+}
+
 export type ListingCondition = 'New' | 'Like New' | 'Good' | 'Fair';
 export type ListingMode = 'sell' | 'rent' | 'both';
 
@@ -133,4 +181,28 @@ export interface Listing {
   is_mine: boolean;
   sustainability_badge: boolean;
   created_at: string;
+}
+
+// ── Wishlist ──────────────────────────────────────────────────────────────────
+export interface WishlistItem {
+  id: string;
+  name: string;
+  category: string;
+  color_name: string;
+  color_hex: string;
+  buy_query: string;          // search term for shop links
+  image_url?: string;
+  price_estimate?: string;    // e.g. "S$25–45"
+  reason?: string;            // why AI suggested it
+  added_at: string;
+}
+
+// ── Makeup suggestion ─────────────────────────────────────────────────────────
+export interface MakeupSuggestion {
+  lips?: { shade: string; hex: string; product_name?: string; why: string };
+  eyes?: { look: string; shades: string[]; product_name?: string; why: string };
+  skin?: { finish: string; spf_needed: boolean; product_name?: string; why: string };
+  cheeks?: { blush_shade: string; hex: string; product_name?: string; why: string };
+  jewelry?: { type: string; metal: string; style: string; from_wardrobe?: string; why: string }[];
+  overall_vibe: string;
 }

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import {
-  LayoutDashboard, Shirt, Sparkles, ShoppingBag, Zap,
+  LayoutDashboard, Shirt, Sparkles, ShoppingBag, Zap, Bookmark,
   Menu, X, ChevronRight,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
@@ -18,7 +18,7 @@ const NAV = [
   { href: '/wardrobe',    label: 'Wardrobe', icon: Shirt,           desc: 'Closet · health score · eco tips' },
   { href: '/stylist',     label: 'Stylist',  icon: Sparkles,        desc: 'AI outfits · planner · events' },
   { href: '/marketplace', label: 'Market',   icon: ShoppingBag,     desc: 'Buy · rent · sell fashion' },
-  { href: '/evolve',      label: 'Evolve',   icon: Zap,             desc: 'Request & build new features' },
+  { href: '/wishlist',    label: 'Wishlist', icon: Bookmark,        desc: 'AI suggested items to buy' },
 ];
 
 export default function Navbar() {

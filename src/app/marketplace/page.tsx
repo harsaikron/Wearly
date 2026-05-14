@@ -15,66 +15,80 @@ const CATEGORIES = ['All','shirt','tshirt','pants','jeans','jacket','shoes','sne
 const CONDITIONS = ['All','New','Like New','Good','Fair'];
 
 function ListingCard({ listing }: { listing: Listing }) {
-  const hasColor = listing.color_hex && listing.color_hex !== '';
+  const bg = listing.color_hex && listing.color_hex !== '' ? listing.color_hex : '#c8c8c8';
+  const initial = (listing.brand || listing.title || '?')[0].toUpperCase();
   return (
     <Link href={`/marketplace/${listing.id}`} className="block">
-      <div className="rounded-2xl overflow-hidden transition-all hover:shadow-md"
-        style={{ background:'var(--card)', border:'1px solid var(--card-border)', boxShadow:'var(--shadow-sm)' }}>
-        {/* Image / Color placeholder */}
-        <div className="relative" style={{ height:160, background:'var(--muted-bg)' }}>
-          {listing.image_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={listing.image_url} alt={listing.title} className="w-full h-full object-cover"/>
-          ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center gap-2">
-              {hasColor && <div className="w-12 h-12 rounded-full border-4 border-white shadow-sm" style={{ background: listing.color_hex }}/>}
-              <ShoppingBag size={22} style={{ color:'var(--muted)' }}/>
-            </div>
-          )}
-          {/* Eco badge */}
-          {listing.sustainability_badge && (
-            <div className="absolute top-2 left-2 flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold"
-              style={{ background:'rgba(34,197,94,0.9)', color:'#fff' }}>
-              <Leaf size={10}/> Eco
-            </div>
-          )}
-          {/* Condition */}
-          <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full text-xs font-semibold"
-            style={{ background:'rgba(0,0,0,0.6)', color:'#fff' }}>
-            {listing.condition}
+      <div className="rounded-2xl overflow-hidden card-lift"
+        style={{ position:'relative', aspectRatio:'3/4', background: bg, boxShadow:'var(--shadow-md)', border:'1.5px solid rgba(0,0,0,0.06)' }}>
+
+        {/* Full-bleed image or colour fill */}
+        {listing.image_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={listing.image_url} alt={listing.title}
+            style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }}/>
+        ) : (
+          /* Gradient colour fill + big initial letter */
+          <div style={{
+            position:'absolute', inset:0,
+            background: `linear-gradient(145deg, ${bg}dd 0%, ${bg}88 100%)`,
+            display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:12,
+          }}>
+            <span style={{ fontSize:52, fontWeight:800, color:'rgba(255,255,255,0.35)', lineHeight:1, userSelect:'none' }}>
+              {initial}
+            </span>
+            <ShoppingBag size={28} style={{ color:'rgba(255,255,255,0.4)' }}/>
           </div>
-          {listing.is_mine && (
-            <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded-full text-xs font-semibold"
-              style={{ background:'0', color:'#fff' }}>
-              My listing
-            </div>
-          )}
+        )}
+
+        {/* ── Top badges ── */}
+        <div style={{ position:'absolute', top:8, left:8, right:8, display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:4 }}>
+          {listing.sustainability_badge ? (
+            <span style={{ display:'flex', alignItems:'center', gap:3, background:'rgba(22,163,74,0.88)', backdropFilter:'blur(6px)', color:'#fff', fontSize:9, fontWeight:700, padding:'3px 7px', borderRadius:99 }}>
+              <Leaf size={9}/> Eco
+            </span>
+          ) : <span/>}
+          <span style={{ background:'rgba(0,0,0,0.55)', backdropFilter:'blur(6px)', color:'#fff', fontSize:9, fontWeight:700, padding:'3px 8px', borderRadius:99 }}>
+            {listing.condition}
+          </span>
         </div>
 
-        {/* Info */}
-        <div className="p-3">
-          <p className="font-semibold text-sm leading-tight truncate" style={{ color:'var(--foreground)' }}>{listing.title}</p>
-          <p className="text-xs mt-0.5" style={{ color:'var(--muted)' }}>{listing.brand} · {listing.size}</p>
-
+        {/* ── Bottom glass strip ── */}
+        <div style={{
+          position:'absolute', bottom:0, left:0, right:0,
+          padding:'32px 10px 10px',
+          background:'linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.3) 60%, transparent 100%)',
+        }}>
+          {/* Title */}
+          <p style={{ color:'#fff', fontWeight:700, fontSize:12, lineHeight:1.25, marginBottom:5,
+            overflow:'hidden', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical' }}>
+            {listing.title}
+          </p>
+          {/* Brand · Size */}
+          <p style={{ color:'rgba(255,255,255,0.65)', fontSize:10, marginBottom:6 }}>
+            {listing.brand}{listing.brand && listing.size ? ' · ' : ''}{listing.size}
+          </p>
           {/* Price row */}
-          <div className="flex items-center gap-2 mt-2">
-            <span className="font-bold text-base" style={{ color:'var(--accent)' }}>S${listing.price}</span>
-            {listing.rent_price_day && (
-              <span className="text-xs px-1.5 py-0.5 rounded-full" style={{ background:'rgba(245,158,11,0.1)', color:'#d97706' }}>
-                S${listing.rent_price_day}/day
-              </span>
-            )}
-          </div>
-
-          {/* Distance + color */}
-          <div className="flex items-center justify-between mt-2">
-            <div className="flex items-center gap-1 text-xs" style={{ color:'var(--muted)' }}>
-              <MapPin size={10}/> {listing.seller_distance_km > 0 ? `${listing.seller_distance_km} km` : 'Yours'}
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:4 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:5 }}>
+              <span style={{ color:'#fff', fontWeight:800, fontSize:14 }}>S${listing.price}</span>
+              {listing.rent_price_day && (
+                <span style={{ background:'rgba(245,158,11,0.85)', color:'#fff', fontSize:9, fontWeight:700, padding:'2px 6px', borderRadius:99 }}>
+                  S${listing.rent_price_day}/day
+                </span>
+              )}
             </div>
-            {hasColor && (
-              <div className="w-4 h-4 rounded-full border" style={{ background: listing.color_hex, borderColor:'rgba(0,0,0,0.1)' }} title={listing.color_name}/>
-            )}
+            {/* Distance */}
+            <span style={{ display:'flex', alignItems:'center', gap:3, color:'rgba(255,255,255,0.65)', fontSize:10 }}>
+              <MapPin size={9}/>{listing.seller_distance_km > 0 ? `${listing.seller_distance_km} km` : 'Yours'}
+            </span>
           </div>
+          {/* "My listing" tag */}
+          {listing.is_mine && (
+            <span style={{ display:'inline-block', marginTop:5, background:'rgba(255,255,255,0.18)', color:'#fff', fontSize:9, fontWeight:600, padding:'2px 7px', borderRadius:99 }}>
+              My listing
+            </span>
+          )}
         </div>
       </div>
     </Link>

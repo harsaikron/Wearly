@@ -22,6 +22,7 @@
     "groq-sdk": "^1.2.0",
     "lottie-react": "^2.4.1",
     "lucide-react": "^1.14.0",
+    "motion": "^12.38.0",
     "next": "16.2.6",
     "ollama": "^0.6.3",
     "openai": "^6.37.0",

@@ -117,9 +117,18 @@ FASHION EXPERTISE — CATEGORY GUIDE
   sneakers       = athletic, casual, fashion sneakers
   loafers        = slip-on loafers, moccasins
   jacket         = all outerwear (blazer, bomber, denim jacket, windbreaker, hoodie)
-  watch          = timepieces
+  watch          = timepieces, smartwatches
   belt           = waist belts
-  accessory      = bags, hats, sunglasses, scarves, jewellery, socks, ties
+  chain          = chains, necklaces, pendant chains
+  bracelet       = bracelets, bangles, cuffs
+  earring        = earrings, ear studs, ear cuffs
+  sunglasses     = sunglasses, shades, tinted eyewear
+  ring           = rings, finger rings, thumb rings
+  bag            = bags, tote bags, backpacks, clutches, crossbody bags
+  accessory      = other accessories (scarves, hats, ties, socks, pocket squares)
+  skincare       = skincare products (moisturiser, sunscreen, serum, toner, cleanser)
+  fragrance      = perfume, cologne, eau de toilette, body mist
+  grooming       = grooming products (hair gel, face wash, shaving cream, deodorant)
 
 ════════════════════════════════════════════════════
 OCCASION TAGGING — tag with ALL that apply
@@ -137,13 +146,15 @@ OCCASION TAGGING — tag with ALL that apply
 
 Reply ONLY with valid JSON — no markdown fences, no extra text.`;
 
-const PROMPT = `Analyze this clothing item precisely. Execute the 4-step color analysis, then return JSON with exactly these fields:
+const PROMPT = `Analyze this item precisely. Execute the 4-step color analysis, then return JSON with exactly these fields:
 {
-  "suggested_name": "specific descriptive name using CORRECT color (e.g. 'Sage Green Graphic Tee', NOT 'Light Grey Tee')",
+  "suggested_name": "specific descriptive name using CORRECT color (e.g. 'Sage Green Graphic Tee', 'SPF 50 Sunscreen', 'Silver Chain Necklace')",
   "category": "one exact category from the guide",
   "color_hex": "exact dominant color hex from the reference table",
   "color_name": "exact color name from the reference table",
-  "tags": ["all applicable occasion tags"]
+  "tags": ["all applicable occasion tags — empty array [] for grooming/skincare items"],
+  "grooming_type": "ONLY for skincare/fragrance/grooming: one of sunscreen|moisturiser|serum|toner|cleanser|lip_balm|eye_cream|eau_de_parfum|eau_de_toilette|cologne|body_mist|hair_gel|face_wash|shaving|deodorant|body_lotion — omit for clothing/accessories",
+  "spf": "ONLY for sunscreen: the SPF number as integer — omit otherwise"
 }`;
 
 export async function POST(request: NextRequest) {

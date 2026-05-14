@@ -10,7 +10,7 @@ import {
   Camera, Shirt, Sparkles, Send, Loader,
   ImageIcon, X, Thermometer, Wind, Droplets,
   ExternalLink, TrendingUp, CalendarDays, Gem, Lightbulb, Flag, RefreshCw, Zap,
-  Mars, Venus,
+  Mars, Venus, Watch, FlaskConical,
 } from 'lucide-react';
 import {
   EventIcon, SeasonIcon, WeatherConditionIcon,
@@ -68,6 +68,25 @@ interface AISuggestion {
   occasion?: string;
   search_query?: string;
 }
+interface GroomingStep {
+  step: string;
+  product_name?: string;
+  recommendation: string;
+  icon: string;
+}
+interface StrapSuggestion {
+  strap_color: string;
+  strap_hex: string;
+  reason: string;
+}
+interface GroomingResult {
+  skincare_routine?: GroomingStep[];
+  strap_suggestion?: StrapSuggestion;
+  accessory_tips?: { type: string; tip: string; color_suggestion: string }[];
+  fragrance_note?: string;
+  weather_note?: string;
+}
+
 interface InspirationImage {
   url: string;
   thumb: string;
@@ -112,6 +131,8 @@ export default function HomePage() {
   const [trendLoading, setTrendLoading]     = useState(false);
   const [ootd, setOotd]                     = useState<OOTDResult | null>(null);
   const [ootdLoading, setOotdLoading]       = useState(false);
+  const [grooming, setGrooming]             = useState<GroomingResult | null>(null);
+  const [groomingLoading, setGroomingLoading] = useState(false);
   const fileInputRef                        = useRef<HTMLInputElement>(null);
 
   // Gender toggle — persisted in localStorage
@@ -181,6 +202,39 @@ export default function HomePage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gender]);
 
+  async function fetchGrooming(currentWeather: Weather, currentItems: typeof items) {
+    const groomingItems = currentItems.filter((i) => ['skincare','fragrance','grooming','makeup'].includes(i.category));
+    const watchWithStraps = currentItems.find((i) => i.category === 'watch' && (i.straps?.length ?? 0) > 0);
+    setGroomingLoading(true);
+    try {
+      const res = await fetch('/api/grooming', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          outfit: currentItems
+            .filter((i) => !['skincare','fragrance','grooming'].includes(i.category))
+            .slice(0, 6)
+            .map((i) => ({ name: i.name, category: i.category, color_name: i.color_name })),
+          groomingItems: groomingItems.map((i) => ({
+            name: i.name, category: i.category,
+            grooming_type: i.grooming_type, spf: i.spf, color_name: i.color_name,
+          })),
+          watchStraps: watchWithStraps?.straps?.map((s) => ({
+            color_name: s.color_name, color_hex: s.color_hex, material: s.material,
+          })),
+          weather: {
+            temperature: currentWeather.temperature,
+            condition: currentWeather.condition,
+            humidity: currentWeather.humidity,
+            description: currentWeather.description,
+          },
+        }),
+      });
+      const d = await res.json();
+      if (!d.error) setGrooming(d as GroomingResult);
+    } catch { /* silent */ } finally { setGroomingLoading(false); }
+  }
+
   // Fetch weather on mount
   useEffect(() => {
     fetch('/api/weather?city=Singapore')
@@ -201,6 +255,14 @@ export default function HomePage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [weather, events, fetchOOTD]);
 
+  // Auto-fetch grooming suggestions once weather is ready
+  useEffect(() => {
+    if (weather && !grooming && !groomingLoading && items.length > 0) {
+      fetchGrooming(weather, items);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [weather, items.length]);
+
   // Live clock
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 60000);
@@ -214,12 +276,16 @@ export default function HomePage() {
     setTrendLoading(true);
     setTrendCards([]);
     let cancelled = false;
+    // Strict gender suffix so images match the active tab
+    const genderSuffix = gender === 'male'
+      ? 'menswear men male model'
+      : 'womenswear women female model';
     (async () => {
       const results: { term: string; img: InspirationImage | null }[] = [];
       for (const term of terms) {
         if (cancelled) break;
         try {
-          const r = await fetch(`/api/images?q=${encodeURIComponent(term + ' Singapore ' + genderLabel + ' outfit')}`);
+          const r = await fetch(`/api/images?q=${encodeURIComponent(term + ' Singapore ' + genderSuffix)}`);
           const d = await r.json();
           results.push({ term, img: (d.images ?? [])[0] ?? null });
           if (!cancelled) setTrendCards([...results]);
@@ -646,6 +712,163 @@ export default function HomePage() {
           </div>
         )}
       </div>
+
+      {/* ── Grooming & Accessories AI ─────────────────────────── */}
+      {(groomingLoading || grooming) && items.length > 0 && (
+        <div
+          className="rounded-2xl overflow-hidden mb-6"
+          style={{ background: 'var(--card)', border: '1px solid var(--card-border)', boxShadow: 'var(--shadow-sm)' }}
+        >
+          {/* Header */}
+          <div
+            className="px-4 py-3 flex items-center justify-between"
+            style={{ background: 'linear-gradient(135deg, rgba(190,24,93,0.05) 0%, rgba(124,58,237,0.04) 100%)', borderBottom: '1px solid var(--card-border)' }}
+          >
+            <div className="flex items-center gap-2">
+              <FlaskConical size={15} style={{ color: '#be185d' }} />
+              <p className="text-sm font-bold" style={{ color: 'var(--foreground)' }}>Grooming &amp; Accessories</p>
+              {grooming?.weather_note && (
+                <span className="text-xs px-2 py-0.5 rounded-full font-medium hidden sm:inline"
+                  style={{ background: 'rgba(190,24,93,0.08)', color: '#be185d', border: '1px solid rgba(190,24,93,0.15)' }}>
+                  AI powered
+                </span>
+              )}
+            </div>
+            <button
+              onClick={() => { setGrooming(null); if (weather) fetchGrooming(weather, items); }}
+              disabled={groomingLoading}
+              className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-xl font-medium hover:opacity-80 disabled:opacity-40"
+              style={{ background: 'var(--muted-bg)', color: 'var(--muted)', border: '1px solid var(--card-border)' }}
+            >
+              <RefreshCw size={11} className={groomingLoading ? 'animate-spin' : ''} />
+              {groomingLoading ? 'Thinking…' : 'Refresh'}
+            </button>
+          </div>
+
+          {groomingLoading && !grooming && (
+            <div className="px-4 py-4 flex flex-col gap-3">
+              {[0,1,2].map((i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <div className="shimmer w-8 h-8 rounded-xl shrink-0" />
+                  <div className="flex-1 flex flex-col gap-1.5">
+                    <div className="shimmer h-3 rounded w-1/3" />
+                    <div className="shimmer h-2.5 rounded w-4/5" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {grooming && (
+            <div className="px-4 py-4 flex flex-col gap-4">
+
+              {/* Weather note */}
+              {grooming.weather_note && (
+                <div className="px-3 py-2.5 rounded-xl flex items-start gap-2"
+                  style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.18)' }}>
+                  <span style={{ fontSize: 15 }}>☀️</span>
+                  <p className="text-xs leading-relaxed" style={{ color: '#92400e' }}>{grooming.weather_note}</p>
+                </div>
+              )}
+
+              {/* Skincare routine */}
+              {grooming.skincare_routine && grooming.skincare_routine.length > 0 && (
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: 'var(--muted)' }}>
+                    Morning Routine
+                  </p>
+                  <div className="flex flex-col gap-2">
+                    {grooming.skincare_routine.map((step, i) => (
+                      <div key={i} className="flex items-start gap-3 px-3 py-2.5 rounded-xl"
+                        style={{ background: 'var(--muted-bg)', border: '1px solid var(--card-border)' }}>
+                        <span style={{ fontSize: 18, lineHeight: 1, flexShrink: 0, marginTop: 2 }}>{step.icon}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="text-xs font-bold" style={{ color: 'var(--foreground)' }}>{step.step}</p>
+                            {step.product_name && (
+                              <span className="text-xs px-1.5 py-0.5 rounded-full font-medium"
+                                style={{ background: 'rgba(190,24,93,0.08)', color: '#be185d', border: '1px solid rgba(190,24,93,0.15)' }}>
+                                {step.product_name}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs mt-0.5 leading-snug" style={{ color: 'var(--muted)' }}>{step.recommendation}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Watch strap suggestion */}
+              {grooming.strap_suggestion && (
+                <div className="px-3 py-3 rounded-xl flex items-center gap-3"
+                  style={{ background: 'rgba(44,74,30,0.05)', border: '1px solid rgba(44,74,30,0.15)' }}>
+                  <Watch size={16} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs font-bold" style={{ color: 'var(--foreground)' }}>Strap of the Day</p>
+                      <div className="w-4 h-4 rounded-full border-2"
+                        style={{ background: grooming.strap_suggestion.strap_hex, borderColor: 'rgba(255,255,255,0.8)', flexShrink: 0 }}/>
+                      <span className="text-xs font-semibold" style={{ color: 'var(--accent)' }}>
+                        {grooming.strap_suggestion.strap_color}
+                      </span>
+                    </div>
+                    <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>{grooming.strap_suggestion.reason}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Accessory tips */}
+              {grooming.accessory_tips && grooming.accessory_tips.length > 0 && (
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: 'var(--muted)' }}>
+                    Accessory Tips
+                  </p>
+                  <div className="flex flex-col gap-2">
+                    {grooming.accessory_tips.map((tip, i) => (
+                      <div key={i} className="flex items-start gap-2 px-3 py-2.5 rounded-xl"
+                        style={{ background: 'var(--muted-bg)', border: '1px solid var(--card-border)' }}>
+                        <Gem size={13} style={{ color: '#7c3aed', marginTop: 1, flexShrink: 0 }} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold capitalize" style={{ color: 'var(--foreground)' }}>{tip.type}</p>
+                          <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>
+                            {tip.tip}
+                            {tip.color_suggestion && (
+                              <span style={{ color: 'var(--primary-mid)' }}> · {tip.color_suggestion}</span>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Fragrance note */}
+              {grooming.fragrance_note && (
+                <div className="px-3 py-2.5 rounded-xl flex items-start gap-2"
+                  style={{ background: 'rgba(124,58,237,0.05)', border: '1px solid rgba(124,58,237,0.15)' }}>
+                  <span style={{ fontSize: 15 }}>💨</span>
+                  <div>
+                    <p className="text-xs font-semibold" style={{ color: '#7c3aed' }}>Fragrance</p>
+                    <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>{grooming.fragrance_note}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* CTA: add grooming items */}
+              {items.filter((i) => ['skincare','fragrance','grooming','makeup'].includes(i.category)).length === 0 && (
+                <a href="/wardrobe"
+                  className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold"
+                  style={{ background: 'rgba(190,24,93,0.06)', color: '#be185d', border: '1px dashed rgba(190,24,93,0.3)' }}>
+                  <FlaskConical size={14}/> Upload your creams, makeup &amp; skincare →
+                </a>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── Season Discovery + Trends ─────────────────────────── */}
       {events && (
