@@ -9,7 +9,7 @@
  *       buy_suggestions: items to buy (with wishlist support)
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { aiChat, safeParseJSON } from '@/lib/ai-client';
+import { aiChatMakeup, safeParseJSON } from '@/lib/ai-client';
 
 const SYSTEM = `You are Wearly's AI beauty and accessories stylist, expert in makeup colour theory,
 jewellery pairing, and fashion coordination for all genders.
@@ -74,7 +74,7 @@ Suggest a complete beauty + accessories look. Return exactly this JSON:
   ]
 }`;
 
-    const { text } = await aiChat(SYSTEM, userMessage);
+    const { text } = await aiChatMakeup(SYSTEM, userMessage);
     const parsed = safeParseJSON(text);
 
     if (!parsed) {

@@ -10,8 +10,9 @@ import { Ollama } from 'ollama';
 import Groq from 'groq-sdk';
 
 const OLLAMA_MODEL        = 'gemma4:e4b';
-const OLLAMA_FASHION_MODEL = 'wearly-fashion-v1'; // fine-tuned clothing classifier (Module 1)
-const OLLAMA_OUTFIT_MODEL  = 'wearly-outfit-v1';  // fine-tuned outfit scorer       (Module 2)
+const OLLAMA_FASHION_MODEL = 'wearly-fashion-v1'; // Module 1 — clothing vision classifier
+const OLLAMA_OUTFIT_MODEL  = 'wearly-outfit-v1';  // Module 2 — outfit compatibility scorer
+const OLLAMA_MAKEUP_MODEL  = 'wearly-makeup-v1';  // Module 3 — makeup/jewelry/lipstick AI
 const GROQ_TEXT_MODEL     = 'llama-3.3-70b-versatile';
 const GROQ_VISION_MODEL   = 'meta-llama/llama-4-scout-17b-16e-instruct';
 
@@ -23,6 +24,7 @@ export const OLLAMA_HOST = process.env.OLLAMA_HOST ?? 'http://localhost:11434';
 
 let _fashionModelAvailable: boolean | null = null;
 let _outfitModelAvailable: boolean | null  = null;
+let _makeupModelAvailable: boolean | null  = null;
 let _ollamaTagsCache: { models: { name: string }[] } | null = null;
 
 async function _getOllamaTags(): Promise<{ models: { name: string }[] } | null> {
@@ -51,6 +53,31 @@ export async function detectOutfitModel(): Promise<boolean> {
   const data = await _getOllamaTags();
   _outfitModelAvailable = data?.models?.some((m) => m.name.startsWith('wearly-outfit')) ?? false;
   return _outfitModelAvailable;
+}
+
+// Module 3 — makeup / jewelry / lipstick AI (YouMakeup + FFHQ + CPM + BeautyBank fine-tune)
+export async function detectMakeupModel(): Promise<boolean> {
+  if (_makeupModelAvailable !== null) return _makeupModelAvailable;
+  const data = await _getOllamaTags();
+  _makeupModelAvailable = data?.models?.some((m) => m.name.startsWith('wearly-makeup')) ?? false;
+  return _makeupModelAvailable;
+}
+
+// Use makeup model when available, fall back to base
+export async function aiChatMakeup(system: string, userMessage: string) {
+  const useMakeupModel = await detectMakeupModel();
+  if (useMakeupModel) {
+    try {
+      const ollama = new Ollama({ host: OLLAMA_HOST });
+      const res = await ollama.chat({
+        model: OLLAMA_MAKEUP_MODEL,
+        messages: [{ role: 'user', content: `${system}\n\n${userMessage}` }],
+      });
+      return { text: res.message.content, backend: 'ollama' as const, model: 'wearly-makeup-v1' };
+    } catch { /* fall through to base */ }
+  }
+  const { text, backend } = await aiChat(system, userMessage);
+  return { text, backend, model: useMakeupModel ? 'wearly-makeup-v1' : 'gemma4:e4b (base)' };
 }
 
 // ─── Backend detection ────────────────────────────────────────────────────────
