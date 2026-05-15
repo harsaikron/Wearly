@@ -10,8 +10,9 @@ import {
   Camera, Shirt, Sparkles, Send, Loader,
   ImageIcon, X, Thermometer, Wind, Droplets,
   ExternalLink, TrendingUp, CalendarDays, Gem, Lightbulb, Flag, RefreshCw, Zap,
-  Mars, Venus, Watch, FlaskConical,
+  Mars, Venus, Watch, FlaskConical, Paperclip, ChevronLeft, ChevronRight,
 } from 'lucide-react';
+import MirrorSlide from '@/components/MirrorSlide';
 import {
   EventIcon, SeasonIcon,
 } from '@/components/icons/SgIcons';
@@ -135,6 +136,11 @@ export default function HomePage() {
   const [grooming, setGrooming]             = useState<GroomingResult | null>(null);
   const [groomingLoading, setGroomingLoading] = useState(false);
   const fileInputRef                        = useRef<HTMLInputElement>(null);
+
+  // Mobile slider state
+  const [activeSlide, setActiveSlide] = useState(1); // 0=Mirror, 1=Chat, 2=Today
+  const [chatImg, setChatImg]         = useState<string | null>(null);
+  const chatImgRef                    = useRef<HTMLInputElement>(null);
 
   // Gender toggle — persisted in localStorage
   const [gender, setGender] = useState<'male' | 'female'>('male');
@@ -400,7 +406,331 @@ export default function HomePage() {
       ];
 
   return (
-    <div className="max-w-2xl mx-auto px-4 page-enter" style={{ paddingTop: '28px' }}>
+    <>
+    {/* ── MOBILE FULL-PAGE SLIDER (hidden on md+) ────── */}
+    <div className="md:hidden" style={{ width: '100vw', height: '100dvh', overflow: 'hidden', position: 'relative' }}>
+
+      {/* Slide dot indicators */}
+      <div style={{ position: 'absolute', top: 16, left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: 6, zIndex: 30 }}>
+        {[0, 1, 2].map((i) => (
+          <button key={i} onClick={() => setActiveSlide(i)} style={{
+            width: i === activeSlide ? 20 : 6,
+            height: 6,
+            borderRadius: 3,
+            background: i === activeSlide ? '#A8D060' : 'rgba(255,255,255,0.35)',
+            border: 'none',
+            padding: 0,
+            transition: 'all 0.3s ease',
+            cursor: 'pointer',
+          }} />
+        ))}
+      </div>
+
+      {/* Slide container */}
+      <div style={{
+        display: 'flex',
+        width: '300vw',
+        height: '100%',
+        transform: `translateX(${-activeSlide * 100}vw)`,
+        transition: 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+      }}>
+
+        {/* ── Slide 0: Mirror ─── */}
+        <div style={{ width: '100vw', height: '100dvh', flexShrink: 0 }}>
+          <MirrorSlide isActive={activeSlide === 0} weather={weather} />
+        </div>
+
+        {/* ── Slide 1: AI Chat ─── */}
+        <div style={{ width: '100vw', height: '100dvh', flexShrink: 0, overflowY: 'auto', background: 'var(--background)' }}>
+          <div style={{ padding: '52px 20px 140px', maxWidth: 480, margin: '0 auto' }}>
+            {/* Hero header */}
+            <p style={{ fontSize: '0.55rem', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 6 }}>Your Style · Intelligence</p>
+            <h1 style={{ fontFamily: 'var(--font-display), Georgia, serif', fontSize: 'clamp(2.2rem,9vw,3.4rem)', fontWeight: 600, fontStyle: 'italic', letterSpacing: '-0.025em', lineHeight: 0.95, color: 'var(--foreground)', margin: '0 0 20px' }}>
+              Dress with<br/>
+              <span style={{ background: 'linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>intention.</span>
+            </h1>
+
+            {/* Gender toggle */}
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: 4, borderRadius: 16, background: 'rgba(255,255,255,0.75)', backdropFilter: 'blur(16px) saturate(160%)', WebkitBackdropFilter: 'blur(16px) saturate(160%)', border: '1.5px solid rgba(255,255,255,0.85)', boxShadow: 'var(--shadow-sm)' }}>
+                <button onClick={() => toggleGender('male')} style={gender === 'male' ? { display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', borderRadius: 12, fontSize: 14, fontWeight: 700, border: 'none', cursor: 'pointer', background: 'linear-gradient(to bottom, var(--primary-mid), var(--primary))', color: '#fff', boxShadow: 'var(--shadow-btn)' } : { display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', borderRadius: 12, fontSize: 14, fontWeight: 700, border: 'none', cursor: 'pointer', background: 'transparent', color: 'var(--muted)' }}>
+                  <Mars size={15} /> Male
+                </button>
+                <button onClick={() => toggleGender('female')} style={gender === 'female' ? { display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', borderRadius: 12, fontSize: 14, fontWeight: 700, border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg, #BE185D, #9B1750)', color: '#fff', boxShadow: '0 4px 14px rgba(190,24,93,0.35)' } : { display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', borderRadius: 12, fontSize: 14, fontWeight: 700, border: 'none', cursor: 'pointer', background: 'transparent', color: 'var(--muted)' }}>
+                  <Venus size={15} /> Female
+                </button>
+              </div>
+            </div>
+
+            {/* Chat input with image attachment */}
+            <div style={{ marginBottom: 12 }}>
+              {chatImg && (
+                <div style={{ position: 'relative', display: 'inline-block', marginBottom: 10 }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={chatImg} alt="attached" style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 12, border: '2px solid var(--card-border)' }} />
+                  <button onClick={() => setChatImg(null)} style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', background: 'var(--foreground)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                    <X size={10} color="#fff" />
+                  </button>
+                </div>
+              )}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(255,255,255,0.80)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1.5px solid rgba(255,255,255,0.85)', borderRadius: 18, padding: '12px 14px', boxShadow: 'var(--shadow-md)' }}>
+                <Sparkles size={15} style={{ color: 'var(--primary-mid)', flexShrink: 0 }} />
+                <input
+                  type="text"
+                  value={question}
+                  onChange={(e) => setQuestion(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && (question.trim() || chatImg)) { askAI(question || 'What do you think of this outfit?', chatImg ?? undefined); setChatImg(null); } }}
+                  placeholder="Ask AI anything… what to wear today?"
+                  style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', fontSize: 14, color: 'var(--foreground)' }}
+                />
+                <input ref={chatImgRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  e.target.value = '';
+                  const { compressImage: compress } = await import('@/lib/image-utils');
+                  const compressed = await compress(file);
+                  setChatImg(compressed);
+                }} />
+                <button onClick={() => chatImgRef.current?.click()} style={{ width: 34, height: 34, borderRadius: 10, background: 'var(--muted-bg)', border: '1px solid var(--card-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+                  <Paperclip size={15} style={{ color: 'var(--muted)' }} />
+                </button>
+                <button
+                  onClick={() => { if (question.trim() || chatImg) { askAI(question || 'What do you think of this outfit?', chatImg ?? undefined); setChatImg(null); } }}
+                  disabled={(!question.trim() && !chatImg) || loading}
+                  style={{ width: 36, height: 36, borderRadius: 11, background: 'linear-gradient(to bottom, var(--primary-mid), var(--primary))', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, opacity: ((!question.trim() && !chatImg) || loading) ? 0.4 : 1 }}
+                >
+                  <Send size={15} color="#fff" />
+                </button>
+              </div>
+            </div>
+
+            {/* Quick prompts */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 20 }}>
+              {QUICK.map((q, i) => {
+                const colors = [
+                  { bg: '#E8EDF5', color: '#2563EB', border: '#BFCFE8' },
+                  { bg: '#FEF3E8', color: '#C2570A', border: '#F8D5B0' },
+                  { bg: '#FDE8F3', color: '#BE185D', border: '#F5BCD9' },
+                  { bg: '#E8F3EE', color: '#2C4A1E', border: '#B0D4BC' },
+                ];
+                const c = colors[i % colors.length];
+                return (
+                  <button key={q} onClick={() => { setQuestion(q); askAI(q); }} style={{ padding: '8px 12px', borderRadius: 999, fontSize: 12, fontWeight: 600, background: c.bg, color: c.color, border: `1.5px solid ${c.border}`, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.07)' }}>
+                    {q}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Photo display */}
+            {photo && (
+              <div style={{ position: 'relative', marginBottom: 16, borderRadius: 16, overflow: 'hidden' }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={photo} alt="captured" style={{ width: '100%', objectFit: 'cover', maxHeight: 240, display: 'block' }} />
+                <button onClick={clearPhoto} style={{ position: 'absolute', top: 10, right: 10, width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.92)', border: '1px solid var(--card-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                  <X size={14} style={{ color: 'var(--foreground)' }} />
+                </button>
+              </div>
+            )}
+
+            {/* Loading */}
+            {loading && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 0', marginBottom: 12 }}>
+                <Loader size={16} style={{ color: 'var(--accent)', animation: 'spin 1s linear infinite' }} />
+                <p style={{ fontSize: 14, color: 'var(--muted)' }}>Gemma 4 is analysing…</p>
+              </div>
+            )}
+
+            {/* Error */}
+            {error && (
+              <div style={{ padding: '12px 16px', borderRadius: 14, background: 'rgba(239,68,68,0.06)', marginBottom: 12 }}>
+                <p style={{ fontSize: 13, fontWeight: 600, color: '#dc2626', marginBottom: 4 }}>Could not get a response</p>
+                <p style={{ fontSize: 12, color: 'var(--muted)' }}>{error}</p>
+              </div>
+            )}
+
+            {/* AI Suggestion */}
+            {suggestion && !loading && (
+              <div style={{ borderRadius: 18, background: 'var(--card)', border: '1px solid var(--card-border)', padding: '16px', display: 'flex', flexDirection: 'column', gap: 12, boxShadow: 'var(--shadow-sm)' }}>
+                {suggestion.occasion && <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: 999, fontSize: 11, fontWeight: 600, background: 'var(--muted-bg)', color: 'var(--muted)', border: '1px solid var(--card-border)', marginBottom: 4, textTransform: 'capitalize', width: 'fit-content' }}>{suggestion.occasion}</span>}
+                {suggestion.headline && <h3 style={{ fontSize: 17, fontWeight: 700, color: 'var(--foreground)', lineHeight: 1.3, margin: 0 }}>{suggestion.headline}</h3>}
+                <p style={{ fontSize: 14, lineHeight: 1.65, color: 'var(--foreground)', margin: 0 }}>{suggestion.message}</p>
+                {suggestion.outfit_items && suggestion.outfit_items.length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Outfit Breakdown</p>
+                    {suggestion.outfit_items.map((item, i) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 12, background: 'var(--muted-bg)', border: '1px solid var(--card-border)' }}>
+                        <div style={{ width: 32, height: 32, borderRadius: 8, background: item.color_hex, border: '1px solid rgba(0,0,0,0.08)', flexShrink: 0 }} />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.piece}</p>
+                          {item.note && <p style={{ fontSize: 11, color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.note}</p>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {suggestion.style_tip && (
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 12px', borderRadius: 12, background: 'rgba(44,74,30,0.05)', border: '1px solid rgba(44,74,30,0.14)' }}>
+                    <Lightbulb size={13} style={{ color: 'var(--accent)', flexShrink: 0, marginTop: 1 }} />
+                    <p style={{ fontSize: 12, color: 'var(--foreground)', lineHeight: 1.5, margin: 0 }}>{suggestion.style_tip}</p>
+                  </div>
+                )}
+                {suggestion.search_query && (
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <a href={pinterestUrl(suggestion.search_query)} target="_blank" rel="noopener noreferrer" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '10px', borderRadius: 12, background: '#e60023', color: '#fff', fontSize: 12, fontWeight: 600, textDecoration: 'none' }}>
+                      <ExternalLink size={11} /> Pinterest
+                    </a>
+                    <a href={googleImagesUrl(suggestion.search_query)} target="_blank" rel="noopener noreferrer" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '10px', borderRadius: 12, background: 'var(--muted-bg)', border: '1px solid var(--card-border)', color: 'var(--foreground)', fontSize: 12, fontWeight: 600, textDecoration: 'none' }}>
+                      <ExternalLink size={11} /> Google Images
+                    </a>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ── Slide 2: Today ─── */}
+        <div style={{ width: '100vw', height: '100dvh', flexShrink: 0, overflowY: 'auto', background: 'var(--background)' }}>
+          <div style={{ padding: '52px 20px 140px', maxWidth: 480, margin: '0 auto' }}>
+
+            {/* Weather card */}
+            <div style={{ borderRadius: 18, marginBottom: 20, background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-mid) 60%, #4A7A2E 100%)', boxShadow: '0 6px 28px rgba(44,74,30,0.30)', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' as const }}>
+              <div>
+                <p style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.55)', marginBottom: 4 }}>{sgDay}</p>
+                <p style={{ fontFamily: 'var(--font-display), Georgia, serif', fontStyle: 'italic', fontSize: '1.4rem', fontWeight: 500, color: '#fff', lineHeight: 1.1, letterSpacing: '-0.01em' }}>{sgDate}</p>
+                <p style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.55)', marginTop: 3 }}>{sgTime} · Singapore</p>
+              </div>
+              {weather ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                  <span style={{ fontSize: '2.2rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.03em', lineHeight: 1 }}>{weather.temperature}°</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <p style={{ fontSize: '0.75rem', fontWeight: 600, color: 'rgba(255,255,255,0.85)', textTransform: 'capitalize', maxWidth: 110 }}>{weather.description}</p>
+                    <div style={{ display: 'flex', gap: 10 }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: '0.65rem', color: 'rgba(255,255,255,0.55)' }}><Droplets size={10} /> {weather.humidity}%</span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: '0.65rem', color: 'rgba(255,255,255,0.55)' }}><Wind size={10} /> {weather.wind_speed}</span>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Loader size={14} style={{ color: 'rgba(255,255,255,0.6)', animation: 'spin 1s linear infinite' }} />
+                  <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.55)' }}>Fetching weather…</span>
+                </div>
+              )}
+            </div>
+
+            {/* OOTD card */}
+            <div style={{ borderRadius: 18, overflow: 'hidden', marginBottom: 20, background: 'var(--card)', border: '1px solid var(--card-border)', boxShadow: 'var(--shadow-sm)' }}>
+              <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'linear-gradient(135deg, rgba(44,74,30,0.06), rgba(44,74,30,0.04))', borderBottom: '1px solid var(--card-border)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Zap size={15} style={{ color: 'var(--accent)' }} />
+                  <p style={{ fontFamily: 'var(--font-display), Georgia, serif', fontStyle: 'italic', fontWeight: 600, fontSize: '1.05rem', letterSpacing: '-0.01em', color: 'var(--foreground)' }}>Outfit of the Day</p>
+                </div>
+                <button onClick={() => weather && fetchOOTD(weather, items, events, gender)} disabled={ootdLoading || !weather} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, padding: '6px 10px', borderRadius: 10, background: 'var(--muted-bg)', color: 'var(--muted)', border: '1px solid var(--card-border)', cursor: 'pointer', opacity: (ootdLoading || !weather) ? 0.4 : 1 }}>
+                  <RefreshCw size={11} /> {ootdLoading ? 'Picking…' : 'Refresh'}
+                </button>
+              </div>
+              {ootdLoading && !ootd && (
+                <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {[0,1,2].map((i) => <div key={i} className="shimmer rounded-lg h-4 w-full" />)}
+                </div>
+              )}
+              {!ootdLoading && !ootd && items.length === 0 && (
+                <div style={{ padding: '24px', textAlign: 'center' }}>
+                  <Shirt size={24} style={{ color: 'var(--muted)', margin: '0 auto 8px' }} />
+                  <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--foreground)', marginBottom: 4 }}>No wardrobe items yet</p>
+                  <p style={{ fontSize: 12, color: 'var(--muted)' }}>Add clothes to your wardrobe and AI will pick today&apos;s best outfit automatically.</p>
+                  <a href="/wardrobe" style={{ display: 'inline-block', marginTop: 10, fontSize: 12, fontWeight: 600, padding: '6px 14px', borderRadius: 10, background: 'rgba(44,74,30,0.08)', color: 'var(--accent)', textDecoration: 'none' }}>Go to Wardrobe →</a>
+                </div>
+              )}
+              {ootd && (
+                <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--foreground)' }}>{ootd.outfit_name} <span style={{ fontWeight: 400, fontSize: 11, color: 'var(--muted)' }}>· {ootd.mood}</span></p>
+                  <p style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>{ootd.overall_reason}</p>
+                  {ootd.items?.map((item, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 10, background: 'var(--muted-bg)', border: '1px solid var(--card-border)' }}>
+                      <div style={{ width: 28, height: 28, borderRadius: 6, background: item.color_hex, border: '1px solid rgba(0,0,0,0.08)', flexShrink: 0 }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</p>
+                        <p style={{ fontSize: 10, color: 'var(--muted)' }}>{item.category} · {item.color_name}</p>
+                      </div>
+                    </div>
+                  ))}
+                  {ootd.style_tip && (
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 12px', borderRadius: 10, background: 'rgba(44,74,30,0.05)', border: '1px solid rgba(44,74,30,0.14)' }}>
+                      <Sparkles size={12} style={{ color: 'var(--accent)', flexShrink: 0, marginTop: 1 }} />
+                      <p style={{ fontSize: 12, color: 'var(--foreground)', lineHeight: 1.5, margin: 0 }}><span style={{ fontWeight: 600 }}>Style tip: </span>{ootd.style_tip}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Wardrobe status */}
+            <div style={{ borderRadius: 18, padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1.5px solid rgba(255,255,255,0.80)', boxShadow: 'var(--shadow-md)', marginBottom: 20 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 44, height: 44, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #E8F3EE, #D0EDD8)', border: '1.5px solid #B0D4BC' }}>
+                  <Shirt size={18} style={{ color: 'var(--primary-mid)' }} />
+                </div>
+                <div>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--foreground)' }}>{items.length === 0 ? 'Wardrobe empty' : `${items.length} item${items.length !== 1 ? 's' : ''}`}</p>
+                  <p style={{ fontSize: 12, color: 'var(--muted)' }}>{items.length === 0 ? 'Add clothes so AI can suggest outfits' : 'AI picks from your wardrobe'}</p>
+                </div>
+              </div>
+              <a href="/wardrobe" style={{ padding: '10px 18px', fontSize: 13, borderRadius: 12, background: 'linear-gradient(to bottom, var(--primary-mid), var(--primary))', color: '#fff', fontWeight: 700, textDecoration: 'none' }}>
+                {items.length === 0 ? 'Add Clothes' : 'View'}
+              </a>
+            </div>
+
+            {/* Trending cards */}
+            {events && (
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                  <TrendingUp size={15} style={{ color: '#e91e8c' }} />
+                  <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--foreground)' }}>Trending Looks</p>
+                </div>
+                <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 8 }}>
+                  {trendLoading && trendCards.length === 0 && [0,1,2,3].map((i) => (
+                    <div key={i} className="shrink-0 rounded-2xl shimmer" style={{ width: 120, height: 160, flexShrink: 0 }} />
+                  ))}
+                  {trendCards.map(({ term, img }) => (
+                    <a key={term} href={`https://www.pinterest.com/search/pins/?q=${encodeURIComponent(term + ' ' + genderLabel + ' outfit')}`} target="_blank" rel="noopener noreferrer" style={{ flexShrink: 0, position: 'relative', width: 120, height: 160, borderRadius: 16, overflow: 'hidden', background: 'var(--muted-bg)', border: '1px solid var(--card-border)', textDecoration: 'none', display: 'block' }}>
+                      {img ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={img.url} alt={img.alt} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
+                      ) : (
+                        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <ImageIcon size={22} style={{ color: 'var(--muted)' }} />
+                        </div>
+                      )}
+                      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '20px 10px 10px', background: 'linear-gradient(transparent, rgba(0,0,0,0.72))' }}>
+                        <p style={{ color: '#fff', fontSize: 10, fontWeight: 600, lineHeight: 1.3 }}>{term}</p>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Left / Right swipe arrows */}
+      {activeSlide > 0 && (
+        <button onClick={() => setActiveSlide((s) => s - 1)} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', width: 36, height: 36, borderRadius: '50%', background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 20, cursor: 'pointer' }}>
+          <ChevronLeft size={18} color="#fff" />
+        </button>
+      )}
+      {activeSlide < 2 && (
+        <button onClick={() => setActiveSlide((s) => s + 1)} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', width: 36, height: 36, borderRadius: '50%', background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 20, cursor: 'pointer' }}>
+          <ChevronRight size={18} color="#fff" />
+        </button>
+      )}
+    </div>
+
+    {/* ── DESKTOP LAYOUT (hidden on mobile) ─── */}
+    <div className="hidden md:block max-w-2xl mx-auto px-4 page-enter" style={{ paddingTop: '28px' }}>
 
       {/* ── Editorial Hero Header ─────────────────────────────── */}
       <div className="mb-6" style={{ paddingBottom: 4 }}>
@@ -1510,5 +1840,6 @@ export default function HomePage() {
         <CameraCapture onCapture={onCameraCapture} onClose={() => setShowCamera(false)} />
       )}
     </div>
+    </>
   );
 }
