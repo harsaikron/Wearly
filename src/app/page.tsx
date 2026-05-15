@@ -146,12 +146,17 @@ export default function HomePage() {
   const fileInputRef                        = useRef<HTMLInputElement>(null);
 
   // Mobile slider state
-  const [activeSlide, setActiveSlide] = useState(1); // 0=Mirror, 1=Chat, 2=Today
-  const [chatImg, setChatImg]         = useState<string | null>(null);
-  const chatImgRef                    = useRef<HTMLInputElement>(null);
-  const [messages, setMessages]       = useState<ChatMessage[]>([]);
-  const messagesEndRef                = useRef<HTMLDivElement>(null);
-  const chatTextareaRef               = useRef<HTMLTextAreaElement>(null);
+  const [activeSlide, setActiveSlide]       = useState(1); // 0=Mirror, 1=Chat, 2=Today
+  const [chatImg, setChatImg]               = useState<string | null>(null);
+  const chatImgRef                          = useRef<HTMLInputElement>(null);
+  const [messages, setMessages]             = useState<ChatMessage[]>([]);
+  const messagesEndRef                      = useRef<HTMLDivElement>(null);
+  const chatTextareaRef                     = useRef<HTMLTextAreaElement>(null);
+  const todayIdx                            = (new Date().getDay() + 6) % 7;
+  const CHAT_DAYS                           = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const [chatDay, setChatDay]               = useState(todayIdx);
+  const [chatOccasion, setChatOccasion]     = useState<string|null>(null);
+  const CHAT_OCCASIONS                      = ['Office','Casual','Date Night','Weekend','Party','Festive','Travel','Gym'] as const;
 
   // Gender toggle — persisted in localStorage
   const [gender, setGender] = useState<'male' | 'female'>('male');
@@ -368,10 +373,14 @@ export default function HomePage() {
   }
 
   async function askAIChat(q: string, imgData?: string) {
+    const dayLabel = CHAT_DAYS[chatDay];
+    const occLabel = chatOccasion ? ` for ${chatOccasion}` : '';
+    const contextQ = q || `What should I wear on ${dayLabel}${occLabel} in Singapore?`;
+    const displayQ = contextQ;
     const id = Date.now().toString();
     setMessages(prev => [
       ...prev,
-      { id: `${id}-u`, role: 'user', content: q, image: imgData },
+      { id: `${id}-u`, role: 'user', content: displayQ, image: imgData },
       { id: `${id}-a`, role: 'ai', content: '', loading: true },
     ]);
     setQuestion('');
@@ -384,7 +393,7 @@ export default function HomePage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          query: q,
+          query: contextQ,
           wardrobe: items.map((i) => ({ name: i.name, category: i.category, color_hex: i.color_hex, color_name: i.color_name, tags: i.tags })),
           photo_base64: imgData ? stripDataPrefix(imgData) : undefined,
           weather: weather
@@ -526,29 +535,60 @@ export default function HomePage() {
         {/* ── Slide 1: AI Chat ─── */}
         <div style={{ width: '100vw', height: '100%', flexShrink: 0, display: 'flex', flexDirection: 'column', background: 'var(--background)' }}>
 
-          {/* Chat sub-header: title + gender */}
-          <div style={{ padding: '10px 16px 8px', borderBottom: '1px solid var(--card-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0, background: 'rgba(255,255,255,0.82)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}>
-            <div>
-              <p style={{ fontSize: '0.5rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--muted)', margin: 0 }}>Wearly AI</p>
-              <h2 style={{ fontFamily: 'var(--font-display),Georgia,serif', fontStyle: 'italic', fontWeight: 600, fontSize: '1.1rem', letterSpacing: '-0.02em', lineHeight: 1, color: 'var(--foreground)', margin: 0 }}>
-                Style <span style={{ background: 'linear-gradient(135deg,var(--primary),var(--accent))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Assistant</span>
-              </h2>
+          {/* Chat sub-header: title + gender + day/occasion */}
+          <div style={{ flexShrink: 0, background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderBottom: '1px solid var(--card-border)' }}>
+            {/* Row 1: title + gender */}
+            <div style={{ padding: '10px 16px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <p style={{ fontSize: '0.5rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--muted)', margin: 0 }}>Wearly AI</p>
+                <h2 style={{ fontFamily: 'var(--font-display),Georgia,serif', fontStyle: 'italic', fontWeight: 600, fontSize: '1.1rem', letterSpacing: '-0.02em', lineHeight: 1, color: 'var(--foreground)', margin: 0 }}>
+                  Style <span style={{ background: 'linear-gradient(135deg,var(--primary),var(--accent))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Assistant</span>
+                </h2>
+              </div>
+              <div style={{ display: 'flex', gap: 2, padding: 3, borderRadius: 12, background: 'var(--muted-bg)', border: '1px solid var(--card-border)' }}>
+                {(['male','female'] as const).map((g) => (
+                  <button key={g} onClick={() => toggleGender(g)} style={{
+                    display: 'flex', alignItems: 'center', gap: 4, padding: '5px 11px',
+                    borderRadius: 9, fontSize: 12, fontWeight: 700, border: 'none', cursor: 'pointer',
+                    background: gender === g
+                      ? g === 'male' ? 'linear-gradient(to bottom,var(--primary-mid),var(--primary))' : 'linear-gradient(135deg,#BE185D,#9B1750)'
+                      : 'transparent',
+                    color: gender === g ? '#fff' : 'var(--muted)',
+                    transition: 'all 0.2s ease',
+                  }}>
+                    {g === 'male' ? <Mars size={12}/> : <Venus size={12}/>}
+                    {g.charAt(0).toUpperCase() + g.slice(1)}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div style={{ display: 'flex', gap: 2, padding: 3, borderRadius: 12, background: 'var(--muted-bg)', border: '1px solid var(--card-border)' }}>
-              {(['male','female'] as const).map((g) => (
-                <button key={g} onClick={() => toggleGender(g)} style={{
-                  display: 'flex', alignItems: 'center', gap: 4, padding: '5px 11px',
-                  borderRadius: 9, fontSize: 12, fontWeight: 700, border: 'none', cursor: 'pointer',
-                  background: gender === g
-                    ? g === 'male'
-                      ? 'linear-gradient(to bottom,var(--primary-mid),var(--primary))'
-                      : 'linear-gradient(135deg,#BE185D,#9B1750)'
-                    : 'transparent',
-                  color: gender === g ? '#fff' : 'var(--muted)',
-                  transition: 'all 0.2s ease',
+            {/* Row 2: day picker */}
+            <div className="chip-scroll" style={{ display: 'flex', gap: 5, padding: '0 14px 8px', overflowX: 'auto' }}>
+              {CHAT_DAYS.map((d, i) => (
+                <button key={d} onClick={() => setChatDay(i)} style={{
+                  flexShrink: 0, padding: '4px 11px', borderRadius: 8, fontSize: 11,
+                  fontWeight: chatDay === i ? 700 : 500, border: 'none', cursor: 'pointer',
+                  background: chatDay === i ? 'linear-gradient(to bottom,var(--primary-mid),var(--primary))' : 'var(--muted-bg)',
+                  color: chatDay === i ? '#fff' : 'var(--muted)',
+                  position: 'relative',
                 }}>
-                  {g === 'male' ? <Mars size={12}/> : <Venus size={12}/>}
-                  {g.charAt(0).toUpperCase() + g.slice(1)}
+                  {d}
+                  {i === todayIdx && <span style={{ position: 'absolute', bottom: 2, left: '50%', transform: 'translateX(-50%)', width: 3, height: 3, borderRadius: '50%', background: chatDay === i ? 'rgba(255,255,255,0.7)' : 'var(--accent)', display: 'block' }} />}
+                </button>
+              ))}
+            </div>
+            {/* Row 3: occasion chips */}
+            <div className="chip-scroll" style={{ display: 'flex', gap: 5, padding: '0 14px 10px', overflowX: 'auto' }}>
+              {CHAT_OCCASIONS.map((occ) => (
+                <button key={occ} onClick={() => setChatOccasion(chatOccasion === occ ? null : occ)} style={{
+                  flexShrink: 0, padding: '4px 11px', borderRadius: 8, fontSize: 11,
+                  fontWeight: chatOccasion === occ ? 700 : 500, border: 'none', cursor: 'pointer',
+                  background: chatOccasion === occ ? 'rgba(90,146,64,0.12)' : 'var(--muted-bg)',
+                  color: chatOccasion === occ ? 'var(--accent)' : 'var(--muted)',
+                  outline: chatOccasion === occ ? '1.5px solid rgba(90,146,64,0.40)' : '1px solid var(--card-border)',
+                  transition: 'all 0.15s ease',
+                }}>
+                  {occ}
                 </button>
               ))}
             </div>
@@ -636,22 +676,33 @@ export default function HomePage() {
 
           {/* ── Bottom input bar (sits above bottom nav) ─── */}
           <div style={{ flexShrink: 0, background: 'rgba(255,255,255,0.94)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderTop: '1px solid var(--card-border)', paddingBottom: 'calc(88px + env(safe-area-inset-bottom))' }}>
-            {/* Suggestion chips */}
-            <div className="chip-scroll" style={{ display: 'flex', gap: 8, padding: '10px 14px 0', overflowX: 'auto' }}>
-              {QUICK.map((q, i) => {
-                const cc = [
-                  { bg: '#EEF2FF', color: '#4F46E5', border: '#C7D2FE' },
-                  { bg: '#FEF3C7', color: '#B45309', border: '#FDE68A' },
-                  { bg: '#FCE7F3', color: '#BE185D', border: '#FBCFE8' },
-                  { bg: '#DCFCE7', color: '#166534', border: '#BBF7D0' },
-                ][i % 4];
-                return (
-                  <button key={q} onClick={() => askAIChat(q)} style={{ whiteSpace: 'nowrap', flexShrink: 0, padding: '6px 13px', borderRadius: 999, fontSize: 12, fontWeight: 600, background: cc.bg, color: cc.color, border: `1.5px solid ${cc.border}`, cursor: 'pointer', boxShadow: '0 1px 6px rgba(0,0,0,0.06)', transition: 'transform 0.12s ease' }}
-                    onPointerDown={(e) => (e.currentTarget.style.transform = 'scale(0.94)')}
-                    onPointerUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-                  >{q}</button>
-                );
-              })}
+            {/* Get Outfit CTA + quick prompts */}
+            <div style={{ padding: '10px 14px 0', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <button onClick={() => askAIChat('')} style={{
+                width: '100%', padding: '11px', borderRadius: 14, border: 'none', cursor: 'pointer',
+                background: 'linear-gradient(135deg,#5A9240,#2C4A1E)', color: '#fff',
+                fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                boxShadow: '0 4px 16px rgba(44,74,30,0.28)',
+              }}>
+                <Sparkles size={14}/>
+                Get outfit for {CHAT_DAYS[chatDay]}{chatOccasion ? ` · ${chatOccasion}` : ''}
+              </button>
+              <div className="chip-scroll" style={{ display: 'flex', gap: 7, overflowX: 'auto' }}>
+                {QUICK.map((q, i) => {
+                  const cc = [
+                    { bg: '#EEF2FF', color: '#4F46E5', border: '#C7D2FE' },
+                    { bg: '#FEF3C7', color: '#B45309', border: '#FDE68A' },
+                    { bg: '#FCE7F3', color: '#BE185D', border: '#FBCFE8' },
+                    { bg: '#DCFCE7', color: '#166534', border: '#BBF7D0' },
+                  ][i % 4];
+                  return (
+                    <button key={q} onClick={() => askAIChat(q)} style={{ whiteSpace: 'nowrap', flexShrink: 0, padding: '5px 12px', borderRadius: 999, fontSize: 12, fontWeight: 600, background: cc.bg, color: cc.color, border: `1.5px solid ${cc.border}`, cursor: 'pointer', transition: 'transform 0.12s ease' }}
+                      onPointerDown={(e) => (e.currentTarget.style.transform = 'scale(0.94)')}
+                      onPointerUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+                    >{q}</button>
+                  );
+                })}
+              </div>
             </div>
             {/* Image preview */}
             {chatImg && (
