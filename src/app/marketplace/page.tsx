@@ -123,9 +123,28 @@ export default function MarketplacePage() {
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 space-y-4 page-enter">
       {/* Header */}
-      <div>
-        <h1 className="text-xl font-bold" style={{ color:'var(--foreground)' }}>Circular Marketplace</h1>
-        <p className="text-xs mt-0.5" style={{ color:'var(--muted)' }}>Buy, rent, or sell pre-loved fashion nearby</p>
+      <div style={{ paddingBottom: 2 }}>
+        <p style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 6 }}>
+          Pre-loved · Sustainable Fashion
+        </p>
+        <h1 style={{
+          fontFamily: 'var(--font-display), Georgia, serif',
+          fontSize: 'clamp(2rem, 8vw, 2.8rem)',
+          fontWeight: 600,
+          fontStyle: 'italic',
+          letterSpacing: '-0.02em',
+          lineHeight: 1.0,
+          color: 'var(--foreground)',
+          margin: 0,
+        }}>
+          Circular{' '}
+          <span style={{
+            background: 'linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+          }}>Market</span>
+        </h1>
       </div>
 
       {/* Tabs */}

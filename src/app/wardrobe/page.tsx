@@ -795,8 +795,27 @@ export default function WardrobePage() {
 
       {/* Header */}
       <div className="mb-4">
-        <h1 className="text-xl font-bold" style={{ color:'var(--foreground)' }}>Wardrobe</h1>
-        <p className="text-xs mt-0.5" style={{ color:'var(--muted)' }}>Manage your closet, health score &amp; outfit plan</p>
+        <p style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 6 }}>
+          Your Closet · Health Score
+        </p>
+        <h1 style={{
+          fontFamily: 'var(--font-display), Georgia, serif',
+          fontSize: 'clamp(2rem, 8vw, 2.8rem)',
+          fontWeight: 600,
+          fontStyle: 'italic',
+          letterSpacing: '-0.02em',
+          lineHeight: 1.0,
+          color: 'var(--foreground)',
+          margin: 0,
+        }}>
+          My{' '}
+          <span style={{
+            background: 'linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+          }}>Wardrobe</span>
+        </h1>
       </div>
 
       {/* Full-width tabs */}

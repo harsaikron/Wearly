@@ -121,7 +121,7 @@ function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void 
       style={{
         display: 'inline-block',
         position: 'relative',
-        width: 52,
+        width: 44,
         height: 32,
         borderRadius: 999,
         flexShrink: 0,
@@ -137,12 +137,12 @@ function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void 
       <span style={{
         position: 'absolute',
         top: 4,
-        left: on ? 25 : 4,
+        left: on ? 16 : 4,
         width: 24,
         height: 24,
         borderRadius: '50%',
         background: '#ffffff',
-        boxShadow: '0 1px 4px rgba(0,0,0,0.25), 0 2px 6px rgba(0,0,0,0.15)',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
         transition: 'left 0.2s cubic-bezier(0.4,0,0.2,1)',
         display: 'block',
         pointerEvents: 'none',
@@ -396,7 +396,7 @@ export default function ProfilePage() {
               </div>
             ) : (
               <button onClick={() => { setTempName(profile.name); setEditingName(true); }} style={{ background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', padding: 0, display: 'flex', alignItems: 'center', gap: 8, width: '100%' }}>
-                <h1 style={{ fontSize: 28, fontWeight: 800, color: '#fff', margin: 0, letterSpacing: '-0.03em', lineHeight: 1 }}>
+                <h1 style={{ fontFamily: 'var(--font-display), Georgia, serif', fontStyle: 'italic', fontWeight: 600, fontSize: 32, color: '#fff', margin: 0, letterSpacing: '-0.02em', lineHeight: 1 }}>
                   {profile.name || 'Add your name'}
                 </h1>
                 <Pencil size={14} style={{ color: 'rgba(255,255,255,0.55)', flexShrink: 0 }} />

@@ -13,8 +13,9 @@ import {
   Mars, Venus, Watch, FlaskConical,
 } from 'lucide-react';
 import {
-  EventIcon, SeasonIcon, WeatherConditionIcon,
+  EventIcon, SeasonIcon,
 } from '@/components/icons/SgIcons';
+import WeatherAnimationIcon from '@/components/WeatherAnimationIcon';
 
 interface SGEvent {
   name: string;
@@ -399,7 +400,42 @@ export default function HomePage() {
       ];
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8 page-enter">
+    <div className="max-w-2xl mx-auto px-4 page-enter" style={{ paddingTop: '28px' }}>
+
+      {/* ── Editorial Hero Header ─────────────────────────────── */}
+      <div className="mb-6" style={{ paddingBottom: 4 }}>
+        <p style={{
+          fontSize: '0.6rem',
+          fontWeight: 700,
+          letterSpacing: '0.16em',
+          textTransform: 'uppercase',
+          color: 'var(--muted)',
+          marginBottom: 6,
+        }}>
+          Your Style · Intelligence
+        </p>
+        <h1 style={{
+          fontFamily: 'var(--font-display), Georgia, serif',
+          fontSize: 'clamp(2.6rem, 10vw, 4.2rem)',
+          fontWeight: 600,
+          fontStyle: 'italic',
+          letterSpacing: '-0.025em',
+          lineHeight: 0.95,
+          color: 'var(--foreground)',
+          margin: 0,
+        }}>
+          Dress with
+          <br />
+          <span style={{
+            background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-mid) 50%, var(--accent) 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+          }}>
+            intention.
+          </span>
+        </h1>
+      </div>
 
       {/* ── Gender toggle ─────────────────────────────────────── */}
       <div className="flex justify-center mb-5">
@@ -448,44 +484,69 @@ export default function HomePage() {
 
       {/* ── Weather + Date strip ───────────────────────────────── */}
       <div
-        className="rounded-2xl px-4 py-3 mb-6 flex items-center justify-between gap-4 flex-wrap"
-        style={{ background: 'var(--card)', border: '1px solid var(--card-border)', boxShadow: 'var(--shadow-sm)' }}
+        className="rounded-2xl mb-6"
+        style={{
+          background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-mid) 60%, #4A7A2E 100%)',
+          boxShadow: '0 6px 28px rgba(44,74,30,0.30), inset 0 1px 0 rgba(255,255,255,0.12)',
+          padding: '16px 20px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 12,
+          flexWrap: 'wrap' as const,
+        }}
       >
         {/* Date / Time */}
         <div>
-          <p className="text-xs font-semibold" style={{ color: 'var(--muted)' }}>{sgDay}</p>
-          <p className="text-sm font-bold" style={{ color: 'var(--foreground)' }}>{sgDate}</p>
-          <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>{sgTime} · Singapore · {sgSeason}</p>
+          <p style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.55)', marginBottom: 4 }}>
+            {sgDay}
+          </p>
+          <p style={{
+            fontFamily: 'var(--font-display), Georgia, serif',
+            fontStyle: 'italic',
+            fontSize: '1.4rem',
+            fontWeight: 500,
+            color: '#fff',
+            lineHeight: 1.1,
+            letterSpacing: '-0.01em',
+          }}>
+            {sgDate}
+          </p>
+          <p style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.55)', marginTop: 3 }}>
+            {sgTime} · Singapore · {sgSeason}
+          </p>
         </div>
 
         {/* Weather */}
         {weather ? (
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1.5">
-              <WeatherConditionIcon condition={weather.condition} size={16} />
-              <span className="text-2xl font-bold" style={{ color: 'var(--foreground)' }}>{weather.temperature}°C</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <WeatherAnimationIcon condition={weather.condition} temperature={weather.temperature} size={52} color="#ffffff" />
+              <span style={{ fontSize: '2.2rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.03em', lineHeight: 1 }}>
+                {weather.temperature}°
+              </span>
             </div>
-            <div className="flex flex-col gap-1">
-              <p className="text-xs font-medium capitalize" style={{ color: 'var(--foreground)', maxWidth: 120 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <p style={{ fontSize: '0.75rem', fontWeight: 600, color: 'rgba(255,255,255,0.85)', textTransform: 'capitalize', maxWidth: 110 }}>
                 {weather.description}
               </p>
-              <div className="flex items-center gap-3">
-                <span className="flex items-center gap-1 text-xs" style={{ color: 'var(--muted)' }}>
-                  <Thermometer size={11} /> {weather.feels_like}°C feels like
+              <div style={{ display: 'flex', gap: 10 }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: '0.65rem', color: 'rgba(255,255,255,0.55)' }}>
+                  <Thermometer size={10} /> {weather.feels_like}°
                 </span>
-                <span className="flex items-center gap-1 text-xs" style={{ color: 'var(--muted)' }}>
-                  <Droplets size={11} /> {weather.humidity}%
+                <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: '0.65rem', color: 'rgba(255,255,255,0.55)' }}>
+                  <Droplets size={10} /> {weather.humidity}%
                 </span>
-                <span className="flex items-center gap-1 text-xs" style={{ color: 'var(--muted)' }}>
-                  <Wind size={11} /> {weather.wind_speed} km/h
+                <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: '0.65rem', color: 'rgba(255,255,255,0.55)' }}>
+                  <Wind size={10} /> {weather.wind_speed}
                 </span>
               </div>
             </div>
           </div>
         ) : (
-          <div className="flex items-center gap-2">
-            <Loader size={14} className="animate-spin" style={{ color: 'var(--accent)' }} />
-            <span className="text-xs" style={{ color: 'var(--muted)' }}>Fetching weather…</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Loader size={14} style={{ color: 'rgba(255,255,255,0.6)', animation: 'spin 1s linear infinite' }} />
+            <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.55)' }}>Fetching weather…</span>
           </div>
         )}
       </div>
@@ -502,7 +563,7 @@ export default function HomePage() {
         >
           <div className="flex items-center gap-2">
             <Zap size={15} style={{ color: 'var(--accent)' }} />
-            <p className="text-sm font-bold" style={{ color: 'var(--foreground)' }}>Outfit of the Day</p>
+            <p style={{ fontFamily: 'var(--font-display), Georgia, serif', fontStyle: 'italic', fontWeight: 600, fontSize: '1.05rem', letterSpacing: '-0.01em', color: 'var(--foreground)' }}>Outfit of the Day</p>
             {ootd && (
               <span
                 className="text-xs px-2 py-0.5 rounded-full font-semibold"
