@@ -367,6 +367,46 @@ export default function HomePage() {
     }
   }
 
+  async function askAIChat(q: string, imgData?: string) {
+    const id = Date.now().toString();
+    setMessages(prev => [
+      ...prev,
+      { id: `${id}-u`, role: 'user', content: q, image: imgData },
+      { id: `${id}-a`, role: 'ai', content: '', loading: true },
+    ]);
+    setQuestion('');
+    setChatImg(null);
+    if (chatTextareaRef.current) chatTextareaRef.current.style.height = 'auto';
+    setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+
+    try {
+      const res = await fetch('/api/stylist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: q,
+          wardrobe: items.map((i) => ({ name: i.name, category: i.category, color_hex: i.color_hex, color_name: i.color_name, tags: i.tags })),
+          photo_base64: imgData ? stripDataPrefix(imgData) : undefined,
+          weather: weather
+            ? { temperature: weather.temperature, feels_like: weather.feels_like, description: weather.description, condition: weather.condition, city: weather.city, humidity: weather.humidity }
+            : { temperature: 31, feels_like: 36, description: 'Humid and sunny', condition: 'hot', city: 'Singapore', humidity: 84 },
+        }),
+      });
+      const data = await res.json() as AISuggestion;
+      if (!res.ok) throw new Error(data.message ?? 'AI error');
+      setMessages(prev => prev.map(m => m.id === `${id}-a`
+        ? { ...m, loading: false, content: data.message ?? 'Here is my suggestion.', suggestion: data }
+        : m
+      ));
+    } catch {
+      setMessages(prev => prev.map(m => m.id === `${id}-a`
+        ? { ...m, loading: false, content: 'Sorry, I could not connect right now. Please try again.' }
+        : m
+      ));
+    }
+    setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+  }
+
   function openCamera() {
     setShowCamera(true);
     // Scroll to top so the fixed camera overlay isn't hidden behind content on mobile
@@ -419,191 +459,261 @@ export default function HomePage() {
   return (
     <>
     {/* ── MOBILE FULL-PAGE SLIDER (hidden on md+) ────── */}
-    <div className="md:hidden" style={{ width: '100vw', height: '100dvh', overflow: 'hidden', position: 'relative' }}>
+    <div className="md:hidden" style={{ width: '100vw', height: '100dvh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      <style>{`
+        @keyframes chatDotBounce {
+          0%,60%,100%{transform:translateY(0);opacity:0.45}
+          30%{transform:translateY(-5px);opacity:1}
+        }
+        @keyframes msgIn {
+          from{opacity:0;transform:translateY(10px) scale(0.97)}
+          to{opacity:1;transform:translateY(0) scale(1)}
+        }
+        .chip-scroll::-webkit-scrollbar{display:none}
+        .chip-scroll{-ms-overflow-style:none;scrollbar-width:none}
+        @keyframes chipPulse{0%,100%{opacity:0.55}50%{opacity:1}}
+      `}</style>
 
-      {/* Slide dot indicators */}
-      <div style={{ position: 'absolute', top: 16, left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: 6, zIndex: 30 }}>
-        {[0, 1, 2].map((i) => (
+      {/* ── Tab header ─────────────────────────────────── */}
+      <div style={{
+        paddingTop: 'calc(env(safe-area-inset-top) + 10px)',
+        paddingBottom: 10, paddingLeft: 12, paddingRight: 12,
+        background: 'rgba(7,12,5,0.88)',
+        backdropFilter: 'blur(32px) saturate(220%)',
+        WebkitBackdropFilter: 'blur(32px) saturate(220%)',
+        borderBottom: '1px solid rgba(255,255,255,0.07)',
+        display: 'flex', gap: 6, flexShrink: 0, zIndex: 30,
+      }}>
+        {([
+          { label: 'Mirror', icon: Camera },
+          { label: 'Chat',   icon: Sparkles },
+          { label: 'Today',  icon: CalendarDays },
+        ] as const).map(({ label, icon: Icon }, i) => (
           <button key={i} onClick={() => setActiveSlide(i)} style={{
-            width: i === activeSlide ? 20 : 6,
-            height: 6,
-            borderRadius: 3,
-            background: i === activeSlide ? '#A8D060' : 'rgba(255,255,255,0.35)',
-            border: 'none',
-            padding: 0,
-            transition: 'all 0.3s ease',
-            cursor: 'pointer',
-          }} />
+            flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+            padding: '9px 8px', borderRadius: 11, border: 'none', cursor: 'pointer',
+            background: i === activeSlide
+              ? 'linear-gradient(135deg,rgba(168,208,96,0.22),rgba(90,146,64,0.30))'
+              : 'transparent',
+            outline: i === activeSlide ? '1px solid rgba(168,208,96,0.38)' : '1px solid transparent',
+            boxShadow: i === activeSlide ? '0 0 18px rgba(168,208,96,0.18)' : 'none',
+            transition: 'all 0.22s cubic-bezier(0.4,0,0.2,1)',
+          }}>
+            <Icon size={13} color={i === activeSlide ? '#A8D060' : 'rgba(255,255,255,0.36)'} />
+            <span style={{
+              fontSize: 11, fontWeight: i === activeSlide ? 700 : 500,
+              color: i === activeSlide ? '#C8EC80' : 'rgba(255,255,255,0.36)',
+              letterSpacing: '0.03em',
+            }}>{label}</span>
+          </button>
         ))}
       </div>
 
-      {/* Slide container */}
-      <div style={{
-        display: 'flex',
-        width: '300vw',
-        height: '100%',
-        transform: `translateX(${-activeSlide * 100}vw)`,
-        transition: 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-      }}>
+      {/* ── Slide viewport ────────────────────────────── */}
+      <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
+        {/* Slide track */}
+        <div style={{
+          display: 'flex', width: '300vw', height: '100%',
+          transform: `translateX(${-activeSlide * 100}vw)`,
+          transition: 'transform 0.4s cubic-bezier(0.4,0,0.2,1)',
+        }}>
 
         {/* ── Slide 0: Mirror ─── */}
-        <div style={{ width: '100vw', height: '100dvh', flexShrink: 0 }}>
+        <div style={{ width: '100vw', height: '100%', flexShrink: 0 }}>
           <MirrorSlide isActive={activeSlide === 0} weather={weather} />
         </div>
 
         {/* ── Slide 1: AI Chat ─── */}
-        <div style={{ width: '100vw', height: '100dvh', flexShrink: 0, overflowY: 'auto', background: 'var(--background)' }}>
-          <div style={{ padding: '52px 20px 140px', maxWidth: 480, margin: '0 auto' }}>
-            {/* Hero header */}
-            <p style={{ fontSize: '0.55rem', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 6 }}>Your Style · Intelligence</p>
-            <h1 style={{ fontFamily: 'var(--font-display), Georgia, serif', fontSize: 'clamp(2.2rem,9vw,3.4rem)', fontWeight: 600, fontStyle: 'italic', letterSpacing: '-0.025em', lineHeight: 0.95, color: 'var(--foreground)', margin: '0 0 20px' }}>
-              Dress with<br/>
-              <span style={{ background: 'linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>intention.</span>
-            </h1>
+        <div style={{ width: '100vw', height: '100%', flexShrink: 0, display: 'flex', flexDirection: 'column', background: 'var(--background)' }}>
 
-            {/* Gender toggle */}
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: 4, borderRadius: 16, background: 'rgba(255,255,255,0.75)', backdropFilter: 'blur(16px) saturate(160%)', WebkitBackdropFilter: 'blur(16px) saturate(160%)', border: '1.5px solid rgba(255,255,255,0.85)', boxShadow: 'var(--shadow-sm)' }}>
-                <button onClick={() => toggleGender('male')} style={gender === 'male' ? { display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', borderRadius: 12, fontSize: 14, fontWeight: 700, border: 'none', cursor: 'pointer', background: 'linear-gradient(to bottom, var(--primary-mid), var(--primary))', color: '#fff', boxShadow: 'var(--shadow-btn)' } : { display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', borderRadius: 12, fontSize: 14, fontWeight: 700, border: 'none', cursor: 'pointer', background: 'transparent', color: 'var(--muted)' }}>
-                  <Mars size={15} /> Male
-                </button>
-                <button onClick={() => toggleGender('female')} style={gender === 'female' ? { display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', borderRadius: 12, fontSize: 14, fontWeight: 700, border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg, #BE185D, #9B1750)', color: '#fff', boxShadow: '0 4px 14px rgba(190,24,93,0.35)' } : { display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', borderRadius: 12, fontSize: 14, fontWeight: 700, border: 'none', cursor: 'pointer', background: 'transparent', color: 'var(--muted)' }}>
-                  <Venus size={15} /> Female
-                </button>
-              </div>
+          {/* Chat sub-header: title + gender */}
+          <div style={{ padding: '10px 16px 8px', borderBottom: '1px solid var(--card-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0, background: 'rgba(255,255,255,0.82)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}>
+            <div>
+              <p style={{ fontSize: '0.5rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--muted)', margin: 0 }}>Wearly AI</p>
+              <h2 style={{ fontFamily: 'var(--font-display),Georgia,serif', fontStyle: 'italic', fontWeight: 600, fontSize: '1.1rem', letterSpacing: '-0.02em', lineHeight: 1, color: 'var(--foreground)', margin: 0 }}>
+                Style <span style={{ background: 'linear-gradient(135deg,var(--primary),var(--accent))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Assistant</span>
+              </h2>
             </div>
+            <div style={{ display: 'flex', gap: 2, padding: 3, borderRadius: 12, background: 'var(--muted-bg)', border: '1px solid var(--card-border)' }}>
+              {(['male','female'] as const).map((g) => (
+                <button key={g} onClick={() => toggleGender(g)} style={{
+                  display: 'flex', alignItems: 'center', gap: 4, padding: '5px 11px',
+                  borderRadius: 9, fontSize: 12, fontWeight: 700, border: 'none', cursor: 'pointer',
+                  background: gender === g
+                    ? g === 'male'
+                      ? 'linear-gradient(to bottom,var(--primary-mid),var(--primary))'
+                      : 'linear-gradient(135deg,#BE185D,#9B1750)'
+                    : 'transparent',
+                  color: gender === g ? '#fff' : 'var(--muted)',
+                  transition: 'all 0.2s ease',
+                }}>
+                  {g === 'male' ? <Mars size={12}/> : <Venus size={12}/>}
+                  {g.charAt(0).toUpperCase() + g.slice(1)}
+                </button>
+              ))}
+            </div>
+          </div>
 
-            {/* Chat input with image attachment */}
-            <div style={{ marginBottom: 12 }}>
-              {chatImg && (
-                <div style={{ position: 'relative', display: 'inline-block', marginBottom: 10 }}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={chatImg} alt="attached" style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 12, border: '2px solid var(--card-border)' }} />
-                  <button onClick={() => setChatImg(null)} style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', background: 'var(--foreground)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                    <X size={10} color="#fff" />
-                  </button>
+          {/* Messages area */}
+          <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {messages.length === 0 ? (
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, paddingBottom: 24 }}>
+                <div style={{ width: 68, height: 68, borderRadius: 22, background: 'linear-gradient(135deg,var(--primary-mid),var(--primary))', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 28px rgba(44,74,30,0.28)' }}>
+                  <Sparkles size={30} color="#fff" />
                 </div>
-              )}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(255,255,255,0.80)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1.5px solid rgba(255,255,255,0.85)', borderRadius: 18, padding: '12px 14px', boxShadow: 'var(--shadow-md)' }}>
-                <Sparkles size={15} style={{ color: 'var(--primary-mid)', flexShrink: 0 }} />
-                <input
-                  type="text"
-                  value={question}
-                  onChange={(e) => setQuestion(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter' && (question.trim() || chatImg)) { askAI(question || 'What do you think of this outfit?', chatImg ?? undefined); setChatImg(null); } }}
-                  placeholder="Ask AI anything… what to wear today?"
-                  style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', fontSize: 14, color: 'var(--foreground)' }}
-                />
-                <input ref={chatImgRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={async (e) => {
-                  const file = e.target.files?.[0];
-                  if (!file) return;
-                  e.target.value = '';
-                  const { compressImage: compress } = await import('@/lib/image-utils');
-                  const compressed = await compress(file);
-                  setChatImg(compressed);
-                }} />
-                <button onClick={() => chatImgRef.current?.click()} style={{ width: 34, height: 34, borderRadius: 10, background: 'var(--muted-bg)', border: '1px solid var(--card-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
-                  <Paperclip size={15} style={{ color: 'var(--muted)' }} />
-                </button>
-                <button
-                  onClick={() => { if (question.trim() || chatImg) { askAI(question || 'What do you think of this outfit?', chatImg ?? undefined); setChatImg(null); } }}
-                  disabled={(!question.trim() && !chatImg) || loading}
-                  style={{ width: 36, height: 36, borderRadius: 11, background: 'linear-gradient(to bottom, var(--primary-mid), var(--primary))', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, opacity: ((!question.trim() && !chatImg) || loading) ? 0.4 : 1 }}
-                >
-                  <Send size={15} color="#fff" />
-                </button>
+                <div style={{ textAlign: 'center' }}>
+                  <p style={{ fontSize: 16, fontWeight: 700, color: 'var(--foreground)', marginBottom: 6 }}>Your AI Style Assistant</p>
+                  <p style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.55, maxWidth: 230 }}>Ask me anything about what to wear — I know Singapore&apos;s weather and your wardrobe.</p>
+                </div>
               </div>
-            </div>
+            ) : (
+              messages.map((msg) => (
+                <div key={msg.id} style={{ display: 'flex', flexDirection: msg.role === 'user' ? 'row-reverse' : 'row', alignItems: 'flex-end', gap: 8, animation: 'msgIn 0.28s cubic-bezier(0.34,1.56,0.64,1)' }}>
+                  {msg.role === 'ai' && (
+                    <div style={{ width: 30, height: 30, borderRadius: 10, background: 'linear-gradient(135deg,var(--primary-mid),var(--primary))', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 3px 10px rgba(44,74,30,0.22)' }}>
+                      <Sparkles size={13} color="#fff" />
+                    </div>
+                  )}
+                  <div style={{ maxWidth: '80%', display: 'flex', flexDirection: 'column', gap: 6, alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
+                    {msg.image && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={msg.image} alt="attached" style={{ width: 130, height: 130, objectFit: 'cover', borderRadius: 14, border: '2px solid var(--card-border)', boxShadow: '0 4px 14px rgba(0,0,0,0.10)' }} />
+                    )}
+                    <div style={{
+                      padding: msg.loading ? '14px 18px' : '11px 15px',
+                      borderRadius: msg.role === 'user' ? '18px 18px 5px 18px' : '5px 18px 18px 18px',
+                      background: msg.role === 'user'
+                        ? 'linear-gradient(135deg,#5A9240,#2C4A1E)'
+                        : 'var(--card)',
+                      border: msg.role === 'ai' ? '1px solid var(--card-border)' : 'none',
+                      boxShadow: msg.role === 'user'
+                        ? '0 4px 16px rgba(44,74,30,0.28)'
+                        : '0 2px 10px rgba(0,0,0,0.06)',
+                    }}>
+                      {msg.loading ? (
+                        <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
+                          {[0,1,2].map((i) => (
+                            <div key={i} style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--muted)', animation: 'chatDotBounce 1.2s ease infinite', animationDelay: `${i*0.16}s` }} />
+                          ))}
+                        </div>
+                      ) : (
+                        <p style={{ fontSize: 14, lineHeight: 1.62, color: msg.role === 'user' ? '#fff' : 'var(--foreground)', margin: 0, whiteSpace: 'pre-wrap' }}>{msg.content}</p>
+                      )}
+                    </div>
+                    {msg.role === 'ai' && !msg.loading && msg.suggestion?.outfit_items && msg.suggestion.outfit_items.length > 0 && (
+                      <div style={{ background: 'var(--card)', border: '1px solid var(--card-border)', borderRadius: 14, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 7, width: '100%', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
+                        <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>Outfit</p>
+                        {msg.suggestion.outfit_items.map((item, i) => (
+                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 8px', borderRadius: 9, background: 'var(--muted-bg)', border: '1px solid var(--card-border)' }}>
+                            <div style={{ width: 22, height: 22, borderRadius: 6, background: item.color_hex, border: '1px solid rgba(0,0,0,0.08)', flexShrink: 0 }} />
+                            <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--foreground)', margin: 0 }}>{item.piece}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {msg.role === 'ai' && !msg.loading && msg.suggestion?.style_tip && (
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, padding: '8px 10px', borderRadius: 11, background: 'rgba(44,74,30,0.06)', border: '1px solid rgba(44,74,30,0.14)', width: '100%' }}>
+                        <Lightbulb size={11} style={{ color: 'var(--accent)', flexShrink: 0, marginTop: 2 }} />
+                        <p style={{ fontSize: 11, color: 'var(--foreground)', lineHeight: 1.5, margin: 0 }}>{msg.suggestion.style_tip}</p>
+                      </div>
+                    )}
+                    {msg.role === 'ai' && !msg.loading && msg.suggestion?.search_query && (
+                      <div style={{ display: 'flex', gap: 6, width: '100%' }}>
+                        <a href={pinterestUrl(msg.suggestion.search_query)} target="_blank" rel="noopener noreferrer" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, padding: '7px', borderRadius: 10, background: '#e60023', color: '#fff', fontSize: 11, fontWeight: 600, textDecoration: 'none' }}>
+                          <ExternalLink size={10} /> Pinterest
+                        </a>
+                        <a href={googleImagesUrl(msg.suggestion.search_query)} target="_blank" rel="noopener noreferrer" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, padding: '7px', borderRadius: 10, background: 'var(--muted-bg)', border: '1px solid var(--card-border)', color: 'var(--foreground)', fontSize: 11, fontWeight: 600, textDecoration: 'none' }}>
+                          <ExternalLink size={10} /> Google
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+            <div ref={messagesEndRef} />
+          </div>
 
-            {/* Quick prompts */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 20 }}>
+          {/* ── Bottom input bar (sits above bottom nav) ─── */}
+          <div style={{ flexShrink: 0, background: 'rgba(255,255,255,0.94)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderTop: '1px solid var(--card-border)', paddingBottom: 'calc(88px + env(safe-area-inset-bottom))' }}>
+            {/* Suggestion chips */}
+            <div className="chip-scroll" style={{ display: 'flex', gap: 8, padding: '10px 14px 0', overflowX: 'auto' }}>
               {QUICK.map((q, i) => {
-                const colors = [
-                  { bg: '#E8EDF5', color: '#2563EB', border: '#BFCFE8' },
-                  { bg: '#FEF3E8', color: '#C2570A', border: '#F8D5B0' },
-                  { bg: '#FDE8F3', color: '#BE185D', border: '#F5BCD9' },
-                  { bg: '#E8F3EE', color: '#2C4A1E', border: '#B0D4BC' },
-                ];
-                const c = colors[i % colors.length];
+                const cc = [
+                  { bg: '#EEF2FF', color: '#4F46E5', border: '#C7D2FE' },
+                  { bg: '#FEF3C7', color: '#B45309', border: '#FDE68A' },
+                  { bg: '#FCE7F3', color: '#BE185D', border: '#FBCFE8' },
+                  { bg: '#DCFCE7', color: '#166534', border: '#BBF7D0' },
+                ][i % 4];
                 return (
-                  <button key={q} onClick={() => { setQuestion(q); askAI(q); }} style={{ padding: '8px 12px', borderRadius: 999, fontSize: 12, fontWeight: 600, background: c.bg, color: c.color, border: `1.5px solid ${c.border}`, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.07)' }}>
-                    {q}
-                  </button>
+                  <button key={q} onClick={() => askAIChat(q)} style={{ whiteSpace: 'nowrap', flexShrink: 0, padding: '6px 13px', borderRadius: 999, fontSize: 12, fontWeight: 600, background: cc.bg, color: cc.color, border: `1.5px solid ${cc.border}`, cursor: 'pointer', boxShadow: '0 1px 6px rgba(0,0,0,0.06)', transition: 'transform 0.12s ease' }}
+                    onPointerDown={(e) => (e.currentTarget.style.transform = 'scale(0.94)')}
+                    onPointerUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+                  >{q}</button>
                 );
               })}
             </div>
-
-            {/* Photo display */}
-            {photo && (
-              <div style={{ position: 'relative', marginBottom: 16, borderRadius: 16, overflow: 'hidden' }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={photo} alt="captured" style={{ width: '100%', objectFit: 'cover', maxHeight: 240, display: 'block' }} />
-                <button onClick={clearPhoto} style={{ position: 'absolute', top: 10, right: 10, width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.92)', border: '1px solid var(--card-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                  <X size={14} style={{ color: 'var(--foreground)' }} />
+            {/* Image preview */}
+            {chatImg && (
+              <div style={{ padding: '8px 14px 0', display: 'flex' }}>
+                <div style={{ position: 'relative', display: 'inline-block' }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={chatImg} alt="attached" style={{ width: 58, height: 58, objectFit: 'cover', borderRadius: 10, border: '2px solid var(--card-border)' }} />
+                  <button onClick={() => setChatImg(null)} style={{ position: 'absolute', top: -5, right: -5, width: 18, height: 18, borderRadius: '50%', background: 'var(--foreground)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                    <X size={9} color="#fff" />
+                  </button>
+                </div>
+              </div>
+            )}
+            {/* Input row */}
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, padding: '8px 12px 4px' }}>
+              <input ref={chatImgRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                e.target.value = '';
+                const { compressImage: compress } = await import('@/lib/image-utils');
+                setChatImg(await compress(file));
+              }} />
+              <button onClick={() => chatImgRef.current?.click()} style={{ width: 40, height: 40, borderRadius: 13, background: 'var(--muted-bg)', border: '1.5px solid var(--card-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+                <Paperclip size={16} style={{ color: 'var(--muted)' }} />
+              </button>
+              <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', gap: 8, background: '#fff', border: '1.5px solid var(--card-border)', borderRadius: 22, padding: '9px 10px 9px 14px', boxShadow: '0 4px 18px rgba(0,0,0,0.07)' }}>
+                <textarea
+                  ref={chatTextareaRef}
+                  value={question}
+                  onChange={(e) => {
+                    setQuestion(e.target.value);
+                    e.target.style.height = 'auto';
+                    e.target.style.height = Math.min(e.target.scrollHeight, 110) + 'px';
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey && (question.trim() || chatImg)) {
+                      e.preventDefault();
+                      askAIChat(question || 'What do you think of this outfit?', chatImg ?? undefined);
+                    }
+                  }}
+                  placeholder="Ask about your outfit…"
+                  rows={1}
+                  style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', fontSize: 14, color: 'var(--foreground)', resize: 'none', overflow: 'hidden', lineHeight: 1.5, maxHeight: 110, fontFamily: 'inherit' }}
+                />
+                <button
+                  onClick={() => { if (question.trim() || chatImg) askAIChat(question || 'What do you think?', chatImg ?? undefined); }}
+                  disabled={!question.trim() && !chatImg}
+                  style={{ width: 34, height: 34, borderRadius: 11, border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, transition: 'all 0.18s ease',
+                    background: (question.trim() || chatImg) ? 'linear-gradient(135deg,#5A9240,#2C4A1E)' : 'var(--muted-bg)',
+                    boxShadow: (question.trim() || chatImg) ? '0 4px 14px rgba(44,74,30,0.30)' : 'none',
+                  }}
+                >
+                  <Send size={14} color={(question.trim() || chatImg) ? '#fff' : 'var(--muted)'} />
                 </button>
               </div>
-            )}
-
-            {/* Loading */}
-            {loading && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 0', marginBottom: 12 }}>
-                <Loader size={16} style={{ color: 'var(--accent)', animation: 'spin 1s linear infinite' }} />
-                <p style={{ fontSize: 14, color: 'var(--muted)' }}>Gemma 4 is analysing…</p>
-              </div>
-            )}
-
-            {/* Error */}
-            {error && (
-              <div style={{ padding: '12px 16px', borderRadius: 14, background: 'rgba(239,68,68,0.06)', marginBottom: 12 }}>
-                <p style={{ fontSize: 13, fontWeight: 600, color: '#dc2626', marginBottom: 4 }}>Could not get a response</p>
-                <p style={{ fontSize: 12, color: 'var(--muted)' }}>{error}</p>
-              </div>
-            )}
-
-            {/* AI Suggestion */}
-            {suggestion && !loading && (
-              <div style={{ borderRadius: 18, background: 'var(--card)', border: '1px solid var(--card-border)', padding: '16px', display: 'flex', flexDirection: 'column', gap: 12, boxShadow: 'var(--shadow-sm)' }}>
-                {suggestion.occasion && <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: 999, fontSize: 11, fontWeight: 600, background: 'var(--muted-bg)', color: 'var(--muted)', border: '1px solid var(--card-border)', marginBottom: 4, textTransform: 'capitalize', width: 'fit-content' }}>{suggestion.occasion}</span>}
-                {suggestion.headline && <h3 style={{ fontSize: 17, fontWeight: 700, color: 'var(--foreground)', lineHeight: 1.3, margin: 0 }}>{suggestion.headline}</h3>}
-                <p style={{ fontSize: 14, lineHeight: 1.65, color: 'var(--foreground)', margin: 0 }}>{suggestion.message}</p>
-                {suggestion.outfit_items && suggestion.outfit_items.length > 0 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Outfit Breakdown</p>
-                    {suggestion.outfit_items.map((item, i) => (
-                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 12, background: 'var(--muted-bg)', border: '1px solid var(--card-border)' }}>
-                        <div style={{ width: 32, height: 32, borderRadius: 8, background: item.color_hex, border: '1px solid rgba(0,0,0,0.08)', flexShrink: 0 }} />
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--foreground)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.piece}</p>
-                          {item.note && <p style={{ fontSize: 11, color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.note}</p>}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {suggestion.style_tip && (
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 12px', borderRadius: 12, background: 'rgba(44,74,30,0.05)', border: '1px solid rgba(44,74,30,0.14)' }}>
-                    <Lightbulb size={13} style={{ color: 'var(--accent)', flexShrink: 0, marginTop: 1 }} />
-                    <p style={{ fontSize: 12, color: 'var(--foreground)', lineHeight: 1.5, margin: 0 }}>{suggestion.style_tip}</p>
-                  </div>
-                )}
-                {suggestion.search_query && (
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <a href={pinterestUrl(suggestion.search_query)} target="_blank" rel="noopener noreferrer" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '10px', borderRadius: 12, background: '#e60023', color: '#fff', fontSize: 12, fontWeight: 600, textDecoration: 'none' }}>
-                      <ExternalLink size={11} /> Pinterest
-                    </a>
-                    <a href={googleImagesUrl(suggestion.search_query)} target="_blank" rel="noopener noreferrer" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '10px', borderRadius: 12, background: 'var(--muted-bg)', border: '1px solid var(--card-border)', color: 'var(--foreground)', fontSize: 12, fontWeight: 600, textDecoration: 'none' }}>
-                      <ExternalLink size={11} /> Google Images
-                    </a>
-                  </div>
-                )}
-              </div>
-            )}
+            </div>
           </div>
         </div>
 
         {/* ── Slide 2: Today ─── */}
-        <div style={{ width: '100vw', height: '100dvh', flexShrink: 0, overflowY: 'auto', background: 'var(--background)' }}>
-          <div style={{ padding: '52px 20px 140px', maxWidth: 480, margin: '0 auto' }}>
+        <div style={{ width: '100vw', height: '100%', flexShrink: 0, overflowY: 'auto', background: 'var(--background)' }}>
+          <div style={{ padding: '16px 20px 120px', maxWidth: 480, margin: '0 auto' }}>
 
             {/* Weather card */}
             <div style={{ borderRadius: 18, marginBottom: 20, background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-mid) 60%, #4A7A2E 100%)', boxShadow: '0 6px 28px rgba(44,74,30,0.30)', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' as const }}>
@@ -725,19 +835,8 @@ export default function HomePage() {
             )}
           </div>
         </div>
-      </div>
-
-      {/* Left / Right swipe arrows */}
-      {activeSlide > 0 && (
-        <button onClick={() => setActiveSlide((s) => s - 1)} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', width: 36, height: 36, borderRadius: '50%', background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 20, cursor: 'pointer' }}>
-          <ChevronLeft size={18} color="#fff" />
-        </button>
-      )}
-      {activeSlide < 2 && (
-        <button onClick={() => setActiveSlide((s) => s + 1)} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', width: 36, height: 36, borderRadius: '50%', background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 20, cursor: 'pointer' }}>
-          <ChevronRight size={18} color="#fff" />
-        </button>
-      )}
+        </div>{/* end slide track */}
+      </div>{/* end slide viewport */}
     </div>
 
     {/* ── DESKTOP LAYOUT (hidden on mobile) ─── */}
