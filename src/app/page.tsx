@@ -468,7 +468,7 @@ export default function HomePage() {
   return (
     <>
     {/* ── MOBILE FULL-PAGE SLIDER (hidden on md+) ────── */}
-    <div className="md:hidden" style={{ width: '100vw', height: '100dvh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+    <div className="md:hidden flex flex-col" style={{ width: '100vw', height: '100dvh', overflow: 'hidden' }}>
       <style>{`
         @keyframes chatDotBounce {
           0%,60%,100%{transform:translateY(0);opacity:0.45}
