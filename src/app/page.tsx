@@ -70,6 +70,14 @@ interface AISuggestion {
   occasion?: string;
   search_query?: string;
 }
+interface ChatMessage {
+  id: string;
+  role: 'user' | 'ai';
+  content: string;
+  image?: string;
+  loading?: boolean;
+  suggestion?: AISuggestion;
+}
 interface GroomingStep {
   step: string;
   product_name?: string;
@@ -141,6 +149,9 @@ export default function HomePage() {
   const [activeSlide, setActiveSlide] = useState(1); // 0=Mirror, 1=Chat, 2=Today
   const [chatImg, setChatImg]         = useState<string | null>(null);
   const chatImgRef                    = useRef<HTMLInputElement>(null);
+  const [messages, setMessages]       = useState<ChatMessage[]>([]);
+  const messagesEndRef                = useRef<HTMLDivElement>(null);
+  const chatTextareaRef               = useRef<HTMLTextAreaElement>(null);
 
   // Gender toggle — persisted in localStorage
   const [gender, setGender] = useState<'male' | 'female'>('male');
