@@ -7,6 +7,7 @@ import {
   Sparkles, Bot, User, CalendarDays, ShoppingBag,
   ExternalLink, Loader, Lightbulb, Leaf, Zap, Award,
   RefreshCw, ChevronDown, ChevronUp, CalendarPlus, Check, X,
+  Paperclip, Send,
 } from 'lucide-react';
 import { EventIcon, OccasionIcon } from '@/components/icons/SgIcons';
 import { getUpcomingEvents } from '@/lib/singapore-events';
@@ -156,7 +157,11 @@ export default function StylistPage() {
   const [loading,          setLoading]          = useState(false);
   const [plannerMsg,       setPlannerMsg]       = useState<{ id: string; suggestion: AISuggestion } | null>(null);
   const [savedDates,       setSavedDates]       = useState<Record<string, string>>({});
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const [userMessage,      setUserMessage]      = useState('');
+  const [chatPhoto,        setChatPhoto]        = useState<string | null>(null);
+  const bottomRef    = useRef<HTMLDivElement>(null);
+  const chatImgRef   = useRef<HTMLInputElement>(null);
+  const chatTARef    = useRef<HTMLTextAreaElement>(null);
 
   // ── Eco state ──
   const [ecoOccasion,      setEcoOccasion]      = useState('Casual');
@@ -183,10 +188,13 @@ export default function StylistPage() {
     return `What should I wear on ${dayLabel} in Singapore?`;
   }
 
-  async function ask(overrideQuery?: string) {
+  async function ask(overrideQuery?: string, photo?: string) {
     const query = overrideQuery ?? buildQuery();
     if (!query || loading) return;
     setMessages((p) => [...p, { id: uid(), role: 'user', content: query }]);
+    setUserMessage('');
+    setChatPhoto(null);
+    if (chatTARef.current) chatTARef.current.style.height = 'auto';
     setLoading(true);
     try {
       const res = await fetch('/api/stylist', {
@@ -195,6 +203,7 @@ export default function StylistPage() {
           query,
           wardrobe: items.map((i) => ({ name: i.name, category: i.category, color_hex: i.color_hex, color_name: i.color_name, tags: i.tags })),
           weather: { temperature: 31, feels_like: 36, description: 'Humid and sunny', condition: 'hot', city: 'Singapore', humidity: 84 },
+          ...(photo ? { photo_base64: photo.replace(/^data:[^;]+;base64,/, '') } : {}),
         }),
       });
       const data = await res.json() as AISuggestion & { error?: string };
@@ -237,7 +246,7 @@ export default function StylistPage() {
         </h1>
       </div>
 
-    <div className="max-w-2xl mx-auto px-4" style={{ paddingBottom: 24 }}>
+    <div className="max-w-2xl mx-auto px-4" style={{ paddingBottom: 0 }}>
 
       {/* Full-width tabs */}
       <div style={{
@@ -479,6 +488,72 @@ export default function StylistPage() {
               <div ref={bottomRef}/>
             </div>
           )}
+
+          {/* ── Chat input bar ─────────────────────────────────────── */}
+          <div style={{
+            position: 'sticky', bottom: 0, zIndex: 40,
+            background: 'rgba(var(--background-rgb, 242,237,230),0.96)',
+            backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
+            borderTop: '1px solid var(--card-border)',
+            padding: '10px 0 12px',
+          }}>
+            {/* Photo preview */}
+            {chatPhoto && (
+              <div style={{ padding: '0 16px 8px', display: 'flex' }}>
+                <div style={{ position: 'relative', display: 'inline-block' }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={chatPhoto} alt="attached" style={{ width: 58, height: 58, objectFit: 'cover', borderRadius: 10, border: '2px solid var(--card-border)' }} />
+                  <button onClick={() => setChatPhoto(null)} style={{ position: 'absolute', top: -5, right: -5, width: 18, height: 18, borderRadius: '50%', background: 'var(--foreground)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                    <X size={9} color="#fff" />
+                  </button>
+                </div>
+              </div>
+            )}
+            {/* Input row */}
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, padding: '0 14px' }}>
+              <input ref={chatImgRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                e.target.value = '';
+                const { compressImage: compress } = await import('@/lib/image-utils');
+                setChatPhoto(await compress(file));
+              }} />
+              <button onClick={() => chatImgRef.current?.click()} style={{ width: 40, height: 40, borderRadius: 13, background: 'var(--muted-bg)', border: '1.5px solid var(--card-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+                <Paperclip size={16} style={{ color: 'var(--muted)' }} />
+              </button>
+              <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', gap: 8, background: '#fff', border: '1.5px solid var(--card-border)', borderRadius: 22, padding: '9px 10px 9px 14px', boxShadow: '0 4px 18px rgba(0,0,0,0.07)' }}>
+                <textarea
+                  ref={chatTARef}
+                  value={userMessage}
+                  onChange={(e) => {
+                    setUserMessage(e.target.value);
+                    e.target.style.height = 'auto';
+                    e.target.style.height = Math.min(e.target.scrollHeight, 110) + 'px';
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      if (userMessage.trim() || chatPhoto) ask(userMessage.trim() || buildQuery(), chatPhoto ?? undefined);
+                    }
+                  }}
+                  placeholder="Ask your stylist anything…"
+                  rows={1}
+                  style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', fontSize: 14, color: 'var(--foreground)', resize: 'none', overflow: 'hidden', lineHeight: 1.5, maxHeight: 110, fontFamily: 'inherit' }}
+                />
+                <button
+                  onClick={() => { if (userMessage.trim() || chatPhoto) ask(userMessage.trim() || buildQuery(), chatPhoto ?? undefined); }}
+                  disabled={!userMessage.trim() && !chatPhoto && loading}
+                  style={{
+                    width: 34, height: 34, borderRadius: 11, border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, transition: 'all 0.18s ease',
+                    background: (userMessage.trim() || chatPhoto) ? 'linear-gradient(135deg,#5A9240,#2C4A1E)' : 'var(--muted-bg)',
+                    boxShadow: (userMessage.trim() || chatPhoto) ? '0 4px 14px rgba(44,74,30,0.30)' : 'none',
+                  }}
+                >
+                  {loading ? <Loader size={13} style={{ color: 'var(--muted)', animation: 'spin 1s linear infinite' }} /> : <Send size={14} color={(userMessage.trim() || chatPhoto) ? '#fff' : 'var(--muted)'} />}
+                </button>
+              </div>
+            </div>
+          </div>
 
         </>
       )}
