@@ -1,30 +1,78 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import {
-  LayoutDashboard, Shirt, Sparkles, ShoppingBag, UserCircle2,
-  ChevronRight,
-} from 'lucide-react';
+import { LayoutDashboard, Shirt, Sparkles, ShoppingBag, UserCircle2 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
 const LottieLogo = dynamic(() => import('./LottieLogo'), { ssr: false });
 
 const NAV = [
-  { href: '/',            label: 'Home',     icon: LayoutDashboard },
-  { href: '/wardrobe',    label: 'Wardrobe', icon: Shirt           },
-  { href: '/stylist',     label: 'Stylist',  icon: Sparkles        },
-  { href: '/marketplace', label: 'Market',   icon: ShoppingBag     },
-  { href: '/profile',     label: 'Me',       icon: UserCircle2     },
+  { href: '/',            label: 'Home',    icon: LayoutDashboard },
+  { href: '/wardrobe',    label: 'Wardrobe', icon: Shirt          },
+  { href: '/stylist',     label: 'Stylist',  icon: Sparkles       },
+  { href: '/marketplace', label: 'Market',   icon: ShoppingBag    },
+  { href: '/profile',     label: 'Me',       icon: UserCircle2    },
 ];
+
+const N = NAV.length;
 
 export default function Navbar() {
   const path = usePathname();
   const [mounted, setMounted] = useState(false);
 
+  // Liquid pill state — left/width in percent of bar width
+  const [pillLeft,  setPillLeft]  = useState(0);
+  const [pillWidth, setPillWidth] = useState(100 / N);
+  const [springOn,  setSpringOn]  = useState(false);
+  const prevIdxRef = useRef<number>(-1);
+  const stretchTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
   useEffect(() => { setMounted(true); }, []);
+
+  const activeIdx = (() => {
+    const i = NAV.findIndex(({ href }) =>
+      href === '/' ? path === '/' : path.startsWith(href),
+    );
+    return i >= 0 ? i : 0;
+  })();
+
+  // Seed pill position on mount
+  useEffect(() => {
+    if (!mounted) return;
+    setPillLeft(activeIdx * (100 / N));
+    setPillWidth(100 / N);
+    prevIdxRef.current = activeIdx;
+  }, [mounted]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Liquid stretch animation on tab change
+  useEffect(() => {
+    if (!mounted || prevIdxRef.current === -1) return;
+    const prev = prevIdxRef.current;
+    const curr = activeIdx;
+    if (prev === curr) return;
+
+    const unit = 100 / N;
+    const lo = Math.min(prev, curr);
+    const hi = Math.max(prev, curr);
+
+    // Phase 1 — fast stretch to span old+new positions
+    setSpringOn(false);
+    setPillLeft(lo * unit);
+    setPillWidth((hi - lo + 1) * unit);
+
+    // Phase 2 — spring-contract to new position
+    clearTimeout(stretchTimer.current);
+    stretchTimer.current = setTimeout(() => {
+      setSpringOn(true);
+      setPillLeft(curr * unit);
+      setPillWidth(unit);
+    }, 140);
+
+    prevIdxRef.current = curr;
+  }, [activeIdx, mounted]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <>
@@ -53,7 +101,7 @@ export default function Navbar() {
           </Link>
           <div className="flex items-center gap-0.5">
             {NAV.map(({ href, label, icon: Icon }) => {
-              const active = path === href || (href !== '/' && path.startsWith(href));
+              const active = href === '/' ? path === '/' : path.startsWith(href);
               return (
                 <Link key={href} href={href}
                   className={cn('flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold transition-all',
@@ -71,82 +119,174 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* ── Mobile floating bottom nav ──────────────────────────── */}
-      <div
-        className="md:hidden fixed z-50"
-        style={{
-          bottom: 'calc(12px + env(safe-area-inset-bottom))',
-          left: 16, right: 16,
-        }}
-      >
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-around',
-          background: 'rgba(20, 28, 16, 0.82)',
-          backdropFilter: 'blur(28px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(28px) saturate(180%)',
-          borderRadius: 28,
-          padding: '10px 8px',
-          border: '1px solid rgba(255,255,255,0.10)',
-          boxShadow: '0 8px 40px rgba(0,0,0,0.30), 0 2px 8px rgba(0,0,0,0.20), inset 0 1px 0 rgba(255,255,255,0.08)',
-        }}>
-          {NAV.map(({ href, label, icon: Icon }) => {
-            const active = path === href || (href !== '/' && path.startsWith(href));
-            return (
-              <Link
-                key={href}
-                href={href}
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: 4,
-                  flex: 1,
-                  textDecoration: 'none',
-                  padding: '2px 4px',
-                }}
-              >
-                <div style={{
-                  width: 46,
-                  height: 34,
-                  borderRadius: 16,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  background: active
-                    ? 'linear-gradient(135deg, #5A9240 0%, #3D6B28 50%, #2C4A1E 100%)'
-                    : 'transparent',
-                  boxShadow: active
-                    ? '0 2px 12px rgba(90,146,64,0.45), inset 0 1px 0 rgba(255,255,255,0.18)'
-                    : 'none',
-                  transition: 'all 0.22s cubic-bezier(0.34,1.56,0.64,1)',
-                }}>
-                  <Icon
-                    size={18}
+      {/* ── Mobile liquid glass bottom nav ──────────────────────── */}
+      {mounted && (
+        <div
+          className="md:hidden fixed z-50"
+          style={{ bottom: 'calc(14px + env(safe-area-inset-bottom))', left: 14, right: 14 }}
+        >
+          <style>{`
+            @keyframes lgShimmer {
+              0%   { transform: translateX(-180%) skewX(-22deg); opacity: 0; }
+              20%  { opacity: 1; }
+              80%  { opacity: 1; }
+              100% { transform: translateX(280%) skewX(-22deg); opacity: 0; }
+            }
+            @keyframes lgAmbient {
+              0%,100% { opacity: 0.55; transform: scaleX(1); }
+              50%      { opacity: 0.85; transform: scaleX(1.06); }
+            }
+          `}</style>
+
+          {/* Ambient outer glow */}
+          <div aria-hidden="true" style={{
+            position: 'absolute', bottom: 0, left: '15%', right: '15%', height: 20,
+            background: 'radial-gradient(ellipse, rgba(90,146,64,0.55) 0%, transparent 70%)',
+            filter: 'blur(14px)',
+            animation: 'lgAmbient 3s ease-in-out infinite',
+            pointerEvents: 'none',
+            zIndex: 0,
+          }} />
+
+          {/* Bar */}
+          <div style={{
+            position: 'relative',
+            height: 70,
+            borderRadius: 34,
+            /* Dark ultra-glass base */
+            background: 'rgba(7,12,5,0.80)',
+            backdropFilter: 'blur(48px) saturate(240%) brightness(0.80)',
+            WebkitBackdropFilter: 'blur(48px) saturate(240%) brightness(0.80)',
+            border: '1px solid rgba(255,255,255,0.065)',
+            boxShadow: [
+              'inset 0 1px 0 rgba(255,255,255,0.12)',
+              'inset 0 -1px 0 rgba(0,0,0,0.35)',
+              'inset 0 0 0 0.5px rgba(255,255,255,0.04)',
+              '0 14px 50px rgba(0,0,0,0.60)',
+              '0 4px 14px rgba(0,0,0,0.35)',
+            ].join(', '),
+            overflow: 'hidden',
+            zIndex: 1,
+          }}>
+
+            {/* ── Liquid glass active pill ───────────────────────── */}
+            <div style={{
+              position: 'absolute',
+              top: 7,
+              left: `calc(${pillLeft}% + 5px)`,
+              width: `calc(${pillWidth}% - 10px)`,
+              height: 56,
+              borderRadius: 26,
+              /* Liquid glass gradient — refractive green glass */
+              background: [
+                'linear-gradient(158deg,',
+                '  rgba(168,220,100,0.38) 0%,',
+                '  rgba(100,168,58,0.52) 30%,',
+                '  rgba(60,106,32,0.72) 65%,',
+                '  rgba(36,60,22,0.88) 100%)',
+              ].join(''),
+              backdropFilter: 'blur(16px) saturate(180%)',
+              WebkitBackdropFilter: 'blur(16px) saturate(180%)',
+              border: '1px solid rgba(168,208,96,0.32)',
+              boxShadow: [
+                'inset 0 1.5px 0 rgba(255,255,255,0.32)',
+                'inset 0 -1px 0 rgba(0,0,0,0.25)',
+                'inset 1px 0 0 rgba(255,255,255,0.08)',
+                'inset -1px 0 0 rgba(255,255,255,0.08)',
+                '0 0 28px rgba(90,146,64,0.50)',
+                '0 0 60px rgba(90,146,64,0.20)',
+                '0 6px 18px rgba(0,0,0,0.40)',
+              ].join(', '),
+              transition: springOn
+                ? 'left 0.50s cubic-bezier(0.34,1.56,0.64,1), width 0.44s cubic-bezier(0.34,1.56,0.64,1)'
+                : 'left 0.13s cubic-bezier(0.4,0,0.2,1), width 0.13s cubic-bezier(0.4,0,0.2,1)',
+              overflow: 'hidden',
+              zIndex: 1,
+            }}>
+              {/* Sweep shimmer */}
+              <div aria-hidden="true" style={{
+                position: 'absolute', inset: 0,
+                background: 'linear-gradient(105deg, transparent 20%, rgba(255,255,255,0.26) 50%, transparent 80%)',
+                animation: 'lgShimmer 3.2s ease-in-out infinite',
+                pointerEvents: 'none',
+              }} />
+              {/* Top highlight bar */}
+              <div aria-hidden="true" style={{
+                position: 'absolute', top: 0, left: '8%', right: '8%', height: '1.5px',
+                background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.65), transparent)',
+                borderRadius: 1,
+              }} />
+              {/* Inner radial lens */}
+              <div aria-hidden="true" style={{
+                position: 'absolute', inset: 0, borderRadius: 'inherit',
+                background: 'radial-gradient(ellipse 80% 60% at 50% 10%, rgba(200,240,140,0.18) 0%, transparent 70%)',
+              }} />
+              {/* Bottom edge shadow */}
+              <div aria-hidden="true" style={{
+                position: 'absolute', bottom: 0, left: '5%', right: '5%', height: 1,
+                background: 'rgba(0,0,0,0.30)',
+                borderRadius: 1,
+              }} />
+            </div>
+
+            {/* ── Nav items ─────────────────────────────────────── */}
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', zIndex: 2 }}>
+              {NAV.map(({ href, label, icon: Icon }, i) => {
+                const active = i === activeIdx;
+                return (
+                  <Link
+                    key={href}
+                    href={href}
                     style={{
-                      color: active ? '#fff' : 'rgba(255,255,255,0.40)',
-                      strokeWidth: active ? 2.2 : 1.6,
-                      transition: 'all 0.2s ease',
+                      flex: 1,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 4,
+                      textDecoration: 'none',
                     }}
-                  />
-                </div>
-                <span style={{
-                  fontSize: 9,
-                  fontWeight: active ? 800 : 400,
-                  color: active ? '#A8D060' : 'rgba(255,255,255,0.35)',
-                  letterSpacing: active ? '0.06em' : '0.02em',
-                  textTransform: 'uppercase',
-                  lineHeight: 1,
-                  transition: 'all 0.2s ease',
-                }}>
-                  {label}
-                </span>
-              </Link>
-            );
-          })}
+                  >
+                    <Icon
+                      size={18}
+                      style={{
+                        color: active ? '#ffffff' : 'rgba(255,255,255,0.28)',
+                        strokeWidth: active ? 2.3 : 1.5,
+                        transition: 'all 0.35s cubic-bezier(0.34,1.56,0.64,1)',
+                        transform: active
+                          ? 'scale(1.20) translateY(-1.5px)'
+                          : 'scale(1) translateY(0)',
+                        filter: active
+                          ? 'drop-shadow(0 1px 8px rgba(168,208,96,0.65)) drop-shadow(0 0 3px rgba(255,255,255,0.40))'
+                          : 'none',
+                      }}
+                    />
+                    <span style={{
+                      fontSize: 8,
+                      fontWeight: active ? 900 : 400,
+                      color: active ? '#C8EC80' : 'rgba(255,255,255,0.25)',
+                      letterSpacing: active ? '0.08em' : '0.02em',
+                      textTransform: 'uppercase',
+                      lineHeight: 1,
+                      transition: 'all 0.22s ease',
+                    }}>
+                      {label}
+                    </span>
+                  </Link>
+                );
+              })}
+            </div>
+
+            {/* Top edge highlight on bar */}
+            <div aria-hidden="true" style={{
+              position: 'absolute', top: 0, left: 0, right: 0, height: 1,
+              background: 'linear-gradient(90deg, transparent 5%, rgba(255,255,255,0.10) 30%, rgba(255,255,255,0.16) 50%, rgba(255,255,255,0.10) 70%, transparent 95%)',
+              pointerEvents: 'none',
+              zIndex: 3,
+            }} />
+          </div>
         </div>
-      </div>
+      )}
     </>
   );
 }
