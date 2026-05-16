@@ -4,10 +4,10 @@ import { useState, useRef, useEffect } from 'react';
 import { useWardrobeStore } from '@/store/wardrobe';
 import { PlannedOutfit } from '@/types';
 import {
-  Sparkles, Bot, User, CalendarDays, ShoppingBag,
+  Sparkles, Bot, User, ShoppingBag,
   ExternalLink, Loader, Lightbulb, Leaf, Zap, Award,
   RefreshCw, ChevronDown, ChevronUp, CalendarPlus, Check, X,
-  Paperclip, Send,
+  Paperclip, Send, Camera,
 } from 'lucide-react';
 import { EventIcon, OccasionIcon } from '@/components/icons/SgIcons';
 import { getUpcomingEvents } from '@/lib/singapore-events';
@@ -144,15 +144,10 @@ function PlannerModal({
 
 export default function StylistPage() {
   const { items, addPlannedOutfit } = useWardrobeStore();
-  const todayIdx = (new Date().getDay() + 6) % 7;
 
   const [tab, setTab] = useState<Tab>('stylist');
 
   // ── Stylist state ──
-  const [selectedDay,      setSelectedDay]      = useState(todayIdx);
-  const [selectedOccasion, setSelectedOccasion] = useState<string | null>(null);
-  const [selectedEvent,    setSelectedEvent]    = useState<string | null>(null);
-  const [sgEvents,         setSgEvents]         = useState<SGEvent[]>([]);
   const [messages,         setMessages]         = useState<Message[]>([]);
   const [loading,          setLoading]          = useState(false);
   const [plannerMsg,       setPlannerMsg]       = useState<{ id: string; suggestion: AISuggestion } | null>(null);
@@ -161,6 +156,7 @@ export default function StylistPage() {
   const [chatPhoto,        setChatPhoto]        = useState<string | null>(null);
   const bottomRef    = useRef<HTMLDivElement>(null);
   const chatImgRef   = useRef<HTMLInputElement>(null);
+  const cameraRef    = useRef<HTMLInputElement>(null);
   const chatTARef    = useRef<HTMLTextAreaElement>(null);
 
   // ── Eco state ──
@@ -173,23 +169,15 @@ export default function StylistPage() {
 
   const upcomingEvents = getUpcomingEvents(4);
 
-  useEffect(() => {
-    fetch('/api/events').then((r) => r.json()).then((d) => setSgEvents(d.upcoming ?? [])).catch(() => null);
-  }, []);
-
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
-  // ── Stylist helpers ──
-  function buildQuery() {
-    const dayLabel = DAYS[selectedDay];
-    const occ = OCCASIONS.find((o) => o.label === selectedOccasion);
-    if (selectedEvent) return `What should I wear for ${selectedEvent} on ${dayLabel}? Give me a complete outfit with specific pieces, colours, and where to buy each item.`;
-    if (occ) return `Suggest a ${occ.hint} outfit for ${dayLabel} in Singapore heat. Give me specific pieces with colours.`;
-    return `What should I wear on ${dayLabel} in Singapore?`;
+  async function handlePhoto(file: File) {
+    const { compressImage } = await import('@/lib/image-utils');
+    setChatPhoto(await compressImage(file));
   }
 
   async function ask(overrideQuery?: string, photo?: string) {
-    const query = overrideQuery ?? buildQuery();
+    const query = overrideQuery?.trim() || 'What should I wear today in Singapore? Give me specific pieces with colours.';
     if (!query || loading) return;
     setMessages((p) => [...p, { id: uid(), role: 'user', content: query }]);
     setUserMessage('');
@@ -236,331 +224,209 @@ export default function StylistPage() {
   const totalCarbonSaved = ecoResult?.outfits?.reduce((s, o) => s + (o.carbon_saved_kg ?? 0), 0) ?? 0;
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--background)' }}>
+    <>
+    <style>{`@keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}} @keyframes msgIn{from{opacity:0;transform:translateY(8px) scale(0.97)}to{opacity:1;transform:translateY(0) scale(1)}}`}</style>
+    <div style={{ height: '100dvh', display: 'flex', flexDirection: 'column', background: 'var(--background)', overflow: 'hidden' }}>
 
-      {/* ── Header banner ───────────────────────────────────────── */}
-      <div style={{ background: 'linear-gradient(160deg,#2C4A1E 0%,#3A6028 55%,#4E7A35 100%)', padding: '20px 20px 28px' }}>
+      {/* ── Header banner ── */}
+      <div style={{ flexShrink: 0, background: 'linear-gradient(160deg,#2C4A1E 0%,#3A6028 55%,#4E7A35 100%)', padding: '20px 20px 28px' }}>
         <p style={{ fontSize: '0.55rem', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(168,208,96,0.70)', marginBottom: 6 }}>AI Outfit Advice · Eco Fashion</p>
-        <h1 style={{ fontFamily: 'var(--font-display),Georgia,serif', fontSize: 'clamp(2rem,8vw,3rem)', fontWeight: 600, fontStyle: 'italic', letterSpacing: '-0.025em', lineHeight: 0.95, color: '#fff', margin: 0 }}>
+        <h1 style={{ fontFamily: 'var(--font-display),Georgia,serif', fontSize: 'clamp(1.8rem,7vw,2.6rem)', fontWeight: 600, fontStyle: 'italic', letterSpacing: '-0.025em', lineHeight: 0.95, color: '#fff', margin: 0 }}>
           Your{' '}<span style={{ background: 'linear-gradient(135deg,#A8D060 0%,#7AB648 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Stylist</span>
         </h1>
       </div>
 
-    <div className="max-w-2xl mx-auto px-4" style={{ paddingBottom: 0 }}>
-
-      {/* Full-width tabs */}
-      <div style={{
-        display: 'flex', gap: 4, padding: 4, borderRadius: 16, marginBottom: 20,
-        background: 'var(--card)',
-        border: '1px solid var(--card-border)',
-        boxShadow: 'var(--shadow-sm)',
-        margin: '-16px 16px 20px',
-        position: 'relative', zIndex: 2,
-      }}>
-        <button onClick={() => setTab('stylist')}
-          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition-all"
-          style={tab === 'stylist'
-            ? { background: 'linear-gradient(135deg, #5A9240, #2C4A1E)', color: '#fff', boxShadow: '0 2px 12px rgba(90,146,64,0.40)' }
-            : { color: 'var(--muted)' }}>
-          <Sparkles size={12}/> Stylist
-        </button>
-        <button onClick={() => setTab('eco')}
-          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition-all"
-          style={tab === 'eco'
-            ? { background: 'linear-gradient(135deg, #5A9240, #2C4A1E)', color: '#fff', boxShadow: '0 2px 12px rgba(90,146,64,0.40)' }
-            : { color: 'var(--muted)' }}>
-          <Leaf size={12}/> Eco Mode
-        </button>
+      {/* ── Tab bar ── */}
+      <div style={{ flexShrink: 0, padding: '0 16px', marginTop: -16, position: 'relative', zIndex: 2 }}>
+        <div style={{ display: 'flex', gap: 4, padding: 4, borderRadius: 16, background: 'var(--card)', border: '1px solid var(--card-border)', boxShadow: 'var(--shadow-sm)', maxWidth: 640, margin: '0 auto' }}>
+          <button onClick={() => setTab('stylist')}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition-all"
+            style={tab === 'stylist'
+              ? { background: 'linear-gradient(135deg, #5A9240, #2C4A1E)', color: '#fff', boxShadow: '0 2px 12px rgba(90,146,64,0.40)' }
+              : { color: 'var(--muted)' }}>
+            <Sparkles size={12}/> Stylist
+          </button>
+          <button onClick={() => setTab('eco')}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold transition-all"
+            style={tab === 'eco'
+              ? { background: 'linear-gradient(135deg, #5A9240, #2C4A1E)', color: '#fff', boxShadow: '0 2px 12px rgba(90,146,64,0.40)' }
+              : { color: 'var(--muted)' }}>
+            <Leaf size={12}/> Eco Mode
+          </button>
+        </div>
       </div>
 
-      {/* ══════ STYLIST TAB ══════ */}
+      {/* ── Content area ── */}
+      <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+
+      {/* ══ STYLIST TAB — clean chat ══ */}
       {tab === 'stylist' && (
         <>
-          <p className="text-xs mb-4" style={{ color:'var(--muted)', letterSpacing: '0.02em' }}>
-            Pick day + occasion → get outfit + shop the look on Shein, Shopee &amp; Zalora
-          </p>
-
-          {/* Planning Panel — light card */}
-          <div className="rounded-3xl overflow-hidden mb-5" style={{
-            background: 'var(--card)',
-            border: '1px solid var(--card-border)',
-            boxShadow: 'var(--shadow-sm)',
-          }}>
-            {/* Day Picker */}
-            <div style={{ padding: '16px 16px 12px' }}>
-              <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:12 }}>
-                <CalendarDays size={11} style={{ color:'var(--accent)' }}/>
-                <p style={{ fontSize:'0.6rem', fontWeight:700, letterSpacing:'0.12em', textTransform:'uppercase', color:'var(--accent)', margin:0 }}>Which day?</p>
-              </div>
-              <div className="flex gap-2 overflow-x-auto" style={{ scrollbarWidth:'none' }}>
-                {DAYS.map((d, i) => (
-                  <button key={d} onClick={() => setSelectedDay(i)}
-                    className="shrink-0 flex flex-col items-center px-3.5 py-2 rounded-2xl text-xs font-bold transition-all"
-                    style={{
-                      background: selectedDay === i
-                        ? 'linear-gradient(135deg, #5A9240, #2C4A1E)'
-                        : 'var(--muted-bg)',
-                      color: selectedDay === i ? '#fff' : 'var(--muted)',
-                      border: selectedDay === i ? '1px solid rgba(90,146,64,0.5)' : '1px solid var(--card-border)',
-                      boxShadow: selectedDay === i ? '0 2px 12px rgba(90,146,64,0.35)' : 'none',
-                      minWidth: 44,
-                    }}>
-                    {d}
-                    {i === todayIdx && <span style={{ width:4, height:4, borderRadius:'50%', marginTop:3, display:'block', background: selectedDay === i ? 'rgba(255,255,255,0.7)' : '#A8D060' }}/>}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div style={{ borderTop:'1px solid var(--card-border)' }}/>
-
-            {/* Occasion Grid */}
-            <div style={{ padding: '12px 16px' }}>
-              <p style={{ fontSize:'0.6rem', fontWeight:700, letterSpacing:'0.12em', textTransform:'uppercase', color:'var(--accent)', marginBottom:12 }}>Occasion</p>
-              <div className="grid grid-cols-5 gap-2">
-                {OCCASIONS.map((o) => {
-                  const active = selectedOccasion === o.label;
-                  return (
-                    <button key={o.label} onClick={() => { setSelectedOccasion(active ? null : o.label); setSelectedEvent(null); }}
-                      className="flex flex-col items-center gap-1.5 py-2.5 rounded-2xl transition-all"
-                      style={{
-                        background: active ? 'rgba(90,146,64,0.10)' : 'var(--muted-bg)',
-                        border: active ? '1px solid rgba(90,146,64,0.40)' : '1px solid var(--card-border)',
-                        boxShadow: active ? '0 0 16px rgba(90,146,64,0.10)' : 'none',
-                      }}>
-                      <OccasionIcon label={o.label} size={22} color={active ? 'var(--accent)' : 'var(--muted)'}/>
-                      <span style={{ fontSize:9, fontWeight:active ? 700 : 500, color: active ? 'var(--accent)' : 'var(--muted)', textAlign:'center', lineHeight:1.2, maxWidth:52 }}>{o.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* SG Events */}
-            {sgEvents.filter((e) => e.daysAway <= 60).length > 0 && (
-              <>
-                <div style={{ borderTop:'1px solid var(--card-border)' }}/>
-                <div style={{ padding:'12px 16px' }}>
-                  <p style={{ fontSize:'0.6rem', fontWeight:700, letterSpacing:'0.12em', textTransform:'uppercase', color:'var(--accent)', marginBottom:10 }}>
-                    Festivals &amp; Events
-                  </p>
-                  <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth:'none' }}>
-                    {sgEvents.filter((e) => e.daysAway <= 60).map((ev) => {
-                      const active = selectedEvent === ev.name;
-                      return (
-                        <button key={ev.name} onClick={() => { setSelectedEvent(active ? null : ev.name); setSelectedOccasion(null); }}
-                          className="shrink-0 flex items-center gap-2 px-3 py-2 rounded-2xl transition-all"
-                          style={{
-                            background: active ? 'rgba(90,146,64,0.10)' : 'var(--muted-bg)',
-                            border: active ? '1px solid rgba(90,146,64,0.40)' : '1px solid var(--card-border)',
-                          }}>
-                          <EventIcon name={ev.name} size={20} color={active ? 'var(--accent)' : 'var(--muted)'}/>
-                          <div className="text-left">
-                            <p style={{ fontSize:11, fontWeight:600, color: active ? 'var(--accent)' : 'var(--foreground)', lineHeight:1.2, whiteSpace:'nowrap' }}>{ev.name}</p>
-                            <p style={{ fontSize:10, color:'var(--muted)' }}>{ev.daysAway === 0 ? 'Today' : ev.daysAway === 1 ? 'Tomorrow' : `in ${ev.daysAway}d`}</p>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                  {selectedEvent && (() => {
-                    const ev = sgEvents.find((e) => e.name === selectedEvent);
-                    return ev ? (
-                      <div style={{ marginTop:10, padding:'10px 12px', borderRadius:14, background:'rgba(90,146,64,0.15)', border:'1px solid rgba(90,146,64,0.30)', fontSize:12, color:'#A8D060', lineHeight:1.5 }}>
-                        <strong>Dress code:</strong> {ev.dress_code} · {ev.outfit_tip}
-                        <div className="flex gap-1.5 mt-1.5 flex-wrap">{ev.colors.map((c,i) => (
-                          <div key={i} className="cbm-swatch" data-cn={c} title={c} style={{ width:16, height:16, borderRadius:'50%', background:c, border:'1.5px solid rgba(255,255,255,0.25)', flexShrink:0 }}/>
-                        ))}</div>
-                      </div>
-                    ) : null;
-                  })()}
+          {/* Messages scroll area */}
+          <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {messages.length === 0 ? (
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 18, padding: '32px 20px' }}>
+                <div style={{ width: 72, height: 72, borderRadius: 24, background: 'linear-gradient(135deg,#5A9240,#2C4A1E)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 32px rgba(44,74,30,0.28)' }}>
+                  <Sparkles size={32} color="#fff" />
                 </div>
-              </>
+                <div style={{ textAlign: 'center' }}>
+                  <p style={{ fontSize: 18, fontWeight: 700, color: 'var(--foreground)', marginBottom: 8 }}>Your AI Style Assistant</p>
+                  <p style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.6, maxWidth: 260 }}>
+                    Ask me anything about outfits — attach a photo for personalized advice.
+                  </p>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%', maxWidth: 320 }}>
+                  {['What should I wear today?', 'Smart casual for Singapore heat?', 'Outfit for a date night?', 'What goes with navy blue?'].map((s) => (
+                    <button key={s} onClick={() => ask(s)} style={{ padding: '11px 16px', borderRadius: 14, fontSize: 13, fontWeight: 500, border: '1.5px solid var(--card-border)', background: 'var(--card)', color: 'var(--foreground)', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s ease' }}>
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : messages.map((msg) => (
+              <div key={msg.id} style={{ display: 'flex', flexDirection: msg.role === 'user' ? 'row-reverse' : 'row', alignItems: 'flex-end', gap: 8, animation: 'msgIn 0.25s cubic-bezier(0.34,1.56,0.64,1)' }}>
+                {msg.role === 'assistant' && (
+                  <div style={{ width: 30, height: 30, borderRadius: 10, background: 'linear-gradient(135deg,#5A9240,#2C4A1E)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 8px rgba(44,74,30,0.22)' }}>
+                    <Sparkles size={13} color="#fff" />
+                  </div>
+                )}
+                <div style={{ maxWidth: '80%', display: 'flex', flexDirection: 'column', gap: 6, alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
+                  <div style={{
+                    padding: '11px 15px', lineHeight: 1.6, fontSize: 14,
+                    borderRadius: msg.role === 'user' ? '18px 18px 5px 18px' : '5px 18px 18px 18px',
+                    background: msg.role === 'user' ? 'linear-gradient(135deg,#5A9240,#2C4A1E)' : 'var(--card)',
+                    color: msg.role === 'user' ? '#fff' : (msg.error ? '#f87171' : 'var(--foreground)'),
+                    border: msg.role === 'assistant' ? '1px solid var(--card-border)' : 'none',
+                    boxShadow: msg.role === 'user' ? '0 4px 14px rgba(44,74,30,0.28)' : '0 2px 8px rgba(0,0,0,0.06)',
+                  }}>
+                    {msg.content}
+                  </div>
+                  {msg.suggestion?.outfit_items && msg.suggestion.outfit_items.length > 0 && (
+                    <div className="w-full rounded-2xl overflow-hidden" style={{ background:'var(--card)', border:'1px solid var(--card-border)' }}>
+                      {msg.suggestion.headline && (
+                        <div style={{ padding:'12px 16px', background:'rgba(90,146,64,0.08)', borderBottom:'1px solid var(--card-border)' }}>
+                          <p style={{ fontWeight:700, fontSize:14, color:'var(--accent)' }}>{msg.suggestion.headline}</p>
+                          {msg.suggestion.occasion && <span className="text-xs px-2 py-0.5 rounded-full font-medium mt-1 inline-block capitalize" style={{ background:'rgba(168,208,96,0.15)', color:'#A8D060', border:'1px solid rgba(168,208,96,0.30)' }}>{msg.suggestion.occasion}</span>}
+                        </div>
+                      )}
+                      {msg.suggestion.outfit_items.map((item, i) => (
+                        <div key={i} className="px-4 py-3" style={{ borderBottom: i < msg.suggestion!.outfit_items!.length - 1 ? '1px solid var(--card-border)' : 'none' }}>
+                          <div className="flex items-center gap-3 mb-2">
+                            <div className="cbm-swatch w-9 h-9 rounded-xl shrink-0" data-cn={item.color_name} style={{ background: item.color_hex, border:'1px solid rgba(0,0,0,0.10)' }}/>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold" style={{ color:'var(--foreground)' }}>{item.piece}</p>
+                              {item.note && <p className="text-xs" style={{ color:'var(--muted)' }}>{item.note}</p>}
+                            </div>
+                            <span className="text-xs px-2 py-0.5 rounded-lg font-mono shrink-0" style={{ background: item.color_hex, color: getContrast(item.color_hex), fontSize:10 }}>{item.color_name}</span>
+                          </div>
+                          <div className="pl-12"><ShopButtons query={`${item.piece} ${item.color_name}`}/></div>
+                        </div>
+                      ))}
+                      {msg.suggestion.style_tip && (
+                        <div className="px-4 py-3" style={{ borderTop:'1px solid var(--card-border)' }}>
+                          <p className="text-xs leading-relaxed flex items-start gap-1.5" style={{ color:'var(--accent)' }}>
+                            <Lightbulb size={13} style={{ flexShrink:0, marginTop:1 }}/> {msg.suggestion.style_tip}
+                          </p>
+                        </div>
+                      )}
+                      {msg.suggestion.outfit_items.length > 0 && (
+                        <div className="px-4 py-3" style={{ borderTop:'1px solid var(--card-border)' }}>
+                          {savedDates[msg.id] ? (
+                            <div className="flex items-center gap-2 px-3 py-2 rounded-xl" style={{ background:'rgba(90,146,64,0.15)', border:'1px solid rgba(90,146,64,0.30)' }}>
+                              <Check size={13} style={{ color:'#A8D060', flexShrink:0 }} />
+                              <span className="text-xs font-semibold" style={{ color:'#A8D060' }}>Saved to {new Date(savedDates[msg.id] + 'T00:00:00').toLocaleDateString('en-SG', { weekday:'short', month:'short', day:'numeric' })}</span>
+                            </div>
+                          ) : (
+                            <button onClick={() => setPlannerMsg({ id: msg.id, suggestion: msg.suggestion! })}
+                              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all"
+                              style={{ background:'rgba(90,146,64,0.15)', color:'#A8D060', border:'1px solid rgba(90,146,64,0.35)' }}>
+                              <CalendarPlus size={14} /> Add to Planner
+                            </button>
+                          )}
+                        </div>
+                      )}
+                      {msg.suggestion.search_query && (
+                        <div className="px-4 py-3 flex items-center gap-2 flex-wrap" style={{ borderTop:'1px solid var(--card-border)', background:'var(--muted-bg)' }}>
+                          <span className="text-xs font-semibold flex items-center gap-1 mr-1" style={{ color:'var(--muted)' }}><ShoppingBag size={11}/> Shop:</span>
+                          <a href={sheinUrl(msg.suggestion.search_query)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold hover:opacity-80" style={{ background:'#000', color:'#fff' }}>Shein <ExternalLink size={9}/></a>
+                          <a href={shopeeUrl(msg.suggestion.search_query + ' Singapore')} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold hover:opacity-80" style={{ background:'#ee4d2d', color:'#fff' }}>Shopee <ExternalLink size={9}/></a>
+                          <a href={zaloraUrl(msg.suggestion.search_query)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold hover:opacity-80" style={{ background:'linear-gradient(to bottom, var(--primary-mid), var(--primary))', color:'#fff' }}>Zalora <ExternalLink size={9}/></a>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+            {loading && (
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8 }}>
+                <div style={{ width: 30, height: 30, borderRadius: 10, background: 'linear-gradient(135deg,#5A9240,#2C4A1E)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Sparkles size={13} color="#fff" />
+                </div>
+                <div style={{ padding: '14px 18px', borderRadius: '5px 18px 18px 18px', background: 'var(--card)', border: '1px solid var(--card-border)', display: 'flex', gap: 5 }}>
+                  {[0,1,2].map((i) => <span key={i} style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--muted)', display: 'inline-block', animation: `bounce 1.2s ease ${i * 0.18}s infinite` }} />)}
+                </div>
+              </div>
             )}
-
-            {/* CTA bar */}
-            <div style={{ padding:'12px 16px', borderTop:'1px solid var(--card-border)', background:'var(--muted-bg)' }}>
-              <button onClick={() => ask()} disabled={loading}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl font-bold text-sm transition-all disabled:opacity-40"
-                style={{ background:'linear-gradient(135deg, #5A9240, #2C4A1E)', color:'#fff', boxShadow:'0 4px 16px rgba(90,146,64,0.40)' }}>
-                {loading ? <Loader size={14} className="animate-spin"/> : <Sparkles size={14}/>}
-                Get Outfit
-              </button>
-            </div>
+            <div ref={bottomRef} />
           </div>
 
-          {/* Chat messages */}
-          {messages.length > 0 && (
-            <div className="flex flex-col gap-4 mb-5">
-              {messages.map((msg) => (
-                <div key={msg.id} className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
-                  <div style={{ width:34, height:34, borderRadius:'50%', flexShrink:0, marginTop:2, display:'flex', alignItems:'center', justifyContent:'center',
-                    background: msg.role === 'assistant' ? 'rgba(90,146,64,0.12)' : 'rgba(90,146,64,0.08)',
-                    border: msg.role === 'assistant' ? '1px solid rgba(90,146,64,0.30)' : '1px solid rgba(90,146,64,0.20)',
-                  }}>
-                    {msg.role === 'assistant' ? <Bot size={15} style={{ color:'#5A9240' }}/> : <User size={15} style={{ color:'#5A9240' }}/>}
-                  </div>
-                  <div className={`flex flex-col gap-3 ${msg.role === 'user' ? 'items-end' : ''}`} style={{ maxWidth:'85%' }}>
-                    <div style={{ padding:'10px 14px', borderRadius:18, fontSize:14, lineHeight:1.55,
-                      ...(msg.role === 'user'
-                        ? { background:'linear-gradient(135deg, #5A9240, #2C4A1E)', color:'#fff', borderBottomRightRadius:4, boxShadow:'0 4px 16px rgba(90,146,64,0.30)' }
-                        : { background:'var(--card)', border:'1px solid var(--card-border)', color: msg.error ? '#f87171' : 'var(--foreground)', borderBottomLeftRadius:4 }),
-                    }}>
-                      {msg.content}
-                    </div>
-                    {msg.suggestion?.outfit_items && msg.suggestion.outfit_items.length > 0 && (
-                      <div className="w-full rounded-2xl overflow-hidden" style={{ background:'var(--card)', border:'1px solid var(--card-border)' }}>
-                        {msg.suggestion.headline && (
-                          <div style={{ padding:'12px 16px', background:'rgba(90,146,64,0.08)', borderBottom:'1px solid var(--card-border)' }}>
-                            <p style={{ fontWeight:700, fontSize:14, color:'var(--accent)' }}>{msg.suggestion.headline}</p>
-                            {msg.suggestion.occasion && (
-                              <span className="text-xs px-2 py-0.5 rounded-full font-medium mt-1 inline-block capitalize" style={{ background:'rgba(168,208,96,0.15)', color:'#A8D060', border:'1px solid rgba(168,208,96,0.30)' }}>
-                                {msg.suggestion.occasion}
-                              </span>
-                            )}
-                          </div>
-                        )}
-                        {msg.suggestion.outfit_items.map((item, i) => (
-                          <div key={i} className="px-4 py-3" style={{ borderBottom: i < msg.suggestion!.outfit_items!.length - 1 ? '1px solid var(--card-border)' : 'none' }}>
-                            <div className="flex items-center gap-3 mb-2">
-                              <div className="cbm-swatch w-9 h-9 rounded-xl shrink-0" data-cn={item.color_name} style={{ background: item.color_hex, border:'1px solid rgba(0,0,0,0.10)' }}/>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-semibold" style={{ color:'var(--foreground)' }}>{item.piece}</p>
-                                {item.note && <p className="text-xs" style={{ color:'var(--muted)' }}>{item.note}</p>}
-                              </div>
-                              <span className="text-xs px-2 py-0.5 rounded-lg font-mono shrink-0" style={{ background: item.color_hex, color: getContrast(item.color_hex), fontSize:10 }}>{item.color_name}</span>
-                            </div>
-                            <div className="pl-12"><ShopButtons query={`${item.piece} ${item.color_name} men`}/></div>
-                          </div>
-                        ))}
-                        {msg.suggestion.style_tip && (
-                          <div className="px-4 py-3" style={{ borderTop:'1px solid var(--card-border)' }}>
-                            <p className="text-xs leading-relaxed flex items-start gap-1.5" style={{ color:'var(--accent)' }}>
-                              <Lightbulb size={13} style={{ flexShrink:0, marginTop:1 }}/> {msg.suggestion.style_tip}
-                            </p>
-                          </div>
-                        )}
-                        {/* Add to Planner */}
-                        {msg.suggestion.outfit_items && msg.suggestion.outfit_items.length > 0 && (
-                          <div className="px-4 py-3" style={{ borderTop:'1px solid var(--card-border)' }}>
-                            {savedDates[msg.id] ? (
-                              <div className="flex items-center gap-2 px-3 py-2 rounded-xl" style={{ background:'rgba(90,146,64,0.15)', border:'1px solid rgba(90,146,64,0.30)' }}>
-                                <Check size={13} style={{ color:'#A8D060', flexShrink:0 }} />
-                                <span className="text-xs font-semibold" style={{ color:'#A8D060' }}>
-                                  Saved to {new Date(savedDates[msg.id] + 'T00:00:00').toLocaleDateString('en-SG', { weekday:'short', month:'short', day:'numeric' })}
-                                </span>
-                              </div>
-                            ) : (
-                              <button
-                                onClick={() => setPlannerMsg({ id: msg.id, suggestion: msg.suggestion! })}
-                                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-90"
-                                style={{ background:'rgba(90,146,64,0.15)', color:'#A8D060', border:'1px solid rgba(90,146,64,0.35)' }}
-                              >
-                                <CalendarPlus size={14} /> Add to Planner
-                              </button>
-                            )}
-                          </div>
-                        )}
-
-                        {msg.suggestion.search_query && (
-                          <div className="px-4 py-3 flex items-center gap-2 flex-wrap" style={{ borderTop:'1px solid var(--card-border)', background:'var(--muted-bg)' }}>
-                            <span className="text-xs font-semibold flex items-center gap-1 mr-1" style={{ color:'var(--muted)' }}><ShoppingBag size={11}/> Shop Full Look:</span>
-                            <a href={sheinUrl(msg.suggestion.search_query + ' men')} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold hover:opacity-80" style={{ background:'#000', color:'#fff' }}>Shein <ExternalLink size={9}/></a>
-                            <a href={shopeeUrl(msg.suggestion.search_query + ' men Singapore')} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold hover:opacity-80" style={{ background:'#ee4d2d', color:'#fff' }}>Shopee <ExternalLink size={9}/></a>
-                            <a href={zaloraUrl(msg.suggestion.search_query)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold hover:opacity-80" style={{ background:'linear-gradient(to bottom, var(--primary-mid), var(--primary))', color:'#fff' }}>Zalora <ExternalLink size={9}/></a>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-              {loading && (
-                <div className="flex gap-3">
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ background:'rgba(90,146,64,0.12)', border:'1px solid rgba(90,146,64,0.30)' }}>
-                    <Sparkles size={15} style={{ color:'#5A9240' }}/>
-                  </div>
-                  <div className="px-4 py-3 rounded-2xl flex items-center gap-1.5" style={{ background:'var(--card)', border:'1px solid var(--card-border)' }}>
-                    {[0,1,2].map((i) => <span key={i} className="w-1.5 h-1.5 rounded-full" style={{ background:'var(--muted)', animation:`bounce 1.2s ease ${i*0.2}s infinite` }}/>)}
-                  </div>
-                </div>
-              )}
-              <div ref={bottomRef}/>
-            </div>
-          )}
-
-          {/* ── Chat input bar ─────────────────────────────────────── */}
-          <div style={{
-            position: 'sticky', bottom: 0, zIndex: 40,
-            background: 'rgba(var(--background-rgb, 242,237,230),0.96)',
-            backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
-            borderTop: '1px solid var(--card-border)',
-            padding: '10px 0 12px',
-          }}>
+          {/* ── Input bar ── */}
+          <div style={{ flexShrink: 0, background: 'var(--card)', borderTop: '1px solid var(--card-border)', padding: '10px 14px', paddingBottom: 'calc(env(safe-area-inset-bottom) + 80px)' }}>
             {/* Photo preview */}
             {chatPhoto && (
-              <div style={{ padding: '0 16px 8px', display: 'flex' }}>
+              <div style={{ marginBottom: 8, display: 'flex' }}>
                 <div style={{ position: 'relative', display: 'inline-block' }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={chatPhoto} alt="attached" style={{ width: 58, height: 58, objectFit: 'cover', borderRadius: 10, border: '2px solid var(--card-border)' }} />
-                  <button onClick={() => setChatPhoto(null)} style={{ position: 'absolute', top: -5, right: -5, width: 18, height: 18, borderRadius: '50%', background: 'var(--foreground)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                    <X size={9} color="#fff" />
+                  <img src={chatPhoto} alt="attached" style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 12, border: '2px solid var(--card-border)' }} />
+                  <button onClick={() => setChatPhoto(null)} style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', background: 'var(--foreground)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                    <X size={10} color="#fff" />
                   </button>
                 </div>
               </div>
             )}
-            {/* Input row */}
-            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, padding: '0 14px' }}>
-              <input ref={chatImgRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={async (e) => {
-                const file = e.target.files?.[0];
-                if (!file) return;
-                e.target.value = '';
-                const { compressImage: compress } = await import('@/lib/image-utils');
-                setChatPhoto(await compress(file));
-              }} />
-              <button onClick={() => chatImgRef.current?.click()} style={{ width: 40, height: 40, borderRadius: 13, background: 'var(--muted-bg)', border: '1.5px solid var(--card-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
-                <Paperclip size={16} style={{ color: 'var(--muted)' }} />
+            {/* Row: camera + attach + textarea + send */}
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8 }}>
+              {/* Hidden file inputs */}
+              <input ref={cameraRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={async (e) => { const f = e.target.files?.[0]; if (!f) return; e.target.value = ''; await handlePhoto(f); }} />
+              <input ref={chatImgRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={async (e) => { const f = e.target.files?.[0]; if (!f) return; e.target.value = ''; await handlePhoto(f); }} />
+              {/* Camera button */}
+              <button onClick={() => cameraRef.current?.click()} title="Take photo" style={{ width: 42, height: 42, borderRadius: 14, background: 'var(--muted-bg)', border: '1.5px solid var(--card-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+                <Camera size={17} style={{ color: 'var(--muted)' }} />
               </button>
-              <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', gap: 8, background: '#fff', border: '1.5px solid var(--card-border)', borderRadius: 22, padding: '9px 10px 9px 14px', boxShadow: '0 4px 18px rgba(0,0,0,0.07)' }}>
+              {/* Attach button */}
+              <button onClick={() => chatImgRef.current?.click()} title="Attach image" style={{ width: 42, height: 42, borderRadius: 14, background: 'var(--muted-bg)', border: '1.5px solid var(--card-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+                <Paperclip size={17} style={{ color: 'var(--muted)' }} />
+              </button>
+              {/* Textarea + send */}
+              <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', gap: 8, background: '#fff', border: '1.5px solid var(--card-border)', borderRadius: 22, padding: '9px 10px 9px 14px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
                 <textarea
                   ref={chatTARef}
                   value={userMessage}
-                  onChange={(e) => {
-                    setUserMessage(e.target.value);
-                    e.target.style.height = 'auto';
-                    e.target.style.height = Math.min(e.target.scrollHeight, 110) + 'px';
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      if (userMessage.trim() || chatPhoto) ask(userMessage.trim() || buildQuery(), chatPhoto ?? undefined);
-                    }
-                  }}
-                  placeholder="Ask your stylist anything…"
+                  onChange={(e) => { setUserMessage(e.target.value); e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 110) + 'px'; }}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (userMessage.trim() || chatPhoto) ask(userMessage, chatPhoto ?? undefined); } }}
+                  placeholder="Ask your stylist…"
                   rows={1}
                   style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', fontSize: 14, color: 'var(--foreground)', resize: 'none', overflow: 'hidden', lineHeight: 1.5, maxHeight: 110, fontFamily: 'inherit' }}
                 />
                 <button
-                  onClick={() => { if (userMessage.trim() || chatPhoto) ask(userMessage.trim() || buildQuery(), chatPhoto ?? undefined); }}
-                  disabled={!userMessage.trim() && !chatPhoto && loading}
-                  style={{
-                    width: 34, height: 34, borderRadius: 11, border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, transition: 'all 0.18s ease',
+                  onClick={() => { if (userMessage.trim() || chatPhoto) ask(userMessage, chatPhoto ?? undefined); }}
+                  disabled={!userMessage.trim() && !chatPhoto}
+                  style={{ width: 34, height: 34, borderRadius: 11, border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, transition: 'all 0.18s ease',
                     background: (userMessage.trim() || chatPhoto) ? 'linear-gradient(135deg,#5A9240,#2C4A1E)' : 'var(--muted-bg)',
-                    boxShadow: (userMessage.trim() || chatPhoto) ? '0 4px 14px rgba(44,74,30,0.30)' : 'none',
-                  }}
-                >
+                    boxShadow: (userMessage.trim() || chatPhoto) ? '0 4px 14px rgba(44,74,30,0.28)' : 'none',
+                  }}>
                   {loading ? <Loader size={13} style={{ color: 'var(--muted)', animation: 'spin 1s linear infinite' }} /> : <Send size={14} color={(userMessage.trim() || chatPhoto) ? '#fff' : 'var(--muted)'} />}
                 </button>
               </div>
             </div>
           </div>
-
         </>
       )}
 
-      {/* ══════ ECO MODE TAB ══════ */}
+      {/* ══ ECO TAB ══ */}
       {tab === 'eco' && (
-        <div className="space-y-4">
+        <div style={{ flex: 1, overflowY: 'auto', padding: '16px', paddingBottom: 'calc(env(safe-area-inset-bottom) + 90px)' }} className="space-y-4">
           {/* Hero */}
           <div className="rounded-3xl p-5" style={{
             background: 'linear-gradient(135deg, rgba(44,74,30,0.85), rgba(26,46,18,0.80))',
@@ -785,30 +651,30 @@ export default function StylistPage() {
         </div>
       )}
 
-      <style>{`@keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}`}</style>
+      </div>{/* end content area */}
+    </div>{/* end full-height container */}
 
-      {/* Add to Planner modal */}
-      {plannerMsg && (
-        <PlannerModal
-          suggestion={plannerMsg.suggestion}
-          onClose={() => setPlannerMsg(null)}
-          onSaved={(date) => {
-            const s = plannerMsg.suggestion;
-            const planned: PlannedOutfit = {
-              id: uid(),
-              date,
-              title: s.headline ?? s.occasion ?? 'AI Outfit',
-              items: (s.outfit_items ?? []).map((i) => ({ piece: i.piece, color_name: i.color_name, color_hex: i.color_hex, note: i.note })),
-              occasion: s.occasion,
-              source: 'stylist',
-              created_at: new Date().toISOString(),
-            };
-            addPlannedOutfit(planned);
-            setSavedDates((prev) => ({ ...prev, [plannerMsg.id]: date }));
-          }}
-        />
-      )}
-    </div>
-    </div>
+    {/* Add to Planner modal */}
+    {plannerMsg && (
+      <PlannerModal
+        suggestion={plannerMsg.suggestion}
+        onClose={() => setPlannerMsg(null)}
+        onSaved={(date) => {
+          const s = plannerMsg.suggestion;
+          const planned: PlannedOutfit = {
+            id: uid(),
+            date,
+            title: s.headline ?? s.occasion ?? 'AI Outfit',
+            items: (s.outfit_items ?? []).map((i) => ({ piece: i.piece, color_name: i.color_name, color_hex: i.color_hex, note: i.note })),
+            occasion: s.occasion,
+            source: 'stylist',
+            created_at: new Date().toISOString(),
+          };
+          addPlannedOutfit(planned);
+          setSavedDates((prev) => ({ ...prev, [plannerMsg.id]: date }));
+        }}
+      />
+    )}
+    </>
   );
 }

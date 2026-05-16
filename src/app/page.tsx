@@ -70,14 +70,6 @@ interface AISuggestion {
   occasion?: string;
   search_query?: string;
 }
-interface ChatMessage {
-  id: string;
-  role: 'user' | 'ai';
-  content: string;
-  image?: string;
-  loading?: boolean;
-  suggestion?: AISuggestion;
-}
 interface GroomingStep {
   step: string;
   product_name?: string;
@@ -145,18 +137,9 @@ export default function HomePage() {
   const [groomingLoading, setGroomingLoading] = useState(false);
   const fileInputRef                        = useRef<HTMLInputElement>(null);
 
-  // Mobile slider state
-  const [activeSlide, setActiveSlide]       = useState(1); // 0=Mirror, 1=Chat, 2=Today
-  const [chatImg, setChatImg]               = useState<string | null>(null);
-  const chatImgRef                          = useRef<HTMLInputElement>(null);
-  const [messages, setMessages]             = useState<ChatMessage[]>([]);
-  const messagesEndRef                      = useRef<HTMLDivElement>(null);
-  const chatTextareaRef                     = useRef<HTMLTextAreaElement>(null);
+  // Mobile slider state — 0=Mirror, 1=Today
+  const [activeSlide, setActiveSlide]       = useState(1);
   const todayIdx                            = (new Date().getDay() + 6) % 7;
-  const CHAT_DAYS                           = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-  const [chatDay, setChatDay]               = useState(todayIdx);
-  const [chatOccasion, setChatOccasion]     = useState<string|null>(null);
-  const CHAT_OCCASIONS                      = ['Office','Casual','Date Night','Weekend','Party','Festive','Travel','Gym'] as const;
 
   // Gender toggle — persisted in localStorage
   const [gender, setGender] = useState<'male' | 'female'>('male');
@@ -372,50 +355,6 @@ export default function HomePage() {
     }
   }
 
-  async function askAIChat(q: string, imgData?: string) {
-    const dayLabel = CHAT_DAYS[chatDay];
-    const occLabel = chatOccasion ? ` for ${chatOccasion}` : '';
-    const contextQ = q || `What should I wear on ${dayLabel}${occLabel} in Singapore?`;
-    const displayQ = contextQ;
-    const id = Date.now().toString();
-    setMessages(prev => [
-      ...prev,
-      { id: `${id}-u`, role: 'user', content: displayQ, image: imgData },
-      { id: `${id}-a`, role: 'ai', content: '', loading: true },
-    ]);
-    setQuestion('');
-    setChatImg(null);
-    if (chatTextareaRef.current) chatTextareaRef.current.style.height = 'auto';
-    setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
-
-    try {
-      const res = await fetch('/api/stylist', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          query: contextQ,
-          wardrobe: items.map((i) => ({ name: i.name, category: i.category, color_hex: i.color_hex, color_name: i.color_name, tags: i.tags })),
-          photo_base64: imgData ? stripDataPrefix(imgData) : undefined,
-          weather: weather
-            ? { temperature: weather.temperature, feels_like: weather.feels_like, description: weather.description, condition: weather.condition, city: weather.city, humidity: weather.humidity }
-            : { temperature: 31, feels_like: 36, description: 'Humid and sunny', condition: 'hot', city: 'Singapore', humidity: 84 },
-        }),
-      });
-      const data = await res.json() as AISuggestion;
-      if (!res.ok) throw new Error(data.message ?? 'AI error');
-      setMessages(prev => prev.map(m => m.id === `${id}-a`
-        ? { ...m, loading: false, content: data.message ?? 'Here is my suggestion.', suggestion: data }
-        : m
-      ));
-    } catch {
-      setMessages(prev => prev.map(m => m.id === `${id}-a`
-        ? { ...m, loading: false, content: 'Sorry, I could not connect right now. Please try again.' }
-        : m
-      ));
-    }
-    setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
-  }
-
   function openCamera() {
     setShowCamera(true);
     // Scroll to top so the fixed camera overlay isn't hidden behind content on mobile
@@ -483,7 +422,7 @@ export default function HomePage() {
         @keyframes chipPulse{0%,100%{opacity:0.55}50%{opacity:1}}
       `}</style>
 
-      {/* ── Tab header ─────────────────────────────────── */}
+      {/* ── Tab header: Mirror / Today ─── */}
       <div style={{
         paddingTop: 'calc(env(safe-area-inset-top) + 10px)',
         paddingBottom: 10, paddingLeft: 12, paddingRight: 12,
@@ -495,7 +434,6 @@ export default function HomePage() {
       }}>
         {([
           { label: 'Mirror', icon: Camera },
-          { label: 'Chat',   icon: Sparkles },
           { label: 'Today',  icon: CalendarDays },
         ] as const).map(({ label, icon: Icon }, i) => (
           <button key={i} onClick={() => setActiveSlide(i)} style={{
@@ -520,9 +458,9 @@ export default function HomePage() {
 
       {/* ── Slide viewport ────────────────────────────── */}
       <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
-        {/* Slide track */}
+        {/* Slide track: 2 slides */}
         <div style={{
-          display: 'flex', width: '300vw', height: '100%',
+          display: 'flex', width: '200vw', height: '100%',
           transform: `translateX(${-activeSlide * 100}vw)`,
           transition: 'transform 0.4s cubic-bezier(0.4,0,0.2,1)',
         }}>
@@ -532,242 +470,7 @@ export default function HomePage() {
           <MirrorSlide isActive={activeSlide === 0} weather={weather} />
         </div>
 
-        {/* ── Slide 1: AI Chat ─── */}
-        <div style={{ width: '100vw', height: '100%', flexShrink: 0, display: 'flex', flexDirection: 'column', background: 'var(--background)' }}>
-
-          {/* Chat sub-header: dark green banner (matches Stylist page) */}
-          <div style={{ flexShrink: 0 }}>
-            {/* ── Banner ── */}
-            <div style={{
-              background: 'linear-gradient(160deg,#2C4A1E 0%,#3A6028 55%,#4E7A35 100%)',
-              padding: '10px 16px 16px',
-              display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
-            }}>
-              <div>
-                <p style={{ fontSize: '0.5rem', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(168,208,96,0.70)', margin: '0 0 5px' }}>AI Outfit Advice · Style Chat</p>
-                <h2 style={{ fontFamily: 'var(--font-display),Georgia,serif', fontStyle: 'italic', fontWeight: 600, fontSize: '1.4rem', letterSpacing: '-0.025em', lineHeight: 0.95, color: '#fff', margin: 0 }}>
-                  Your{' '}<span style={{ background: 'linear-gradient(135deg,#A8D060 0%,#7AB648 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>Stylist</span>
-                </h2>
-              </div>
-              <div style={{ display: 'flex', gap: 2, padding: 3, borderRadius: 12, background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.15)' }}>
-                {(['male','female'] as const).map((g) => (
-                  <button key={g} onClick={() => toggleGender(g)} style={{
-                    display: 'flex', alignItems: 'center', gap: 4, padding: '5px 11px',
-                    borderRadius: 9, fontSize: 12, fontWeight: 700, border: 'none', cursor: 'pointer',
-                    background: gender === g
-                      ? g === 'male' ? 'rgba(168,208,96,0.28)' : 'rgba(190,24,93,0.38)'
-                      : 'transparent',
-                    color: gender === g ? '#fff' : 'rgba(255,255,255,0.50)',
-                    transition: 'all 0.2s ease',
-                  }}>
-                    {g === 'male' ? <Mars size={12}/> : <Venus size={12}/>}
-                    {g.charAt(0).toUpperCase() + g.slice(1)}
-                  </button>
-                ))}
-              </div>
-            </div>
-            {/* ── Day + Occasion pickers (light card) ── */}
-            <div style={{ background: 'var(--card)', borderBottom: '1px solid var(--card-border)' }}>
-              <div className="chip-scroll" style={{ display: 'flex', gap: 5, padding: '8px 14px', overflowX: 'auto' }}>
-                {CHAT_DAYS.map((d, i) => (
-                  <button key={d} onClick={() => setChatDay(i)} style={{
-                    flexShrink: 0, padding: '4px 11px', borderRadius: 8, fontSize: 11,
-                    fontWeight: chatDay === i ? 700 : 500, border: 'none', cursor: 'pointer',
-                    background: chatDay === i ? 'linear-gradient(to bottom,var(--primary-mid),var(--primary))' : 'var(--muted-bg)',
-                    color: chatDay === i ? '#fff' : 'var(--muted)',
-                    position: 'relative',
-                  }}>
-                    {d}
-                    {i === todayIdx && <span style={{ position: 'absolute', bottom: 2, left: '50%', transform: 'translateX(-50%)', width: 3, height: 3, borderRadius: '50%', background: chatDay === i ? 'rgba(255,255,255,0.7)' : 'var(--accent)', display: 'block' }} />}
-                  </button>
-                ))}
-              </div>
-              <div className="chip-scroll" style={{ display: 'flex', gap: 5, padding: '0 14px 10px', overflowX: 'auto' }}>
-                {CHAT_OCCASIONS.map((occ) => (
-                  <button key={occ} onClick={() => setChatOccasion(chatOccasion === occ ? null : occ)} style={{
-                    flexShrink: 0, padding: '4px 11px', borderRadius: 8, fontSize: 11,
-                    fontWeight: chatOccasion === occ ? 700 : 500, border: 'none', cursor: 'pointer',
-                    background: chatOccasion === occ ? 'rgba(90,146,64,0.12)' : 'var(--muted-bg)',
-                    color: chatOccasion === occ ? 'var(--accent)' : 'var(--muted)',
-                    outline: chatOccasion === occ ? '1.5px solid rgba(90,146,64,0.40)' : '1px solid var(--card-border)',
-                    transition: 'all 0.15s ease',
-                  }}>
-                    {occ}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Messages area */}
-          <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {messages.length === 0 ? (
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, paddingBottom: 24 }}>
-                <div style={{ width: 68, height: 68, borderRadius: 22, background: 'linear-gradient(135deg,var(--primary-mid),var(--primary))', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 28px rgba(44,74,30,0.28)' }}>
-                  <Sparkles size={30} color="#fff" />
-                </div>
-                <div style={{ textAlign: 'center' }}>
-                  <p style={{ fontSize: 16, fontWeight: 700, color: 'var(--foreground)', marginBottom: 6 }}>Your AI Style Assistant</p>
-                  <p style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.55, maxWidth: 230 }}>Ask me anything about what to wear — I know Singapore&apos;s weather and your wardrobe.</p>
-                </div>
-              </div>
-            ) : (
-              messages.map((msg) => (
-                <div key={msg.id} style={{ display: 'flex', flexDirection: msg.role === 'user' ? 'row-reverse' : 'row', alignItems: 'flex-end', gap: 8, animation: 'msgIn 0.28s cubic-bezier(0.34,1.56,0.64,1)' }}>
-                  {msg.role === 'ai' && (
-                    <div style={{ width: 30, height: 30, borderRadius: 10, background: 'linear-gradient(135deg,var(--primary-mid),var(--primary))', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 3px 10px rgba(44,74,30,0.22)' }}>
-                      <Sparkles size={13} color="#fff" />
-                    </div>
-                  )}
-                  <div style={{ maxWidth: '80%', display: 'flex', flexDirection: 'column', gap: 6, alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
-                    {msg.image && (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={msg.image} alt="attached" style={{ width: 130, height: 130, objectFit: 'cover', borderRadius: 14, border: '2px solid var(--card-border)', boxShadow: '0 4px 14px rgba(0,0,0,0.10)' }} />
-                    )}
-                    <div style={{
-                      padding: msg.loading ? '14px 18px' : '11px 15px',
-                      borderRadius: msg.role === 'user' ? '18px 18px 5px 18px' : '5px 18px 18px 18px',
-                      background: msg.role === 'user'
-                        ? 'linear-gradient(135deg,#5A9240,#2C4A1E)'
-                        : 'var(--card)',
-                      border: msg.role === 'ai' ? '1px solid var(--card-border)' : 'none',
-                      boxShadow: msg.role === 'user'
-                        ? '0 4px 16px rgba(44,74,30,0.28)'
-                        : '0 2px 10px rgba(0,0,0,0.06)',
-                    }}>
-                      {msg.loading ? (
-                        <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
-                          {[0,1,2].map((i) => (
-                            <div key={i} style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--muted)', animation: 'chatDotBounce 1.2s ease infinite', animationDelay: `${i*0.16}s` }} />
-                          ))}
-                        </div>
-                      ) : (
-                        <p style={{ fontSize: 14, lineHeight: 1.62, color: msg.role === 'user' ? '#fff' : 'var(--foreground)', margin: 0, whiteSpace: 'pre-wrap' }}>{msg.content}</p>
-                      )}
-                    </div>
-                    {msg.role === 'ai' && !msg.loading && msg.suggestion?.outfit_items && msg.suggestion.outfit_items.length > 0 && (
-                      <div style={{ background: 'var(--card)', border: '1px solid var(--card-border)', borderRadius: 14, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 7, width: '100%', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
-                        <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>Outfit</p>
-                        {msg.suggestion.outfit_items.map((item, i) => (
-                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 8px', borderRadius: 9, background: 'var(--muted-bg)', border: '1px solid var(--card-border)' }}>
-                            <div style={{ width: 22, height: 22, borderRadius: 6, background: item.color_hex, border: '1px solid rgba(0,0,0,0.08)', flexShrink: 0 }} />
-                            <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--foreground)', margin: 0 }}>{item.piece}</p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    {msg.role === 'ai' && !msg.loading && msg.suggestion?.style_tip && (
-                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, padding: '8px 10px', borderRadius: 11, background: 'rgba(44,74,30,0.06)', border: '1px solid rgba(44,74,30,0.14)', width: '100%' }}>
-                        <Lightbulb size={11} style={{ color: 'var(--accent)', flexShrink: 0, marginTop: 2 }} />
-                        <p style={{ fontSize: 11, color: 'var(--foreground)', lineHeight: 1.5, margin: 0 }}>{msg.suggestion.style_tip}</p>
-                      </div>
-                    )}
-                    {msg.role === 'ai' && !msg.loading && msg.suggestion?.search_query && (
-                      <div style={{ display: 'flex', gap: 6, width: '100%' }}>
-                        <a href={pinterestUrl(msg.suggestion.search_query)} target="_blank" rel="noopener noreferrer" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, padding: '7px', borderRadius: 10, background: '#e60023', color: '#fff', fontSize: 11, fontWeight: 600, textDecoration: 'none' }}>
-                          <ExternalLink size={10} /> Pinterest
-                        </a>
-                        <a href={googleImagesUrl(msg.suggestion.search_query)} target="_blank" rel="noopener noreferrer" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, padding: '7px', borderRadius: 10, background: 'var(--muted-bg)', border: '1px solid var(--card-border)', color: 'var(--foreground)', fontSize: 11, fontWeight: 600, textDecoration: 'none' }}>
-                          <ExternalLink size={10} /> Google
-                        </a>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))
-            )}
-            <div ref={messagesEndRef} />
-          </div>
-
-          {/* ── Bottom input bar (sits above bottom nav) ─── */}
-          <div style={{ flexShrink: 0, background: 'rgba(255,255,255,0.94)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderTop: '1px solid var(--card-border)', paddingBottom: 'calc(88px + env(safe-area-inset-bottom))' }}>
-            {/* Get Outfit CTA + quick prompts */}
-            <div style={{ padding: '10px 14px 0', display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <button onClick={() => askAIChat('')} style={{
-                width: '100%', padding: '11px', borderRadius: 14, border: 'none', cursor: 'pointer',
-                background: 'linear-gradient(135deg,#5A9240,#2C4A1E)', color: '#fff',
-                fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
-                boxShadow: '0 4px 16px rgba(44,74,30,0.28)',
-              }}>
-                <Sparkles size={14}/>
-                Get outfit for {CHAT_DAYS[chatDay]}{chatOccasion ? ` · ${chatOccasion}` : ''}
-              </button>
-              <div className="chip-scroll" style={{ display: 'flex', gap: 7, overflowX: 'auto' }}>
-                {QUICK.map((q, i) => {
-                  const cc = [
-                    { bg: '#EEF2FF', color: '#4F46E5', border: '#C7D2FE' },
-                    { bg: '#FEF3C7', color: '#B45309', border: '#FDE68A' },
-                    { bg: '#FCE7F3', color: '#BE185D', border: '#FBCFE8' },
-                    { bg: '#DCFCE7', color: '#166534', border: '#BBF7D0' },
-                  ][i % 4];
-                  return (
-                    <button key={q} onClick={() => askAIChat(q)} style={{ whiteSpace: 'nowrap', flexShrink: 0, padding: '5px 12px', borderRadius: 999, fontSize: 12, fontWeight: 600, background: cc.bg, color: cc.color, border: `1.5px solid ${cc.border}`, cursor: 'pointer', transition: 'transform 0.12s ease' }}
-                      onPointerDown={(e) => (e.currentTarget.style.transform = 'scale(0.94)')}
-                      onPointerUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-                    >{q}</button>
-                  );
-                })}
-              </div>
-            </div>
-            {/* Image preview */}
-            {chatImg && (
-              <div style={{ padding: '8px 14px 0', display: 'flex' }}>
-                <div style={{ position: 'relative', display: 'inline-block' }}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={chatImg} alt="attached" style={{ width: 58, height: 58, objectFit: 'cover', borderRadius: 10, border: '2px solid var(--card-border)' }} />
-                  <button onClick={() => setChatImg(null)} style={{ position: 'absolute', top: -5, right: -5, width: 18, height: 18, borderRadius: '50%', background: 'var(--foreground)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                    <X size={9} color="#fff" />
-                  </button>
-                </div>
-              </div>
-            )}
-            {/* Input row */}
-            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, padding: '8px 12px 4px' }}>
-              <input ref={chatImgRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={async (e) => {
-                const file = e.target.files?.[0];
-                if (!file) return;
-                e.target.value = '';
-                const { compressImage: compress } = await import('@/lib/image-utils');
-                setChatImg(await compress(file));
-              }} />
-              <button onClick={() => chatImgRef.current?.click()} style={{ width: 40, height: 40, borderRadius: 13, background: 'var(--muted-bg)', border: '1.5px solid var(--card-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
-                <Paperclip size={16} style={{ color: 'var(--muted)' }} />
-              </button>
-              <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', gap: 8, background: '#fff', border: '1.5px solid var(--card-border)', borderRadius: 22, padding: '9px 10px 9px 14px', boxShadow: '0 4px 18px rgba(0,0,0,0.07)' }}>
-                <textarea
-                  ref={chatTextareaRef}
-                  value={question}
-                  onChange={(e) => {
-                    setQuestion(e.target.value);
-                    e.target.style.height = 'auto';
-                    e.target.style.height = Math.min(e.target.scrollHeight, 110) + 'px';
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey && (question.trim() || chatImg)) {
-                      e.preventDefault();
-                      askAIChat(question || 'What do you think of this outfit?', chatImg ?? undefined);
-                    }
-                  }}
-                  placeholder="Ask about your outfit…"
-                  rows={1}
-                  style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', fontSize: 14, color: 'var(--foreground)', resize: 'none', overflow: 'hidden', lineHeight: 1.5, maxHeight: 110, fontFamily: 'inherit' }}
-                />
-                <button
-                  onClick={() => { if (question.trim() || chatImg) askAIChat(question || 'What do you think?', chatImg ?? undefined); }}
-                  disabled={!question.trim() && !chatImg}
-                  style={{ width: 34, height: 34, borderRadius: 11, border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, transition: 'all 0.18s ease',
-                    background: (question.trim() || chatImg) ? 'linear-gradient(135deg,#5A9240,#2C4A1E)' : 'var(--muted-bg)',
-                    boxShadow: (question.trim() || chatImg) ? '0 4px 14px rgba(44,74,30,0.30)' : 'none',
-                  }}
-                >
-                  <Send size={14} color={(question.trim() || chatImg) ? '#fff' : 'var(--muted)'} />
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* ── Slide 2: Today ─── */}
+        {/* ── Slide 1: Today ─── */}
         <div style={{ width: '100vw', height: '100%', flexShrink: 0, overflowY: 'auto', background: 'var(--background)' }}>
           <div style={{ padding: '16px 20px 120px', maxWidth: 480, margin: '0 auto' }}>
 
