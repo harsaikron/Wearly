@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { aiChat, safeParseJSON } from '@/lib/ai-client';
+import { FASHION_KNOWLEDGE } from '@/lib/fashion-knowledge';
 
 interface WardrobeItem {
   name: string;
@@ -37,7 +38,10 @@ export async function POST(req: NextRequest) {
     .join('\n');
 
   const genderLabel = gender === 'female' ? 'female / women' : 'male / men';
-  const system = `You are a personal AI stylist powered by Gemma 4.
+  const system = `You are a world-class personal AI stylist with expert knowledge of 2024-2025 fashion trends, color theory, body-type styling, Singapore climate, and cultural occasions for both men and women.
+
+${FASHION_KNOWLEDGE}
+
 Select the BEST outfit for today for a ${genderLabel} user from their actual wardrobe.
 Be specific — use the EXACT item names from the wardrobe list.
 For every item you select, give a clear, personal reason why you chose it today (weather, day of week, event, style logic).

@@ -11,6 +11,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { aiChatWithImage, safeParseJSON, detectFashionModel } from '@/lib/ai-client';
+import { FASHION_KNOWLEDGE_COMPACT } from '@/lib/fashion-knowledge';
 
 const SYSTEM = `You are Wearly's world-class fashion AI, expert in global fashion, color theory, and garment classification.
 
@@ -146,6 +147,8 @@ OCCASION TAGGING — tag with ALL that apply
 
 Reply ONLY with valid JSON — no markdown fences, no extra text.`;
 
+const SYSTEM_FULL = SYSTEM + '\n\n' + FASHION_KNOWLEDGE_COMPACT;
+
 const PROMPT = `Analyze this item precisely. Execute the 4-step color analysis, then return JSON with exactly these fields:
 {
   "suggested_name": "specific descriptive name using CORRECT color (e.g. 'Sage Green Graphic Tee', 'SPF 50 Sunscreen', 'Silver Chain Necklace')",
@@ -166,7 +169,7 @@ export async function POST(request: NextRequest) {
     }
 
     const isFinetuned = await detectFashionModel();
-    const { text, backend } = await aiChatWithImage(SYSTEM, PROMPT, image_base64);
+    const { text, backend } = await aiChatWithImage(SYSTEM_FULL, PROMPT, image_base64);
     const parsed = safeParseJSON(text) as Record<string, unknown>;
 
     // ── Self-learning: fire-and-forget to accumulate training data ──

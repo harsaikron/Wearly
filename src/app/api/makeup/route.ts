@@ -10,9 +10,12 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { aiChatMakeup, safeParseJSON } from '@/lib/ai-client';
+import { FASHION_KNOWLEDGE } from '@/lib/fashion-knowledge';
 
-const SYSTEM = `You are Wearly's AI beauty and accessories stylist, expert in makeup colour theory,
-jewellery pairing, and fashion coordination for all genders.
+const SYSTEM = `You are Wearly's AI beauty and accessories stylist — a world-class expert in makeup colour theory, skincare, jewellery pairing, grooming, and fashion coordination for all genders. You have deep knowledge of 2024-2025 makeup trends, skin tone matching, contouring, and accessory rules.
+
+${FASHION_KNOWLEDGE}
+
 
 You receive an outfit, weather data, gender, and the user's uploaded makeup and jewelry items.
 You return personalised makeup + accessory suggestions in two sections:
