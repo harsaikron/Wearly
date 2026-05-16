@@ -122,8 +122,14 @@ export default function Navbar() {
       {/* ── Mobile liquid glass bottom nav ──────────────────────── */}
       {mounted && (
         <div
-          className="md:hidden fixed z-50"
-          style={{ bottom: 'calc(14px + env(safe-area-inset-bottom))', left: 14, right: 14 }}
+          className="md:hidden fixed z-[9999]"
+          style={{
+            bottom: 'calc(14px + env(safe-area-inset-bottom))',
+            left: 14,
+            right: 14,
+            WebkitTransform: 'translateZ(0)',
+            transform: 'translateZ(0)',
+          }}
         >
           <style>{`
             @keyframes lgShimmer {

@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Geist } from 'next/font/google';
 import { Cormorant_Garamond } from 'next/font/google';
 import './globals.css';
@@ -12,6 +12,12 @@ const cormorant = Cormorant_Garamond({
   weight: ['400', '500', '600', '700'],
   style: ['normal', 'italic'],
 });
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+};
 
 export const metadata: Metadata = {
   title: 'Wearly — AI Wardrobe Stylist',
@@ -36,7 +42,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Floating CBM indicator — only visible when data-cbm="1" */}
         <div className="cbm-indicator" aria-hidden="true">👁 Color Blind Mode</div>
         <Navbar />
-        <main className="flex-1 pb-[calc(100px+env(safe-area-inset-bottom))] md:pb-0">
+        {/* overflow-x clip lives here, NOT on html/body — avoids breaking position:fixed on iOS Safari */}
+        <main className="flex-1 pb-[calc(100px+env(safe-area-inset-bottom))] md:pb-0 overflow-x-hidden">
           {children}
         </main>
       </body>
