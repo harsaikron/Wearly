@@ -31,7 +31,7 @@ export default function MirrorSlide({ isActive, weather }: Props) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          query: "I'm looking at myself in the mirror. Describe what I'm wearing in detail and give me 2-3 friendly style tips or compliments. Keep it conversational and warm.",
+          query: "I'm standing in front of a mirror. Look at what I'm wearing and do three things: 1) Identify the exact colours of my outfit pieces (top, dress, jacket, etc.) and describe the fabric/style briefly. 2) Suggest 2 specific matching bottom options (pants, skirts, shorts) that would pair well with the colours you see — include the colour and style. 3) Suggest 2-3 accessories (bag, shoes, jewellery, belt, etc.) with specific colours and styles that complete the look. Keep it warm, friendly and actionable.",
           photo_base64: base64,
           weather: weather
             ? { temperature: weather.temperature, description: weather.description, condition: weather.condition, humidity: weather.humidity, city: 'Singapore' }
