@@ -21,7 +21,10 @@ import {
   AlertTriangle, Package, Palette, Star, ExternalLink,
   Calendar, ChevronRight, ChevronLeft, CalendarDays, Zap, Leaf, Tag, Plane, MapPin,
   Building2, Landmark, Umbrella, Sun, ShoppingCart, Droplets, ChevronDown, ChevronUp, Info,
+  Volume2, CheckCircle2,
 } from 'lucide-react';
+import { speak } from '@/lib/speak';
+import { useProfileStore } from '@/store/profile';
 
 // ── Google Calendar types ──────────────────────────────────────────────────────
 declare global {
@@ -590,6 +593,7 @@ function CalendarSection({ wardrobeItems }: { wardrobeItems: ClothingItem[] }) {
 export default function WardrobePage() {
   const { items, addItem, removeItem, outfits } = useWardrobeStore();
   const { addListing, seed } = useListingsStore();
+  const userName = useProfileStore((s) => s.name);
   useEffect(() => { seed(); }, [seed]);
 
   const [tab, setTab] = useState<Tab>('closet');
@@ -605,6 +609,7 @@ export default function WardrobePage() {
   const [showCamera, setShowCamera] = useState(false);
   const [preview, setPreview]       = useState('');
   const [analyzing, setAnalyzing]   = useState(false);
+  const [confirmAdd, setConfirmAdd] = useState<{ name: string; category: string } | null>(null);
   const [form, setForm] = useState({
     name: '', category: 'shirt' as ClothingCategory,
     color_hex: '#FFFFFF', color_name: 'White', tags: [] as OccasionTag[],
@@ -644,7 +649,7 @@ export default function WardrobePage() {
   });
 
   async function analyzePhoto(dataUrl: string) {
-    setPreview(dataUrl); setAnalyzing(true);
+    setPreview(dataUrl); setAnalyzing(true); setConfirmAdd(null);
     try {
       const res = await fetch('/api/analyze-clothing', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -652,7 +657,23 @@ export default function WardrobePage() {
       });
       if (res.ok) {
         const d = await res.json();
-        setForm({ name: d.suggested_name??'', category: d.category??'shirt', color_hex: d.color_hex??'#FFFFFF', color_name: d.color_name??'White', tags: d.tags??[], spf: d.spf ? String(d.spf) : '', grooming_type: d.grooming_type??'' });
+        const detectedName: string = d.suggested_name ?? '';
+        const detectedCategory: string = d.category ?? 'shirt';
+        setForm({ name: detectedName, category: detectedCategory as ClothingCategory, color_hex: d.color_hex??'#FFFFFF', color_name: d.color_name??'White', tags: d.tags??[], spf: d.spf ? String(d.spf) : '', grooming_type: d.grooming_type??'' });
+
+        // Check if this item already exists in the wardrobe
+        const normalise = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, ' ').trim();
+        const alreadyExists = items.some((w) =>
+          normalise(w.name).includes(normalise(detectedName).split(' ')[0]) ||
+          normalise(detectedName).includes(normalise(w.name).split(' ')[0])
+        );
+
+        if (!alreadyExists && detectedName) {
+          // Speak the discovery prompt
+          const firstName = (userName || 'there').split(' ')[0];
+          speak(`Hi ${firstName}! I spotted a ${detectedName}. This doesn't seem to be in your wardrobe yet. Would you like me to add it?`);
+          setConfirmAdd({ name: detectedName, category: detectedCategory });
+        }
       }
     } catch { /* keep blank */ } finally { setAnalyzing(false); }
   }
@@ -1355,6 +1376,42 @@ export default function WardrobePage() {
               )}
             </div>
           )}
+
+          {/* ── Smart confirm-add banner ── */}
+          {confirmAdd && !analyzing && (
+            <div className="mb-4 rounded-2xl p-4 flex flex-col gap-3" style={{ background: 'linear-gradient(135deg, rgba(44,74,30,0.08), rgba(44,74,30,0.04))', border: '1.5px solid rgba(44,74,30,0.22)' }}>
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'rgba(44,74,30,0.12)' }}>
+                  <Volume2 size={16} style={{ color: 'var(--accent)' }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>
+                    I spotted: <span style={{ color: 'var(--accent)' }}>{confirmAdd.name}</span>
+                  </p>
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>
+                    This doesn&apos;t seem to be in your wardrobe yet. Add it?
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { saveItem(); setConfirmAdd(null); }}
+                  className="flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-bold"
+                  style={{ background: 'var(--primary)', color: '#fff' }}
+                >
+                  <CheckCircle2 size={15} /> Yes, add it
+                </button>
+                <button
+                  onClick={() => { setConfirmAdd(null); setShowAdd(false); setPreview(''); }}
+                  className="flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-medium"
+                  style={{ background: 'var(--muted-bg)', color: 'var(--muted)', border: '1px solid var(--card-border)' }}
+                >
+                  No
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="space-y-4">
             <Field label="Name">
               <input

@@ -10,14 +10,14 @@ import {
   Camera, Shirt, Sparkles, Send, Loader,
   ImageIcon, X, Thermometer, Wind, Droplets,
   ExternalLink, TrendingUp, CalendarDays, Gem, Lightbulb, Flag, RefreshCw, Zap,
-  Mars, Venus, Watch, FlaskConical, Paperclip, ChevronLeft, ChevronRight,
+  Mars, Venus, Watch, FlaskConical, Paperclip, ChevronLeft, ChevronRight, Volume2,
 } from 'lucide-react';
 import MirrorSlide from '@/components/MirrorSlide';
 import {
   EventIcon, SeasonIcon,
 } from '@/components/icons/SgIcons';
 import WeatherAnimationIcon from '@/components/WeatherAnimationIcon';
-import { speakOnceToday } from '@/lib/speak';
+import { speak, speakOnceToday } from '@/lib/speak';
 import { useProfileStore } from '@/store/profile';
 
 interface SGEvent {
@@ -136,6 +136,16 @@ export default function HomePage() {
   const [trendLoading, setTrendLoading]     = useState(false);
   const [ootd, setOotd]                     = useState<OOTDResult | null>(null);
   const [ootdLoading, setOotdLoading]       = useState(false);
+  const [ootdSpeaking, setOotdSpeaking]     = useState(false);
+
+  function speakOotd(data: OOTDResult) {
+    const firstName = (userName || 'there').split(' ')[0];
+    const itemNames = (data.items ?? []).map((i) => i.name).join(', ');
+    const script = `Hi ${firstName}! Today's outfit is the ${data.outfit_name}. You'll be wearing ${itemNames}. ${data.style_tip ?? ''} Enjoy your day!`.trim();
+    setOotdSpeaking(true);
+    speak(script);
+    setTimeout(() => setOotdSpeaking(false), script.length * 55);
+  }
   const [grooming, setGrooming]             = useState<GroomingResult | null>(null);
   const [groomingLoading, setGroomingLoading] = useState(false);
   const fileInputRef                        = useRef<HTMLInputElement>(null);
@@ -516,9 +526,16 @@ export default function HomePage() {
                   <Zap size={15} style={{ color: 'var(--accent)' }} />
                   <p style={{ fontFamily: 'var(--font-display), Georgia, serif', fontStyle: 'italic', fontWeight: 600, fontSize: '1.05rem', letterSpacing: '-0.01em', color: 'var(--foreground)' }}>Outfit of the Day</p>
                 </div>
-                <button onClick={() => weather && fetchOOTD(weather, items, events, gender)} disabled={ootdLoading || !weather} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, padding: '6px 10px', borderRadius: 10, background: 'var(--muted-bg)', color: 'var(--muted)', border: '1px solid var(--card-border)', cursor: 'pointer', opacity: (ootdLoading || !weather) ? 0.4 : 1 }}>
-                  <RefreshCw size={11} /> {ootdLoading ? 'Picking…' : 'Refresh'}
-                </button>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {ootd && (
+                    <button onClick={() => speakOotd(ootd)} aria-label="Listen to outfit" style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, padding: '6px 10px', borderRadius: 10, background: ootdSpeaking ? 'rgba(44,74,30,0.12)' : 'var(--muted-bg)', color: ootdSpeaking ? 'var(--accent)' : 'var(--muted)', border: ootdSpeaking ? '1px solid rgba(44,74,30,0.3)' : '1px solid var(--card-border)', cursor: 'pointer' }}>
+                      <Volume2 size={11} /> Listen
+                    </button>
+                  )}
+                  <button onClick={() => weather && fetchOOTD(weather, items, events, gender)} disabled={ootdLoading || !weather} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, padding: '6px 10px', borderRadius: 10, background: 'var(--muted-bg)', color: 'var(--muted)', border: '1px solid var(--card-border)', cursor: 'pointer', opacity: (ootdLoading || !weather) ? 0.4 : 1 }}>
+                    <RefreshCw size={11} /> {ootdLoading ? 'Picking…' : 'Refresh'}
+                  </button>
+                </div>
               </div>
               {ootdLoading && !ootd && (
                 <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -781,15 +798,27 @@ export default function HomePage() {
               </span>
             )}
           </div>
-          <button
-            onClick={() => weather && fetchOOTD(weather, items, events, gender)}
-            disabled={ootdLoading || !weather}
-            className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-xl font-medium transition-all hover:opacity-80 disabled:opacity-40"
-            style={{ background: 'var(--muted-bg)', color: 'var(--muted)', border: '1px solid var(--card-border)' }}
-          >
-            <RefreshCw size={11} className={ootdLoading ? 'animate-spin' : ''} />
-            {ootdLoading ? 'Picking…' : 'Refresh'}
-          </button>
+          <div className="flex items-center gap-1.5">
+            {ootd && (
+              <button
+                onClick={() => speakOotd(ootd)}
+                aria-label="Listen to outfit"
+                className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-xl font-medium transition-all"
+                style={{ background: ootdSpeaking ? 'rgba(44,74,30,0.12)' : 'var(--muted-bg)', color: ootdSpeaking ? 'var(--accent)' : 'var(--muted)', border: ootdSpeaking ? '1px solid rgba(44,74,30,0.3)' : '1px solid var(--card-border)' }}
+              >
+                <Volume2 size={11} /> Listen
+              </button>
+            )}
+            <button
+              onClick={() => weather && fetchOOTD(weather, items, events, gender)}
+              disabled={ootdLoading || !weather}
+              className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-xl font-medium transition-all hover:opacity-80 disabled:opacity-40"
+              style={{ background: 'var(--muted-bg)', color: 'var(--muted)', border: '1px solid var(--card-border)' }}
+            >
+              <RefreshCw size={11} className={ootdLoading ? 'animate-spin' : ''} />
+              {ootdLoading ? 'Picking…' : 'Refresh'}
+            </button>
+          </div>
         </div>
 
         {/* Loading shimmer */}
