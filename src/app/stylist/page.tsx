@@ -227,7 +227,7 @@ export default function StylistPage() {
   return (
     <>
     <style>{`@keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}} @keyframes msgIn{from{opacity:0;transform:translateY(8px) scale(0.97)}to{opacity:1;transform:translateY(0) scale(1)}} @keyframes slideUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}`}</style>
-    <div style={{ height: '100dvh', display: 'flex', flexDirection: 'column', background: 'var(--background)', overflow: 'hidden' }}>
+    <div className="fixed inset-0 z-10 flex flex-col overflow-hidden md:top-16" style={{ background: 'var(--background)' }}>
 
       {/* ── Header banner ── */}
       <div style={{ flexShrink: 0, background: 'linear-gradient(160deg,#2C4A1E 0%,#3A6028 55%,#4E7A35 100%)', padding: '20px 20px 28px' }}>
@@ -373,7 +373,7 @@ export default function StylistPage() {
           </div>
 
           {/* ── Input bar ── */}
-          <div style={{ flexShrink: 0, background: 'var(--card)', borderTop: '1px solid var(--card-border)', padding: '10px 14px', paddingBottom: 'calc(env(safe-area-inset-bottom) + 80px)', position: 'relative' }}>
+          <div style={{ flexShrink: 0, background: 'var(--card)', borderTop: '1px solid var(--card-border)', padding: '10px 14px', position: 'relative' }}>
 
             {/* Attach action sheet — slides up above input */}
             {showAttachMenu && (
@@ -471,12 +471,14 @@ export default function StylistPage() {
               </div>
             </div>
           </div>
+          {/* Nav clearance spacer — only on mobile */}
+          <div className="md:hidden" style={{ flexShrink: 0, height: 'calc(env(safe-area-inset-bottom) + 84px)', background: 'var(--card)' }} />
         </>
       )}
 
       {/* ══ ECO TAB ══ */}
       {tab === 'eco' && (
-        <div style={{ flex: 1, overflowY: 'auto', padding: '16px', paddingBottom: 'calc(env(safe-area-inset-bottom) + 90px)' }} className="space-y-4">
+        <div style={{ flex: 1, overflowY: 'auto', padding: '16px', paddingBottom: 'calc(env(safe-area-inset-bottom) + 84px)' }} className="space-y-4">
           {/* Hero */}
           <div className="rounded-3xl p-5" style={{
             background: 'linear-gradient(135deg, rgba(44,74,30,0.85), rgba(26,46,18,0.80))',
