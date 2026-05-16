@@ -17,6 +17,8 @@ import {
   EventIcon, SeasonIcon,
 } from '@/components/icons/SgIcons';
 import WeatherAnimationIcon from '@/components/WeatherAnimationIcon';
+import { speakOnceToday } from '@/lib/speak';
+import { useProfileStore } from '@/store/profile';
 
 interface SGEvent {
   name: string;
@@ -117,6 +119,7 @@ function getContrastHex(hex: string) {
 
 export default function HomePage() {
   const { items } = useWardrobeStore();
+  const userName = useProfileStore((s) => s.name);
 
   const [showCamera, setShowCamera]         = useState(false);
   const [photo, setPhoto]                   = useState<string | null>(null);
@@ -202,6 +205,12 @@ export default function HomePage() {
         return { ...ootdItem, image_url: wardrobeMatch?.image_url };
       });
       setOotd({ ...data, items: enrichedItems });
+
+      // Speak today's outfit once per calendar day
+      const firstName = (userName || 'there').split(' ')[0];
+      const itemNames = enrichedItems.map((i) => i.name).join(', ');
+      const script = `Good morning ${firstName}! Today's outfit is the ${data.outfit_name}. You'll be wearing ${itemNames}. ${data.style_tip ?? ''} Enjoy your day!`.trim();
+      speakOnceToday(script, 'wearly-ootd-spoken-date');
     } catch { /* silent */ } finally {
       setOotdLoading(false);
     }
