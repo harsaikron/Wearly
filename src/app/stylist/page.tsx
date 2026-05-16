@@ -154,6 +154,7 @@ export default function StylistPage() {
   const [savedDates,       setSavedDates]       = useState<Record<string, string>>({});
   const [userMessage,      setUserMessage]      = useState('');
   const [chatPhoto,        setChatPhoto]        = useState<string | null>(null);
+  const [showAttachMenu,   setShowAttachMenu]   = useState(false);
   const bottomRef    = useRef<HTMLDivElement>(null);
   const chatImgRef   = useRef<HTMLInputElement>(null);
   const cameraRef    = useRef<HTMLInputElement>(null);
@@ -225,7 +226,7 @@ export default function StylistPage() {
 
   return (
     <>
-    <style>{`@keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}} @keyframes msgIn{from{opacity:0;transform:translateY(8px) scale(0.97)}to{opacity:1;transform:translateY(0) scale(1)}}`}</style>
+    <style>{`@keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}} @keyframes msgIn{from{opacity:0;transform:translateY(8px) scale(0.97)}to{opacity:1;transform:translateY(0) scale(1)}} @keyframes slideUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}`}</style>
     <div style={{ height: '100dvh', display: 'flex', flexDirection: 'column', background: 'var(--background)', overflow: 'hidden' }}>
 
       {/* ── Header banner ── */}
@@ -372,7 +373,51 @@ export default function StylistPage() {
           </div>
 
           {/* ── Input bar ── */}
-          <div style={{ flexShrink: 0, background: 'var(--card)', borderTop: '1px solid var(--card-border)', padding: '10px 14px', paddingBottom: 'calc(env(safe-area-inset-bottom) + 80px)' }}>
+          <div style={{ flexShrink: 0, background: 'var(--card)', borderTop: '1px solid var(--card-border)', padding: '10px 14px', paddingBottom: 'calc(env(safe-area-inset-bottom) + 80px)', position: 'relative' }}>
+
+            {/* Attach action sheet — slides up above input */}
+            {showAttachMenu && (
+              <>
+                {/* Backdrop */}
+                <div style={{ position: 'fixed', inset: 0, zIndex: 48 }} onClick={() => setShowAttachMenu(false)} />
+                <div style={{
+                  position: 'absolute', bottom: '100%', left: 14, right: 14, marginBottom: 8, zIndex: 49,
+                  background: 'var(--card)', border: '1px solid var(--card-border)', borderRadius: 18,
+                  boxShadow: '0 -4px 32px rgba(0,0,0,0.14)', overflow: 'hidden',
+                  animation: 'slideUp 0.22s cubic-bezier(0.34,1.56,0.64,1)',
+                }}>
+                  <button
+                    onClick={() => { cameraRef.current?.click(); setShowAttachMenu(false); }}
+                    style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', border: 'none', background: 'transparent', cursor: 'pointer', borderBottom: '1px solid var(--card-border)', textAlign: 'left' }}
+                  >
+                    <div style={{ width: 40, height: 40, borderRadius: 12, background: 'linear-gradient(135deg,#5A9240,#2C4A1E)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <Camera size={19} color="#fff" />
+                    </div>
+                    <div>
+                      <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--foreground)', margin: 0, lineHeight: 1.3 }}>Camera</p>
+                      <p style={{ fontSize: 12, color: 'var(--muted)', margin: 0, marginTop: 2 }}>Take a photo now</p>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => { chatImgRef.current?.click(); setShowAttachMenu(false); }}
+                    style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left' }}
+                  >
+                    <div style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--muted-bg)', border: '1.5px solid var(--card-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <Paperclip size={19} style={{ color: 'var(--muted)' }} />
+                    </div>
+                    <div>
+                      <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--foreground)', margin: 0, lineHeight: 1.3 }}>Photo Library</p>
+                      <p style={{ fontSize: 12, color: 'var(--muted)', margin: 0, marginTop: 2 }}>Choose from gallery</p>
+                    </div>
+                  </button>
+                </div>
+              </>
+            )}
+
+            {/* Hidden file inputs */}
+            <input ref={cameraRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={async (e) => { const f = e.target.files?.[0]; if (!f) return; e.target.value = ''; await handlePhoto(f); }} />
+            <input ref={chatImgRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={async (e) => { const f = e.target.files?.[0]; if (!f) return; e.target.value = ''; await handlePhoto(f); }} />
+
             {/* Photo preview */}
             {chatPhoto && (
               <div style={{ marginBottom: 8, display: 'flex' }}>
@@ -385,32 +430,37 @@ export default function StylistPage() {
                 </div>
               </div>
             )}
-            {/* Row: camera + attach + textarea + send */}
+
+            {/* Input row: single attach button + textarea + send */}
             <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8 }}>
-              {/* Hidden file inputs */}
-              <input ref={cameraRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={async (e) => { const f = e.target.files?.[0]; if (!f) return; e.target.value = ''; await handlePhoto(f); }} />
-              <input ref={chatImgRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={async (e) => { const f = e.target.files?.[0]; if (!f) return; e.target.value = ''; await handlePhoto(f); }} />
-              {/* Camera button */}
-              <button onClick={() => cameraRef.current?.click()} title="Take photo" style={{ width: 42, height: 42, borderRadius: 14, background: 'var(--muted-bg)', border: '1.5px solid var(--card-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
-                <Camera size={17} style={{ color: 'var(--muted)' }} />
+              {/* Single attach/media button */}
+              <button
+                onClick={() => setShowAttachMenu((v) => !v)}
+                style={{
+                  width: 42, height: 42, borderRadius: 14, flexShrink: 0, cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: showAttachMenu ? 'rgba(90,146,64,0.12)' : 'var(--muted-bg)',
+                  border: showAttachMenu ? '1.5px solid rgba(90,146,64,0.40)' : '1.5px solid var(--card-border)',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                <Paperclip size={17} style={{ color: showAttachMenu ? 'var(--accent)' : 'var(--muted)', transition: 'color 0.2s ease' }} />
               </button>
-              {/* Attach button */}
-              <button onClick={() => chatImgRef.current?.click()} title="Attach image" style={{ width: 42, height: 42, borderRadius: 14, background: 'var(--muted-bg)', border: '1.5px solid var(--card-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
-                <Paperclip size={17} style={{ color: 'var(--muted)' }} />
-              </button>
+
               {/* Textarea + send */}
-              <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', gap: 8, background: '#fff', border: '1.5px solid var(--card-border)', borderRadius: 22, padding: '9px 10px 9px 14px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+              <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', gap: 8, background: '#fff', border: '1.5px solid var(--card-border)', borderRadius: 22, padding: '10px 10px 10px 14px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', minWidth: 0 }}>
                 <textarea
                   ref={chatTARef}
                   value={userMessage}
-                  onChange={(e) => { setUserMessage(e.target.value); e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 110) + 'px'; }}
-                  onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (userMessage.trim() || chatPhoto) ask(userMessage, chatPhoto ?? undefined); } }}
+                  onChange={(e) => { setUserMessage(e.target.value); e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px'; }}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (userMessage.trim() || chatPhoto) { ask(userMessage, chatPhoto ?? undefined); setShowAttachMenu(false); } } }}
+                  onFocus={() => setShowAttachMenu(false)}
                   placeholder="Ask your stylist…"
                   rows={1}
-                  style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', fontSize: 14, color: 'var(--foreground)', resize: 'none', overflow: 'hidden', lineHeight: 1.5, maxHeight: 110, fontFamily: 'inherit' }}
+                  style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', fontSize: 16, color: 'var(--foreground)', resize: 'none', overflow: 'hidden', lineHeight: 1.5, maxHeight: 120, fontFamily: 'inherit', minWidth: 0, WebkitAppearance: 'none' }}
                 />
                 <button
-                  onClick={() => { if (userMessage.trim() || chatPhoto) ask(userMessage, chatPhoto ?? undefined); }}
+                  onClick={() => { if (userMessage.trim() || chatPhoto) { ask(userMessage, chatPhoto ?? undefined); setShowAttachMenu(false); } }}
                   disabled={!userMessage.trim() && !chatPhoto}
                   style={{ width: 34, height: 34, borderRadius: 11, border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, transition: 'all 0.18s ease',
                     background: (userMessage.trim() || chatPhoto) ? 'linear-gradient(135deg,#5A9240,#2C4A1E)' : 'var(--muted-bg)',
