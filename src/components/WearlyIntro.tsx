@@ -33,20 +33,24 @@ const FEATURES = [
 ];
 
 interface Props {
-  forceShow?: boolean; // pass true in demo mode to always show
+  forceShow?: boolean;
+  open?: boolean;           // controlled: open from outside
+  onClose?: () => void;     // controlled: callback when dismissed
 }
 
-export default function WearlyIntro({ forceShow }: Props) {
+export default function WearlyIntro({ forceShow, open: controlledOpen, onClose }: Props) {
+  const isControlled = controlledOpen !== undefined;
   const [visible, setVisible] = useState(false);
   const [speaking, setSpeaking] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   const hasSpoken = useRef(false);
 
   useEffect(() => {
+    if (isControlled) { setVisible(!!controlledOpen); setDismissed(false); return; }
     if (forceShow) { setVisible(true); return; }
     const seen = localStorage.getItem(INTRO_KEY);
     if (!seen) setVisible(true);
-  }, [forceShow]);
+  }, [forceShow, controlledOpen, isControlled]);
 
   function handleSpeak() {
     if (speaking) { stopSpeech(); setSpeaking(false); return; }
@@ -73,9 +77,12 @@ export default function WearlyIntro({ forceShow }: Props) {
   function handleDismiss() {
     stopSpeech();
     setSpeaking(false);
-    localStorage.setItem(INTRO_KEY, '1');
+    if (!isControlled) localStorage.setItem(INTRO_KEY, '1');
     setDismissed(true);
-    setTimeout(() => setVisible(false), 400);
+    setTimeout(() => {
+      setVisible(false);
+      onClose?.();
+    }, 400);
   }
 
   if (!visible) return null;

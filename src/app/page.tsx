@@ -156,6 +156,8 @@ export default function HomePage() {
   const fileInputRef                        = useRef<HTMLInputElement>(null);
   const mirrorRef                           = useRef<MirrorHandle>(null);
 
+  const [showAbout, setShowAbout]            = useState(false);
+
   // Mobile slider state — 0=Mirror, 1=Today
   const [activeSlide, setActiveSlide]       = useState(1);
   const todayIdx                            = (new Date().getDay() + 6) % 7;
@@ -431,7 +433,7 @@ export default function HomePage() {
 
   return (
     <>
-    <WearlyIntro />
+    <WearlyIntro open={showAbout} onClose={() => setShowAbout(false)} />
     {/* ── MOBILE FULL-PAGE SLIDER (hidden on md+) ────── */}
     <div className="md:hidden flex flex-col" style={{ position: 'fixed', inset: 0 }}>
       <style>{`
@@ -629,6 +631,27 @@ export default function HomePage() {
                 </div>
               </div>
             )}
+
+            {/* ── About Wearly AI ──────────────────────────────── */}
+            <button
+              onClick={() => setShowAbout(true)}
+              style={{
+                width: '100%', marginTop: 20, padding: '15px 20px', borderRadius: 18,
+                background: 'linear-gradient(135deg, rgba(168,208,96,0.13), rgba(90,146,64,0.20))',
+                border: '1.5px solid rgba(168,208,96,0.30)',
+                display: 'flex', alignItems: 'center', gap: 10,
+                cursor: 'pointer', touchAction: 'manipulation',
+                WebkitTapHighlightColor: 'transparent',
+              }}
+            >
+              <span style={{ fontSize: 22 }}>✨</span>
+              <div style={{ textAlign: 'left', flex: 1 }}>
+                <div style={{ color: '#5a9240', fontSize: 13, fontWeight: 700 }}>About Wearly AI</div>
+                <div style={{ color: 'rgba(0,0,0,0.40)', fontSize: 11, marginTop: 2 }}>Features, privacy & how it works</div>
+              </div>
+              <span style={{ color: 'rgba(90,146,64,0.60)', fontSize: 20 }}>›</span>
+            </button>
+
           </div>
         </div>
         </div>{/* end slide track */}
