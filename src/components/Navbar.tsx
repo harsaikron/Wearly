@@ -144,31 +144,28 @@ export default function Navbar() {
             }
           `}</style>
 
-          {/* Ambient outer glow */}
+          {/* Ambient outer glow — static, no animation (saves battery on older devices) */}
           <div aria-hidden="true" style={{
-            position: 'absolute', bottom: 0, left: '15%', right: '15%', height: 20,
-            background: 'radial-gradient(ellipse, rgba(90,146,64,0.55) 0%, transparent 70%)',
-            filter: 'blur(14px)',
-            animation: 'lgAmbient 3s ease-in-out infinite',
+            position: 'absolute', bottom: 0, left: '15%', right: '15%', height: 18,
+            background: 'radial-gradient(ellipse, rgba(90,146,64,0.40) 0%, transparent 70%)',
+            filter: 'blur(12px)',
             pointerEvents: 'none',
             zIndex: 0,
           }} />
 
-          {/* Bar */}
+          {/* Bar — blur reduced to 20px for iPhone 7 GPU performance */}
           <div style={{
             position: 'relative',
             height: 70,
             borderRadius: 34,
-            /* Dark ultra-glass base */
-            background: 'rgba(7,12,5,0.80)',
-            backdropFilter: 'blur(48px) saturate(240%) brightness(0.80)',
-            WebkitBackdropFilter: 'blur(48px) saturate(240%) brightness(0.80)',
+            background: 'rgba(7,12,5,0.92)',
+            backdropFilter: 'blur(20px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(20px) saturate(180%)',
             border: '1px solid rgba(255,255,255,0.065)',
             boxShadow: [
               'inset 0 1px 0 rgba(255,255,255,0.12)',
               'inset 0 -1px 0 rgba(0,0,0,0.35)',
-              'inset 0 0 0 0.5px rgba(255,255,255,0.04)',
-              '0 14px 50px rgba(0,0,0,0.60)',
+              '0 10px 40px rgba(0,0,0,0.55)',
               '0 4px 14px rgba(0,0,0,0.35)',
             ].join(', '),
             overflow: 'hidden',

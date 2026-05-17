@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Volume2, VolumeX, RefreshCw } from 'lucide-react';
+import { Volume2, VolumeX, RefreshCw, Play } from 'lucide-react';
 import { useProfileStore } from '@/store/profile';
 import { speak, stopSpeech } from '@/lib/speak';
 
@@ -25,11 +25,14 @@ export default function MirrorSlide({ isActive, weather }: Props) {
   const videoRef    = useRef<HTMLVideoElement>(null);
   const streamRef   = useRef<MediaStream | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const wakeLockRef = useRef<any>(null);
 
-  const [result,    setResult]    = useState<MirrorResult | null>(null);
-  const [loading,   setLoading]   = useState(false);
-  const [permDenied, setPermDenied] = useState(false);
-  const [muted,     setMuted]     = useState(false);
+  const [result,      setResult]      = useState<MirrorResult | null>(null);
+  const [loading,     setLoading]     = useState(false);
+  const [permDenied,  setPermDenied]  = useState(false);
+  const [cameraReady, setCameraReady] = useState(false); // stream live
+  const [muted,       setMuted]       = useState(false);
   const mutedRef = useRef(false);
   useEffect(() => { mutedRef.current = muted; }, [muted]);
 
@@ -39,10 +42,24 @@ export default function MirrorSlide({ isActive, weather }: Props) {
     speak(result.full_script);
   }, [result]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Stop speech when leaving mirror
+  // Stop speech + camera when leaving mirror
   useEffect(() => {
-    if (!isActive) stopSpeech();
-  }, [isActive]);
+    if (!isActive) { stopSpeech(); stopCamera(); }
+  }, [isActive]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Wake lock ────────────────────────────────────────────────────────────
+  async function acquireWakeLock() {
+    try {
+      if ('wakeLock' in navigator) {
+        wakeLockRef.current = await (navigator as Navigator & { wakeLock: { request: (t: string) => Promise<unknown> } }).wakeLock.request('screen');
+      }
+    } catch { /* not supported */ }
+  }
+  function releaseWakeLock() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (wakeLockRef.current as any)?.release?.();
+    wakeLockRef.current = null;
+  }
 
   // ── Capture & analyse ────────────────────────────────────────────────────
   const captureAndAnalyse = useCallback(async () => {
@@ -75,13 +92,22 @@ export default function MirrorSlide({ isActive, weather }: Props) {
   }, [weather, userName]);
 
   // ── Camera lifecycle ────────────────────────────────────────────────────
+  // Called DIRECTLY from a user tap — iOS Safari requires getUserMedia
+  // to happen within the same callstack as a user gesture.
   async function startCamera() {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
+      });
       streamRef.current = stream;
-      if (videoRef.current) { videoRef.current.srcObject = stream; videoRef.current.play(); }
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play().catch(() => {/* autoplay blocked, fine — muted video plays */});
+      }
       setPermDenied(false);
+      setCameraReady(true);
       setResult(null);
+      await acquireWakeLock();
 
       if (!mutedRef.current) {
         const name = (userName || 'Harsai').split(' ')[0];
@@ -93,6 +119,7 @@ export default function MirrorSlide({ isActive, weather }: Props) {
       intervalRef.current = setInterval(captureAndAnalyse, 20000);
     } catch {
       setPermDenied(true);
+      setCameraReady(false);
     }
   }
 
@@ -102,13 +129,11 @@ export default function MirrorSlide({ isActive, weather }: Props) {
     streamRef.current = null;
     if (videoRef.current) videoRef.current.srcObject = null;
     stopSpeech();
+    releaseWakeLock();
+    setCameraReady(false);
+    setResult(null);
+    setLoading(false);
   }
-
-  useEffect(() => {
-    if (isActive) startCamera(); else stopCamera();
-    return stopCamera;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isActive]);
 
   function toggleMute() {
     const next = !muted;
@@ -122,15 +147,60 @@ export default function MirrorSlide({ isActive, weather }: Props) {
     captureAndAnalyse();
   }
 
-  // ── Permission denied state ─────────────────────────────────────────────
+  // ── Idle screen (not started yet) ───────────────────────────────────────
+  if (!cameraReady && !permDenied) {
+    return (
+      <div style={{ width: '100%', height: '100%', background: '#080f06', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 32, padding: 32 }}>
+        {/* Ambient glow */}
+        <div style={{ position: 'absolute', width: 220, height: 220, borderRadius: '50%', background: 'radial-gradient(ellipse, rgba(90,146,64,0.28) 0%, transparent 70%)', filter: 'blur(40px)', pointerEvents: 'none' }} />
+
+        <div style={{ textAlign: 'center', position: 'relative' }}>
+          <div style={{ fontSize: 52, marginBottom: 12 }}>🪞</div>
+          <p style={{ color: '#fff', fontWeight: 700, fontSize: 22, letterSpacing: '-0.02em', marginBottom: 6 }}>Smart Mirror</p>
+          <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 14, lineHeight: 1.6, maxWidth: 260 }}>
+            AI will analyse your outfit and suggest matching bottoms and accessories.
+          </p>
+        </div>
+
+        {/* Big tap target — easy to press on a mounted phone */}
+        <button
+          onClick={startCamera}
+          style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10,
+            width: 160, height: 160, borderRadius: '50%',
+            background: 'linear-gradient(158deg, rgba(168,208,96,0.30), rgba(60,106,32,0.70))',
+            border: '2px solid rgba(168,208,96,0.50)',
+            boxShadow: '0 0 60px rgba(90,146,64,0.40), 0 0 120px rgba(90,146,64,0.20)',
+            cursor: 'pointer',
+            WebkitTapHighlightColor: 'transparent',
+          }}
+        >
+          <Play size={38} color="#C8EC80" fill="#C8EC80" strokeWidth={1.5} style={{ marginLeft: 6 }} />
+          <span style={{ color: '#C8EC80', fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Start</span>
+        </button>
+
+        <p style={{ color: 'rgba(255,255,255,0.22)', fontSize: 11, textAlign: 'center', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+          Tap to activate camera
+        </p>
+      </div>
+    );
+  }
+
+  // ── Permission denied ───────────────────────────────────────────────────
   if (permDenied) {
     return (
       <div style={{ width: '100%', height: '100%', background: '#111', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, padding: 32 }}>
         <span style={{ fontSize: 44 }}>📷</span>
         <p style={{ color: '#fff', fontWeight: 700, fontSize: 18, textAlign: 'center' }}>Camera access denied</p>
         <p style={{ color: 'rgba(255,255,255,0.50)', fontSize: 13, textAlign: 'center', lineHeight: 1.65 }}>
-          Allow camera access in your browser settings and reload the page.
+          Allow camera in Safari Settings → Wearly → Camera, then tap below.
         </p>
+        <button
+          onClick={() => { setPermDenied(false); }}
+          style={{ marginTop: 8, padding: '14px 32px', borderRadius: 16, background: 'rgba(168,208,96,0.18)', border: '1.5px solid rgba(168,208,96,0.40)', color: '#A8D060', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}
+        >
+          Try again
+        </button>
       </div>
     );
   }
@@ -146,11 +216,11 @@ export default function MirrorSlide({ isActive, weather }: Props) {
         style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)' }}
       />
 
-      {/* ── Dark vignette gradient ── */}
+      {/* ── Vignette gradient ── */}
       <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, transparent 30%, transparent 45%, rgba(0,0,0,0.80) 100%)', pointerEvents: 'none', zIndex: 1 }} />
 
       {/* ── Top bar ── */}
-      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, padding: '44px 16px 14px', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, padding: 'calc(env(safe-area-inset-top) + 14px) 16px 14px', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{ width: 24, height: 3, borderRadius: 2, background: '#A8D060' }} />
           <span style={{ color: '#A8D060', fontSize: '0.58rem', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase' }}>
@@ -159,31 +229,40 @@ export default function MirrorSlide({ isActive, weather }: Props) {
         </div>
 
         <div style={{ display: 'flex', gap: 8 }}>
+          {/* Stop camera */}
+          <button
+            onClick={stopCamera}
+            aria-label="Stop mirror"
+            style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(255,60,60,0.18)', border: '1px solid rgba(255,60,60,0.30)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+          >
+            <span style={{ fontSize: 14 }}>⏹</span>
+          </button>
+
           {/* Refresh */}
           <button
             onClick={refresh}
             aria-label="Refresh outfit analysis"
             disabled={loading}
-            style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.16)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', backdropFilter: 'blur(8px)' }}
+            style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.16)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
           >
-            <RefreshCw size={14} color={loading ? 'rgba(255,255,255,0.30)' : 'rgba(255,255,255,0.80)'} style={loading ? { animation: 'spin 1s linear infinite' } : {}} />
+            <RefreshCw size={15} color={loading ? 'rgba(255,255,255,0.30)' : 'rgba(255,255,255,0.80)'} style={loading ? { animation: 'spin 1s linear infinite' } : {}} />
           </button>
 
           {/* Mute toggle */}
           <button
             onClick={toggleMute}
             aria-label={muted ? 'Unmute voice' : 'Mute voice'}
-            style={{ width: 34, height: 34, borderRadius: 10, background: muted ? 'rgba(255,255,255,0.10)' : 'rgba(168,208,96,0.22)', border: muted ? '1px solid rgba(255,255,255,0.16)' : '1px solid rgba(168,208,96,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', backdropFilter: 'blur(8px)' }}
+            style={{ width: 40, height: 40, borderRadius: 12, background: muted ? 'rgba(255,255,255,0.10)' : 'rgba(168,208,96,0.22)', border: muted ? '1px solid rgba(255,255,255,0.16)' : '1px solid rgba(168,208,96,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
           >
-            {muted ? <VolumeX size={14} color="rgba(255,255,255,0.45)" /> : <Volume2 size={14} color="#A8D060" />}
+            {muted ? <VolumeX size={15} color="rgba(255,255,255,0.45)" /> : <Volume2 size={15} color="#A8D060" />}
           </button>
         </div>
       </div>
 
-      {/* ── Scanning pill (first load) ── */}
+      {/* ── Scanning pill ── */}
       {loading && !result && (
         <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>
-          <div style={{ background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(12px)', borderRadius: 20, padding: '14px 24px', display: 'flex', alignItems: 'center', gap: 10, border: '1px solid rgba(168,208,96,0.25)' }}>
+          <div style={{ background: 'rgba(0,0,0,0.72)', borderRadius: 20, padding: '14px 24px', display: 'flex', alignItems: 'center', gap: 10, border: '1px solid rgba(168,208,96,0.25)' }}>
             <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#A8D060', animation: 'pulse 1.2s ease-in-out infinite' }} />
             <span style={{ color: '#fff', fontSize: 13, fontWeight: 600 }}>Scanning your outfit…</span>
           </div>
@@ -195,9 +274,8 @@ export default function MirrorSlide({ isActive, weather }: Props) {
         <div
           role="status"
           aria-live="polite"
-          style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 10, padding: '0 12px 90px' }}
+          style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 10, padding: '0 12px 100px' }}
         >
-          {/* Voice indicator */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 10, paddingLeft: 2 }}>
             <Volume2 size={11} color={muted ? 'rgba(255,255,255,0.25)' : '#A8D060'} />
             <span style={{ fontSize: '0.52rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: muted ? 'rgba(255,255,255,0.25)' : '#A8D060' }}>
@@ -206,8 +284,8 @@ export default function MirrorSlide({ isActive, weather }: Props) {
             {loading && <span style={{ marginLeft: 6, fontSize: '0.52rem', color: 'rgba(255,255,255,0.40)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>· Updating</span>}
           </div>
 
-          {/* ── Card: What you're wearing ── */}
-          <div style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(16px)', borderRadius: 16, padding: '12px 14px', marginBottom: 8, border: '1px solid rgba(255,255,255,0.08)' }}>
+          {/* Card: What you're wearing */}
+          <div style={{ background: 'rgba(0,0,0,0.65)', borderRadius: 16, padding: '12px 14px', marginBottom: 8, border: '1px solid rgba(255,255,255,0.08)' }}>
             <p style={{ fontSize: '0.54rem', fontWeight: 700, letterSpacing: '0.13em', textTransform: 'uppercase', color: '#A8D060', marginBottom: 5 }}>
               👕 What you&apos;re wearing
             </p>
@@ -219,9 +297,9 @@ export default function MirrorSlide({ isActive, weather }: Props) {
             </p>
           </div>
 
-          {/* ── Card: Matching bottoms ── */}
+          {/* Card: Matching bottoms */}
           {result.bottoms?.length > 0 && (
-            <div style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(16px)', borderRadius: 16, padding: '12px 14px', marginBottom: 8, border: '1px solid rgba(255,255,255,0.08)' }}>
+            <div style={{ background: 'rgba(0,0,0,0.65)', borderRadius: 16, padding: '12px 14px', marginBottom: 8, border: '1px solid rgba(255,255,255,0.08)' }}>
               <p style={{ fontSize: '0.54rem', fontWeight: 700, letterSpacing: '0.13em', textTransform: 'uppercase', color: '#7EC8E3', marginBottom: 8 }}>
                 👖 Matching Bottoms
               </p>
@@ -237,9 +315,9 @@ export default function MirrorSlide({ isActive, weather }: Props) {
             </div>
           )}
 
-          {/* ── Card: Accessories ── */}
+          {/* Card: Accessories */}
           {result.accessories?.length > 0 && (
-            <div style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(16px)', borderRadius: 16, padding: '12px 14px', border: '1px solid rgba(255,255,255,0.08)' }}>
+            <div style={{ background: 'rgba(0,0,0,0.65)', borderRadius: 16, padding: '12px 14px', border: '1px solid rgba(255,255,255,0.08)' }}>
               <p style={{ fontSize: '0.54rem', fontWeight: 700, letterSpacing: '0.13em', textTransform: 'uppercase', color: '#F4A261', marginBottom: 8 }}>
                 ✨ Accessories
               </p>

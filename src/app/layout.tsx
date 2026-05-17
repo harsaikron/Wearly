@@ -29,6 +29,13 @@ export const metadata: Metadata = {
     description: 'Local-first AI wardrobe stylist powered by Gemma 4 via Ollama.',
     type: 'website',
   },
+  // PWA / Add to Home Screen — makes Safari open the app full-screen without browser chrome
+  appleWebApp: {
+    capable: true,
+    title: 'Wearly',
+    statusBarStyle: 'black-translucent',
+  },
+  manifest: '/manifest.json',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
