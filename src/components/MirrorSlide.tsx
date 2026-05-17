@@ -154,46 +154,45 @@ const MirrorSlide = forwardRef<MirrorHandle, Props>(function MirrorSlide({ isAct
     captureAndAnalyse();
   }
 
-  // ── Starting state (camera not yet live) ────────────────────────────────
-  if (!cameraReady && !permDenied) {
-    return (
-      <div style={{ width: '100%', height: '100%', background: '#080f06', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 20 }}>
-        <div style={{ position: 'absolute', width: 220, height: 220, borderRadius: '50%', background: 'radial-gradient(ellipse, rgba(90,146,64,0.28) 0%, transparent 70%)', filter: 'blur(40px)', pointerEvents: 'none' }} />
-        <div style={{ width: 14, height: 14, borderRadius: '50%', background: '#A8D060', animation: 'pulse 1.2s ease-in-out infinite' }} />
-        <span style={{ color: 'rgba(255,255,255,0.50)', fontSize: 13, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Starting camera…</span>
-      </div>
-    );
-  }
-
-  // ── Permission denied ───────────────────────────────────────────────────
-  if (permDenied) {
-    return (
-      <div style={{ width: '100%', height: '100%', background: '#111', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, padding: 32 }}>
-        <span style={{ fontSize: 44 }}>📷</span>
-        <p style={{ color: '#fff', fontWeight: 700, fontSize: 18, textAlign: 'center' }}>Camera access denied</p>
-        <p style={{ color: 'rgba(255,255,255,0.50)', fontSize: 13, textAlign: 'center', lineHeight: 1.65 }}>
-          Allow camera in Safari Settings → Wearly → Camera, then tap below.
-        </p>
-        <button
-          onClick={() => { setPermDenied(false); }}
-          style={{ marginTop: 8, padding: '14px 32px', borderRadius: 16, background: 'rgba(168,208,96,0.18)', border: '1.5px solid rgba(168,208,96,0.40)', color: '#A8D060', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}
-        >
-          Try again
-        </button>
-      </div>
-    );
-  }
-
-  // ── Main render ─────────────────────────────────────────────────────────
+  // ── Always render video element so videoRef is available when startCamera() runs ──
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100%', background: '#000' }}>
+    <div style={{ position: 'relative', width: '100%', height: '100%', background: '#080f06' }}>
 
-      {/* ── Video ── */}
+      {/* ── Video — always mounted so ref is ready for srcObject assignment ── */}
       <video
         ref={videoRef}
         autoPlay playsInline muted
         style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)' }}
       />
+
+      {/* ── Starting overlay (before camera is live) ── */}
+      {!cameraReady && !permDenied && (
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 20, zIndex: 20 }}>
+          <div style={{ position: 'absolute', width: 220, height: 220, borderRadius: '50%', background: 'radial-gradient(ellipse, rgba(90,146,64,0.28) 0%, transparent 70%)', filter: 'blur(40px)', pointerEvents: 'none' }} />
+          <div style={{ width: 14, height: 14, borderRadius: '50%', background: '#A8D060', animation: 'pulse 1.2s ease-in-out infinite' }} />
+          <span style={{ color: 'rgba(255,255,255,0.50)', fontSize: 13, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Starting camera…</span>
+        </div>
+      )}
+
+      {/* ── Permission denied overlay ── */}
+      {permDenied && (
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, padding: 32, zIndex: 20 }}>
+          <span style={{ fontSize: 44 }}>📷</span>
+          <p style={{ color: '#fff', fontWeight: 700, fontSize: 18, textAlign: 'center' }}>Camera access denied</p>
+          <p style={{ color: 'rgba(255,255,255,0.50)', fontSize: 13, textAlign: 'center', lineHeight: 1.65 }}>
+            Allow camera in Safari Settings → Wearly → Camera, then tap below.
+          </p>
+          <button
+            onClick={() => { setPermDenied(false); }}
+            style={{ marginTop: 8, padding: '14px 32px', borderRadius: 16, background: 'rgba(168,208,96,0.18)', border: '1.5px solid rgba(168,208,96,0.40)', color: '#A8D060', fontSize: 15, fontWeight: 700, cursor: 'pointer', touchAction: 'manipulation' }}
+          >
+            Try again
+          </button>
+        </div>
+      )}
+
+      {/* ── Live camera UI (only when stream is active) ── */}
+      {cameraReady && (<>
 
       {/* ── Vignette gradient ── */}
       <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, transparent 30%, transparent 45%, rgba(0,0,0,0.80) 100%)', pointerEvents: 'none', zIndex: 1 }} />
@@ -212,9 +211,9 @@ const MirrorSlide = forwardRef<MirrorHandle, Props>(function MirrorSlide({ isAct
           <button
             onClick={stopCamera}
             aria-label="Stop mirror"
-            style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(255,60,60,0.18)', border: '1px solid rgba(255,60,60,0.30)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+            style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(255,60,60,0.25)', border: '1.5px solid rgba(255,80,80,0.50)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', touchAction: 'manipulation' }}
           >
-            <span style={{ fontSize: 14 }}>⏹</span>
+            <div style={{ width: 14, height: 14, borderRadius: 3, background: '#ff5555' }} />
           </button>
 
           {/* Refresh */}
@@ -222,7 +221,7 @@ const MirrorSlide = forwardRef<MirrorHandle, Props>(function MirrorSlide({ isAct
             onClick={refresh}
             aria-label="Refresh outfit analysis"
             disabled={loading}
-            style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.16)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+            style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.16)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', touchAction: 'manipulation' }}
           >
             <RefreshCw size={15} color={loading ? 'rgba(255,255,255,0.30)' : 'rgba(255,255,255,0.80)'} style={loading ? { animation: 'spin 1s linear infinite' } : {}} />
           </button>
@@ -231,7 +230,7 @@ const MirrorSlide = forwardRef<MirrorHandle, Props>(function MirrorSlide({ isAct
           <button
             onClick={toggleMute}
             aria-label={muted ? 'Unmute voice' : 'Mute voice'}
-            style={{ width: 40, height: 40, borderRadius: 12, background: muted ? 'rgba(255,255,255,0.10)' : 'rgba(168,208,96,0.22)', border: muted ? '1px solid rgba(255,255,255,0.16)' : '1px solid rgba(168,208,96,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+            style={{ width: 40, height: 40, borderRadius: 12, background: muted ? 'rgba(255,255,255,0.10)' : 'rgba(168,208,96,0.22)', border: muted ? '1px solid rgba(255,255,255,0.16)' : '1px solid rgba(168,208,96,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', touchAction: 'manipulation' }}
           >
             {muted ? <VolumeX size={15} color="rgba(255,255,255,0.45)" /> : <Volume2 size={15} color="#A8D060" />}
           </button>
@@ -314,6 +313,8 @@ const MirrorSlide = forwardRef<MirrorHandle, Props>(function MirrorSlide({ isAct
           )}
         </div>
       )}
+
+      </>)}
 
       <style>{`
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
