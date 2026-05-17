@@ -10,7 +10,7 @@ import {
   Camera, Shirt, Sparkles, Send, Loader,
   ImageIcon, X, Thermometer, Wind, Droplets,
   ExternalLink, TrendingUp, CalendarDays, Gem, Lightbulb, Flag, RefreshCw, Zap,
-  Mars, Venus, Watch, FlaskConical, Paperclip, ChevronLeft, ChevronRight, Volume2,
+  Mars, Venus, Watch, FlaskConical, Paperclip, ChevronLeft, ChevronRight, Volume2, WandSparkles,
 } from 'lucide-react';
 import MirrorSlide, { type MirrorHandle } from '@/components/MirrorSlide';
 import WearlyIntro from '@/components/WearlyIntro';
@@ -644,12 +644,14 @@ export default function HomePage() {
                 WebkitTapHighlightColor: 'transparent',
               }}
             >
-              <span style={{ fontSize: 22 }}>✨</span>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(168,208,96,0.16)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <WandSparkles size={18} color="#5a9240" strokeWidth={1.75} />
+              </div>
               <div style={{ textAlign: 'left', flex: 1 }}>
                 <div style={{ color: '#5a9240', fontSize: 13, fontWeight: 700 }}>About Wearly AI</div>
                 <div style={{ color: 'rgba(0,0,0,0.40)', fontSize: 11, marginTop: 2 }}>Features, privacy & how it works</div>
               </div>
-              <span style={{ color: 'rgba(90,146,64,0.60)', fontSize: 20 }}>›</span>
+              <ChevronRight size={16} color="rgba(90,146,64,0.60)" strokeWidth={2} />
             </button>
 
           </div>
