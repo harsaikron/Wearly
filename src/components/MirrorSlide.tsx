@@ -1,9 +1,11 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { Volume2, VolumeX, RefreshCw, Play } from 'lucide-react';
+import { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle } from 'react';
+import { Volume2, VolumeX, RefreshCw } from 'lucide-react';
 import { useProfileStore } from '@/store/profile';
 import { speak, stopSpeech } from '@/lib/speak';
+
+export interface MirrorHandle { start: () => void; }
 
 interface MirrorResult {
   color_description: string;
@@ -19,7 +21,7 @@ interface Props {
 
 const FALLBACK_WEATHER = { temperature: 31, description: 'Humid and sunny', condition: 'hot', humidity: 84 };
 
-export default function MirrorSlide({ isActive, weather }: Props) {
+const MirrorSlide = forwardRef<MirrorHandle, Props>(function MirrorSlide({ isActive, weather }, ref) {
   const userName = useProfileStore((s) => s.name);
 
   const videoRef    = useRef<HTMLVideoElement>(null);
@@ -35,6 +37,11 @@ export default function MirrorSlide({ isActive, weather }: Props) {
   const [muted,       setMuted]       = useState(false);
   const mutedRef = useRef(false);
   useEffect(() => { mutedRef.current = muted; }, [muted]);
+
+  // Expose start() so parent can call it synchronously within a user gesture
+  useImperativeHandle(ref, () => ({
+    start: () => { if (!cameraReady) startCamera(); },
+  })); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Speak whenever result changes
   useEffect(() => {
@@ -147,42 +154,13 @@ export default function MirrorSlide({ isActive, weather }: Props) {
     captureAndAnalyse();
   }
 
-  // ── Idle screen (not started yet) ───────────────────────────────────────
+  // ── Starting state (camera not yet live) ────────────────────────────────
   if (!cameraReady && !permDenied) {
     return (
-      <div style={{ width: '100%', height: '100%', background: '#080f06', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 32, padding: 32 }}>
-        {/* Ambient glow */}
+      <div style={{ width: '100%', height: '100%', background: '#080f06', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 20 }}>
         <div style={{ position: 'absolute', width: 220, height: 220, borderRadius: '50%', background: 'radial-gradient(ellipse, rgba(90,146,64,0.28) 0%, transparent 70%)', filter: 'blur(40px)', pointerEvents: 'none' }} />
-
-        <div style={{ textAlign: 'center', position: 'relative' }}>
-          <div style={{ fontSize: 52, marginBottom: 12 }}>🪞</div>
-          <p style={{ color: '#fff', fontWeight: 700, fontSize: 22, letterSpacing: '-0.02em', marginBottom: 6 }}>Smart Mirror</p>
-          <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 14, lineHeight: 1.6, maxWidth: 260 }}>
-            AI will analyse your outfit and suggest matching bottoms and accessories.
-          </p>
-        </div>
-
-        {/* Big tap target — easy to press on a mounted phone */}
-        <button
-          onClick={startCamera}
-          style={{
-            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10,
-            width: 160, height: 160, borderRadius: '50%',
-            background: 'linear-gradient(158deg, rgba(168,208,96,0.30), rgba(60,106,32,0.70))',
-            border: '2px solid rgba(168,208,96,0.50)',
-            boxShadow: '0 0 60px rgba(90,146,64,0.40), 0 0 120px rgba(90,146,64,0.20)',
-            cursor: 'pointer',
-            WebkitTapHighlightColor: 'transparent',
-            touchAction: 'manipulation',
-          }}
-        >
-          <Play size={38} color="#C8EC80" fill="#C8EC80" strokeWidth={1.5} style={{ marginLeft: 6 }} />
-          <span style={{ color: '#C8EC80', fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Start</span>
-        </button>
-
-        <p style={{ color: 'rgba(255,255,255,0.22)', fontSize: 11, textAlign: 'center', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-          Tap to activate camera
-        </p>
+        <div style={{ width: 14, height: 14, borderRadius: '50%', background: '#A8D060', animation: 'pulse 1.2s ease-in-out infinite' }} />
+        <span style={{ color: 'rgba(255,255,255,0.50)', fontSize: 13, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Starting camera…</span>
       </div>
     );
   }
@@ -343,4 +321,6 @@ export default function MirrorSlide({ isActive, weather }: Props) {
       `}</style>
     </div>
   );
-}
+});
+
+export default MirrorSlide;

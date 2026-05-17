@@ -12,7 +12,7 @@ import {
   ExternalLink, TrendingUp, CalendarDays, Gem, Lightbulb, Flag, RefreshCw, Zap,
   Mars, Venus, Watch, FlaskConical, Paperclip, ChevronLeft, ChevronRight, Volume2,
 } from 'lucide-react';
-import MirrorSlide from '@/components/MirrorSlide';
+import MirrorSlide, { type MirrorHandle } from '@/components/MirrorSlide';
 import {
   EventIcon, SeasonIcon,
 } from '@/components/icons/SgIcons';
@@ -153,6 +153,7 @@ export default function HomePage() {
   const [grooming, setGrooming]             = useState<GroomingResult | null>(null);
   const [groomingLoading, setGroomingLoading] = useState(false);
   const fileInputRef                        = useRef<HTMLInputElement>(null);
+  const mirrorRef                           = useRef<MirrorHandle>(null);
 
   // Mobile slider state — 0=Mirror, 1=Today
   const [activeSlide, setActiveSlide]       = useState(1);
@@ -459,7 +460,7 @@ export default function HomePage() {
           { label: 'Mirror', icon: Camera },
           { label: 'Today',  icon: CalendarDays },
         ] as const).map(({ label, icon: Icon }, i) => (
-          <button key={i} onClick={() => setActiveSlide(i)} style={{
+          <button key={i} onClick={() => { setActiveSlide(i); if (i === 0) mirrorRef.current?.start(); }} style={{
             flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
             padding: '9px 8px', borderRadius: 11, border: 'none', cursor: 'pointer',
             background: i === activeSlide
@@ -481,7 +482,7 @@ export default function HomePage() {
       </div>
 
       {/* ── Slide viewport ────────────────────────────── */}
-      <div style={{ flex: 1, position: 'relative', clipPath: 'inset(0)' }}>
+      <div style={{ flex: 1, position: 'relative', overflow: 'hidden', minHeight: 0 }}>
         {/* Slide track: 2 slides */}
         <div style={{
           display: 'flex', width: '200vw', height: '100%',
@@ -491,7 +492,7 @@ export default function HomePage() {
 
         {/* ── Slide 0: Mirror ─── */}
         <div style={{ width: '100vw', height: '100%', flexShrink: 0 }}>
-          <MirrorSlide isActive={activeSlide === 0} weather={weather} />
+          <MirrorSlide ref={mirrorRef} isActive={activeSlide === 0} weather={weather} />
         </div>
 
         {/* ── Slide 1: Today ─── */}
