@@ -173,6 +173,7 @@ export default function MirrorSlide({ isActive, weather }: Props) {
             boxShadow: '0 0 60px rgba(90,146,64,0.40), 0 0 120px rgba(90,146,64,0.20)',
             cursor: 'pointer',
             WebkitTapHighlightColor: 'transparent',
+            touchAction: 'manipulation',
           }}
         >
           <Play size={38} color="#C8EC80" fill="#C8EC80" strokeWidth={1.5} style={{ marginLeft: 6 }} />
@@ -207,7 +208,7 @@ export default function MirrorSlide({ isActive, weather }: Props) {
 
   // ── Main render ─────────────────────────────────────────────────────────
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100%', background: '#000', overflow: 'hidden' }}>
+    <div style={{ position: 'relative', width: '100%', height: '100%', background: '#000', clipPath: 'inset(0)' }}>
 
       {/* ── Video ── */}
       <video

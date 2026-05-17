@@ -23,14 +23,10 @@ export default function CategoryPickerSheet({ open, onClose, onPick }: Props) {
 
   useEffect(() => {
     if (open) {
-      document.body.style.overflow = 'hidden';
       requestAnimationFrame(() => requestAnimationFrame(() => setVisible(true)));
     } else {
       setVisible(false);
-      const t = setTimeout(() => { document.body.style.overflow = ''; }, 380);
-      return () => clearTimeout(t);
     }
-    return () => { document.body.style.overflow = ''; };
   }, [open]);
 
   if (!open && !visible) return null;
@@ -54,7 +50,6 @@ export default function CategoryPickerSheet({ open, onClose, onPick }: Props) {
           background: '#fff',
           transform: visible ? 'translateY(0)' : 'translateY(100%)',
           transition: 'transform 0.38s cubic-bezier(0.32,0.72,0,1)',
-          overflow: 'hidden',
           paddingBottom: 'env(safe-area-inset-bottom)',
         }}
       >

@@ -115,18 +115,15 @@ export default function MakeupAddSheet({ open, onClose, onSave }: Props) {
   // Open / close animation
   useEffect(() => {
     if (open) {
-      document.body.style.overflow = 'hidden';
       requestAnimationFrame(() => requestAnimationFrame(() => setVisible(true)));
     } else {
       setVisible(false);
       const t = setTimeout(() => {
-        document.body.style.overflow = '';
         setStep(0); setSelType(null); setSelHex(''); setShadeName('');
         setProductName(''); setTags([]); setUseCustom(false);
       }, 380);
       return () => clearTimeout(t);
     }
-    return () => { document.body.style.overflow = ''; };
   }, [open]);
 
   if (!open && !visible) return null;
@@ -204,7 +201,6 @@ export default function MakeupAddSheet({ open, onClose, onSave }: Props) {
           display: 'flex',
           flexDirection: 'column',
           paddingBottom: 'env(safe-area-inset-bottom)',
-          overflow: 'hidden',
         }}
       >
         {/* Drag handle */}

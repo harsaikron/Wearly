@@ -844,7 +844,7 @@ export default function WardrobePage() {
         {TABS.map(({ key, label, icon }) => (
           <button key={key} onClick={() => setTab(key)}
             className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all"
-            style={tab === key ? { background:'var(--accent)', color:'#fff' } : { color:'var(--muted)' }}>
+            style={tab === key ? { background:'var(--accent)', color:'#fff', touchAction:'manipulation' } : { color:'var(--muted)', touchAction:'manipulation' }}>
             {icon}{label}
           </button>
         ))}

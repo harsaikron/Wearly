@@ -64,18 +64,15 @@ export default function FragranceAddSheet({ open, onClose, onSave }: Props) {
 
   useEffect(() => {
     if (open) {
-      document.body.style.overflow = 'hidden';
       requestAnimationFrame(() => requestAnimationFrame(() => setVisible(true)));
     } else {
       setVisible(false);
       const t = setTimeout(() => {
-        document.body.style.overflow = '';
         setStep(0); setSelScent(null); setSelConc(null);
         setSelSeasons([]); setProductName(''); setTags([]);
       }, 380);
       return () => clearTimeout(t);
     }
-    return () => { document.body.style.overflow = ''; };
   }, [open]);
 
   if (!open && !visible) return null;
@@ -106,7 +103,7 @@ export default function FragranceAddSheet({ open, onClose, onSave }: Props) {
         transform: visible ? 'translateY(0)' : 'translateY(100%)',
         transition:'transform 0.38s cubic-bezier(0.32,0.72,0,1)',
         maxHeight:'92dvh', display:'flex', flexDirection:'column',
-        paddingBottom:'env(safe-area-inset-bottom)', overflow:'hidden',
+        paddingBottom:'env(safe-area-inset-bottom)',
       }}>
         {/* Handle */}
         <div style={{ display:'flex', justifyContent:'center', paddingTop:12, paddingBottom:4, flexShrink:0 }}>

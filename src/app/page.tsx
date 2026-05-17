@@ -430,7 +430,7 @@ export default function HomePage() {
   return (
     <>
     {/* ── MOBILE FULL-PAGE SLIDER (hidden on md+) ────── */}
-    <div className="md:hidden flex flex-col" style={{ width: '100vw', height: '100dvh' }}>
+    <div className="md:hidden flex flex-col" style={{ position: 'fixed', inset: 0 }}>
       <style>{`
         @keyframes chatDotBounce {
           0%,60%,100%{transform:translateY(0);opacity:0.45}
@@ -468,6 +468,7 @@ export default function HomePage() {
             outline: i === activeSlide ? '1px solid rgba(168,208,96,0.38)' : '1px solid transparent',
             boxShadow: i === activeSlide ? '0 0 18px rgba(168,208,96,0.18)' : 'none',
             transition: 'all 0.22s cubic-bezier(0.4,0,0.2,1)',
+            touchAction: 'manipulation',
           }}>
             <Icon size={13} color={i === activeSlide ? '#A8D060' : 'rgba(255,255,255,0.36)'} />
             <span style={{
