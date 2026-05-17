@@ -122,11 +122,15 @@ export default function Navbar() {
       {/* ── Mobile liquid glass bottom nav ──────────────────────── */}
       {mounted && (
         <div
-          className="md:hidden fixed z-[9999]"
+          className="md:hidden fixed"
           style={{
-            bottom: 'calc(14px + env(safe-area-inset-bottom))',
-            left: 14,
-            right: 14,
+            /* bottom:0 + padding is more reliable on iOS than calc(env()) in bottom */
+            bottom: 0, left: 0, right: 0,
+            paddingLeft: 14, paddingRight: 14,
+            paddingBottom: 'calc(14px + env(safe-area-inset-bottom))',
+            zIndex: 9999,
+            /* pointer-events:none on wrapper so transparent padding area never blocks taps */
+            pointerEvents: 'none',
             WebkitTransform: 'translateZ(0)',
             transform: 'translateZ(0)',
           }}
@@ -138,30 +142,27 @@ export default function Navbar() {
               80%  { opacity: 1; }
               100% { transform: translateX(280%) skewX(-22deg); opacity: 0; }
             }
-            @keyframes lgAmbient {
-              0%,100% { opacity: 0.55; transform: scaleX(1); }
-              50%      { opacity: 0.85; transform: scaleX(1.06); }
-            }
           `}</style>
 
-          {/* Ambient outer glow — static, no animation (saves battery on older devices) */}
+          {/* Ambient outer glow */}
           <div aria-hidden="true" style={{
-            position: 'absolute', bottom: 0, left: '15%', right: '15%', height: 18,
+            position: 'absolute', bottom: 'calc(14px + env(safe-area-inset-bottom))',
+            left: '25%', right: '25%', height: 18,
             background: 'radial-gradient(ellipse, rgba(90,146,64,0.40) 0%, transparent 70%)',
             filter: 'blur(12px)',
             pointerEvents: 'none',
             zIndex: 0,
           }} />
 
-          {/* Bar — blur reduced to 20px for iPhone 7 GPU performance */}
+          {/* Bar — pointer-events:auto so taps land here, solid bg as backdrop-filter fallback */}
           <div style={{
             position: 'relative',
             height: 70,
             borderRadius: 34,
-            background: 'rgba(7,12,5,0.92)',
+            background: 'rgba(10,16,8,0.97)',
             backdropFilter: 'blur(20px) saturate(180%)',
             WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-            border: '1px solid rgba(255,255,255,0.065)',
+            border: '1px solid rgba(255,255,255,0.09)',
             boxShadow: [
               'inset 0 1px 0 rgba(255,255,255,0.12)',
               'inset 0 -1px 0 rgba(0,0,0,0.35)',
@@ -170,6 +171,7 @@ export default function Navbar() {
             ].join(', '),
             overflow: 'hidden',
             zIndex: 1,
+            pointerEvents: 'auto',
           }}>
 
             {/* ── Liquid glass active pill ───────────────────────── */}

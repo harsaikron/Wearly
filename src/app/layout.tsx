@@ -49,8 +49,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Floating CBM indicator — only visible when data-cbm="1" */}
         <div className="cbm-indicator" aria-hidden="true">👁 Color Blind Mode</div>
         <Navbar />
-        {/* overflow-x clip lives here, NOT on html/body — avoids breaking position:fixed on iOS Safari */}
-        <main className="flex-1 pb-[calc(100px+env(safe-area-inset-bottom))] md:pb-0 overflow-x-hidden">
+        <main className="flex-1 pb-[calc(100px+env(safe-area-inset-bottom))] md:pb-0">
           {children}
         </main>
       </body>
