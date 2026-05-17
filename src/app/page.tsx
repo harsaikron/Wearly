@@ -482,10 +482,13 @@ export default function HomePage() {
       </div>
 
       {/* ── Slide viewport ────────────────────────────── */}
-      <div style={{ flex: 1, position: 'relative', overflow: 'hidden', minHeight: 0 }}>
-        {/* Slide track: 2 slides */}
+      {/* No overflow:hidden here — it causes black video on iOS WebKit.
+          The outer position:fixed;inset:0 container provides the visual clip. */}
+      <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
+        {/* Slide track: positioned absolutely so it can't cause scroll overflow */}
         <div style={{
-          display: 'flex', width: '200vw', height: '100%',
+          position: 'absolute', inset: 0, width: '200vw',
+          display: 'flex',
           transform: `translateX(${-activeSlide * 100}vw)`,
           transition: 'transform 0.4s cubic-bezier(0.4,0,0.2,1)',
         }}>
