@@ -1,32 +1,38 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { X, ChevronLeft, Check } from 'lucide-react';
+import {
+  X, ChevronLeft, Check,
+  Smile, Pencil, Layers, Sun, Heart, Sparkles, Wind, Eye, Pen, Wand2, Brush, Droplets,
+  Coffee, Moon, Briefcase, Star, Plane, Zap,
+} from 'lucide-react';
 import type { OccasionTag } from '@/types';
 
 // ─── Product types ────────────────────────────────────────────────────────────
 
 type ShadeGroup = 'lips' | 'eyes' | 'cheeks' | 'skin' | 'none';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type MkIcon = (p: { size?: number; color?: string; strokeWidth?: number }) => any;
 interface MakeupType {
-  id: string; label: string; emoji: string; group: string; shadeGroup: ShadeGroup;
+  id: string; label: string; Icon: MkIcon; color: string; group: string; shadeGroup: ShadeGroup;
 }
 
 const MAKEUP_TYPES: MakeupType[] = [
-  { id: 'lipstick',      label: 'Lipstick',       emoji: '💄', group: 'Lip',  shadeGroup: 'lips'  },
-  { id: 'lip_gloss',     label: 'Lip Gloss',      emoji: '💋', group: 'Lip',  shadeGroup: 'lips'  },
-  { id: 'lip_liner',     label: 'Lip Liner',      emoji: '✏️', group: 'Lip',  shadeGroup: 'lips'  },
-  { id: 'lip_tint',      label: 'Lip Tint',       emoji: '🫦', group: 'Lip',  shadeGroup: 'lips'  },
-  { id: 'foundation',    label: 'Foundation',     emoji: '🫧', group: 'Face', shadeGroup: 'skin'  },
-  { id: 'concealer',     label: 'Concealer',      emoji: '🔆', group: 'Face', shadeGroup: 'skin'  },
-  { id: 'blush',         label: 'Blush',          emoji: '🌸', group: 'Face', shadeGroup: 'cheeks'},
-  { id: 'bronzer',       label: 'Bronzer',        emoji: '☀️', group: 'Face', shadeGroup: 'cheeks'},
-  { id: 'highlighter',   label: 'Highlighter',    emoji: '✨', group: 'Face', shadeGroup: 'none'  },
-  { id: 'primer',        label: 'Primer',         emoji: '🫥', group: 'Face', shadeGroup: 'none'  },
-  { id: 'setting_spray', label: 'Setting Spray',  emoji: '💦', group: 'Face', shadeGroup: 'none'  },
-  { id: 'eyeshadow',     label: 'Eyeshadow',      emoji: '👁️', group: 'Eye',  shadeGroup: 'eyes'  },
-  { id: 'eyeliner',      label: 'Eyeliner',       emoji: '🖊️', group: 'Eye',  shadeGroup: 'eyes'  },
-  { id: 'mascara',       label: 'Mascara',        emoji: '🪄', group: 'Eye',  shadeGroup: 'none'  },
-  { id: 'brow_gel',      label: 'Brow Gel',       emoji: '🤌', group: 'Eye',  shadeGroup: 'none'  },
+  { id: 'lipstick',      label: 'Lipstick',       Icon: Smile,    color: '#C42830', group: 'Lip',  shadeGroup: 'lips'  },
+  { id: 'lip_gloss',     label: 'Lip Gloss',      Icon: Smile,    color: '#E87090', group: 'Lip',  shadeGroup: 'lips'  },
+  { id: 'lip_liner',     label: 'Lip Liner',      Icon: Pencil,   color: '#9B3060', group: 'Lip',  shadeGroup: 'lips'  },
+  { id: 'lip_tint',      label: 'Lip Tint',       Icon: Droplets, color: '#E85078', group: 'Lip',  shadeGroup: 'lips'  },
+  { id: 'foundation',    label: 'Foundation',     Icon: Layers,   color: '#C09060', group: 'Face', shadeGroup: 'skin'  },
+  { id: 'concealer',     label: 'Concealer',      Icon: Brush,    color: '#D0A870', group: 'Face', shadeGroup: 'skin'  },
+  { id: 'blush',         label: 'Blush',          Icon: Heart,    color: '#E87A8A', group: 'Face', shadeGroup: 'cheeks'},
+  { id: 'bronzer',       label: 'Bronzer',        Icon: Sun,      color: '#C87040', group: 'Face', shadeGroup: 'cheeks'},
+  { id: 'highlighter',   label: 'Highlighter',    Icon: Sparkles, color: '#D4A060', group: 'Face', shadeGroup: 'none'  },
+  { id: 'primer',        label: 'Primer',         Icon: Layers,   color: '#8090A0', group: 'Face', shadeGroup: 'none'  },
+  { id: 'setting_spray', label: 'Setting Spray',  Icon: Wind,     color: '#60A0C0', group: 'Face', shadeGroup: 'none'  },
+  { id: 'eyeshadow',     label: 'Eyeshadow',      Icon: Eye,      color: '#7050A0', group: 'Eye',  shadeGroup: 'eyes'  },
+  { id: 'eyeliner',      label: 'Eyeliner',       Icon: Pen,      color: '#303050', group: 'Eye',  shadeGroup: 'eyes'  },
+  { id: 'mascara',       label: 'Mascara',        Icon: Wand2,    color: '#202030', group: 'Eye',  shadeGroup: 'none'  },
+  { id: 'brow_gel',      label: 'Brow Gel',       Icon: Brush,    color: '#704820', group: 'Eye',  shadeGroup: 'none'  },
 ];
 
 const GROUPS = ['Lip', 'Face', 'Eye'];
@@ -72,14 +78,16 @@ const PALETTES: Record<Exclude<ShadeGroup, 'none'>, { hex: string; name: string 
   ],
 };
 
-const OCCASIONS: { id: OccasionTag; emoji: string; label: string }[] = [
-  { id: 'casual',      emoji: '😊', label: 'Casual'      },
-  { id: 'date_night',  emoji: '🌙', label: 'Date Night'  },
-  { id: 'office',      emoji: '💼', label: 'Office'      },
-  { id: 'festive',     emoji: '🎉', label: 'Festive'     },
-  { id: 'weekend',     emoji: '☀️', label: 'Weekend'     },
-  { id: 'travel',      emoji: '✈️', label: 'Travel'      },
-  { id: 'gym',         emoji: '🏃', label: 'Gym'         },
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type OcIcon = (p: { size?: number; color?: string; strokeWidth?: number }) => any;
+const OCCASIONS: { id: OccasionTag; Icon: OcIcon; label: string }[] = [
+  { id: 'casual',      Icon: Coffee,   label: 'Casual'     },
+  { id: 'date_night',  Icon: Moon,     label: 'Date Night' },
+  { id: 'office',      Icon: Briefcase,label: 'Office'     },
+  { id: 'festive',     Icon: Star,     label: 'Festive'    },
+  { id: 'weekend',     Icon: Sun,      label: 'Weekend'    },
+  { id: 'travel',      Icon: Plane,    label: 'Travel'     },
+  { id: 'gym',         Icon: Zap,      label: 'Gym'        },
 ];
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -215,7 +223,7 @@ export default function MakeupAddSheet({ open, onClose, onSave }: Props) {
           </button>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--foreground)', letterSpacing: '-0.02em' }}>
-              {step === 0 ? '💄 Add Makeup' : step === 1 && needsShade ? `Pick ${selType?.label} Shade` : `${selType?.emoji} ${selType?.label} Details`}
+              {step === 0 ? 'Add Makeup' : step === 1 && needsShade ? `Pick ${selType?.label} Shade` : `${selType?.label} Details`}
             </div>
             {/* Step dots */}
             <div style={{ display:'flex', gap: 5, marginTop: 5 }}>
@@ -259,7 +267,9 @@ export default function MakeupAddSheet({ open, onClose, onSave }: Props) {
                         onTouchStart={e => { (e.currentTarget as HTMLButtonElement).style.transform = 'scale(0.93)'; }}
                         onTouchEnd={e => { (e.currentTarget as HTMLButtonElement).style.transform = ''; }}
                       >
-                        <span style={{ fontSize: 26 }}>{t.emoji}</span>
+                        <div style={{ width: 40, height: 40, borderRadius: 12, background: `${t.color}1a`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <t.Icon size={20} color={t.color} strokeWidth={1.75} />
+                        </div>
                         <span style={{ fontSize: 10, fontWeight: 700, color:'var(--foreground)', textAlign:'center', lineHeight: 1.2 }}>{t.label}</span>
                       </button>
                     ))}
@@ -375,7 +385,7 @@ export default function MakeupAddSheet({ open, onClose, onSave }: Props) {
             <div style={{ marginBottom: 20 }}>
               <label style={{ fontSize:11, fontWeight:700, color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em', display:'block', marginBottom:9 }}>Occasions</label>
               <div style={{ display:'flex', flexWrap:'wrap', gap: 8 }}>
-                {OCCASIONS.map(({ id, emoji, label }) => {
+                {OCCASIONS.map(({ id, Icon, label }) => {
                   const on = tags.includes(id);
                   return (
                     <button key={id} onClick={() => setTags(ts => on ? ts.filter(t => t !== id) : [...ts, id])}
@@ -385,8 +395,10 @@ export default function MakeupAddSheet({ open, onClose, onSave }: Props) {
                         background: on ? 'rgba(196,40,48,0.09)' : 'var(--muted-bg)',
                         color: on ? '#C42830' : 'var(--foreground)',
                         fontSize: 13, fontWeight: 600, cursor:'pointer', transition:'all 0.15s',
+                        touchAction: 'manipulation',
                       }}>
-                      <span>{emoji}</span><span>{label}</span>
+                      <Icon size={13} color={on ? '#C42830' : 'var(--foreground)'} strokeWidth={1.75} />
+                      <span>{label}</span>
                       {on && <Check size={11} strokeWidth={3} />}
                     </button>
                   );

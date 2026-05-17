@@ -11,6 +11,8 @@ import {
   Cpu, Wifi, WifiOff, CloudLightning, AlertCircle,
   Globe, Brain, Star, Heart, Ruler, ChevronDown, ChevronUp,
   Droplets, Sun, RefreshCw, Send, GitPullRequest, ExternalLink, Trash2, Loader,
+  Minus, Shirt, Tag, Activity, Crown, GraduationCap, Gem, Smile,
+  Moon, Briefcase, Plane,
 } from 'lucide-react';
 import { useEvolveStore, FeatureCategory } from '@/store/evolve';
 
@@ -77,17 +79,19 @@ const SKIN_TONES: { id: SkinTone; label: string; hex: string; undertone: string 
   { id: 'rich',   label: 'Rich',   hex: '#3D1C09', undertone: 'Cool / Deep' },
 ];
 
-const FASHION_STYLES: { id: FashionStyle; label: string; emoji: string; color: string }[] = [
-  { id: 'minimalist', label: 'Minimalist', emoji: '⬜', color: '#6B7280' },
-  { id: 'classic',    label: 'Classic',    emoji: '👔', color: '#1D4ED8' },
-  { id: 'streetwear', label: 'Streetwear', emoji: '🧢', color: '#374151' },
-  { id: 'bohemian',   label: 'Bohemian',   emoji: '🌿', color: '#5A9240' },
-  { id: 'sporty',     label: 'Sporty',     emoji: '🏃', color: '#0891b2' },
-  { id: 'elegant',    label: 'Elegant',    emoji: '✨', color: '#9333ea' },
-  { id: 'edgy',       label: 'Edgy',       emoji: '⚡', color: '#374151' },
-  { id: 'preppy',     label: 'Preppy',     emoji: '🎓', color: '#1D4ED8' },
-  { id: 'casual',     label: 'Casual',     emoji: '👕', color: '#d97706' },
-  { id: 'luxury',     label: 'Luxury',     emoji: '💎', color: '#b45309' },
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type StyleIcon = (p: { size?: number; color?: string; strokeWidth?: number }) => any;
+const FASHION_STYLES: { id: FashionStyle; label: string; Icon: StyleIcon; color: string }[] = [
+  { id: 'minimalist', label: 'Minimalist', Icon: Minus,         color: '#6B7280' },
+  { id: 'classic',    label: 'Classic',    Icon: Shirt,         color: '#1D4ED8' },
+  { id: 'streetwear', label: 'Streetwear', Icon: Tag,           color: '#374151' },
+  { id: 'bohemian',   label: 'Bohemian',   Icon: Leaf,          color: '#5A9240' },
+  { id: 'sporty',     label: 'Sporty',     Icon: Activity,      color: '#0891b2' },
+  { id: 'elegant',    label: 'Elegant',    Icon: Crown,         color: '#9333ea' },
+  { id: 'edgy',       label: 'Edgy',       Icon: Zap,           color: '#374151' },
+  { id: 'preppy',     label: 'Preppy',     Icon: GraduationCap, color: '#1D4ED8' },
+  { id: 'casual',     label: 'Casual',     Icon: Shirt,         color: '#d97706' },
+  { id: 'luxury',     label: 'Luxury',     Icon: Gem,           color: '#b45309' },
 ];
 
 const GENDER_OPTIONS: { id: Gender; label: string }[] = [
@@ -122,7 +126,7 @@ function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void 
         display: 'inline-block',
         position: 'relative',
         width: 50,
-        height: 32,
+        minHeight: 32,
         borderRadius: 999,
         flexShrink: 0,
         cursor: 'pointer',
@@ -529,7 +533,7 @@ export default function ProfilePage() {
               <div>
                 <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.07em', display: 'block', marginBottom: 10 }}>Your Style</label>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                  {FASHION_STYLES.map(({ id, label, emoji, color }) => {
+                  {FASHION_STYLES.map(({ id, label, Icon, color }) => {
                     const on = profile.fashionStyles.includes(id);
                     return (
                       <button key={id} onClick={() => profile.toggleFashionStyle(id)} style={{
@@ -540,8 +544,10 @@ export default function ProfilePage() {
                         color: on ? color : 'var(--foreground-mid)',
                         display: 'flex', alignItems: 'center', gap: 5, transition: 'all 0.15s',
                         boxShadow: on ? `0 2px 10px ${color}22` : 'none',
+                        touchAction: 'manipulation',
                       }}>
-                        <span>{emoji}</span> {label}
+                        <Icon size={13} color={on ? color : 'var(--foreground-mid)'} strokeWidth={2} />
+                        {label}
                       </button>
                     );
                   })}
@@ -583,7 +589,15 @@ export default function ProfilePage() {
                     boxShadow: paletteTab === tab ? '0 2px 8px rgba(0,0,0,0.10)' : 'none',
                     transition: 'all 0.18s', textTransform: 'capitalize', letterSpacing: '0.01em',
                   }}>
-                    {tab === 'lips' ? '💄' : tab === 'eyes' ? '👁' : tab === 'cheeks' ? '🌸' : '✨'} {tab}
+                    {tab === 'lips'
+                      ? <Smile   size={13} strokeWidth={1.75} />
+                      : tab === 'eyes'
+                      ? <Eye     size={13} strokeWidth={1.75} />
+                      : tab === 'cheeks'
+                      ? <Heart   size={13} strokeWidth={1.75} />
+                      : <Sparkles size={13} strokeWidth={1.75} />
+                    }
+                    <span style={{ textTransform: 'capitalize' }}>{tab}</span>
                   </button>
                 ))}
               </div>
