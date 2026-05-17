@@ -13,6 +13,7 @@ import {
   Mars, Venus, Watch, FlaskConical, Paperclip, ChevronLeft, ChevronRight, Volume2,
 } from 'lucide-react';
 import MirrorSlide, { type MirrorHandle } from '@/components/MirrorSlide';
+import WearlyIntro from '@/components/WearlyIntro';
 import {
   EventIcon, SeasonIcon,
 } from '@/components/icons/SgIcons';
@@ -430,6 +431,7 @@ export default function HomePage() {
 
   return (
     <>
+    <WearlyIntro />
     {/* ── MOBILE FULL-PAGE SLIDER (hidden on md+) ────── */}
     <div className="md:hidden flex flex-col" style={{ position: 'fixed', inset: 0 }}>
       <style>{`
