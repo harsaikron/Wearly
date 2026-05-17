@@ -1,69 +1,174 @@
-# Wearly — Local-First AI Wardrobe Stylist
+# Wearly — AI Wardrobe Stylist
 
 > **Kaggle Gemma Hackathon Submission** — Special Technology Track  
-> 🥇 **Ollama Prize** ($10,000) · 🥇 **Cactus Prize** ($10,000)
+> Ollama Prize Track · Cactus Prize Track
 
-Wearly is a **local-first, privacy-preserving AI wardrobe stylist** that runs Gemma 4 entirely on your own machine via [Ollama](https://ollama.com). Your wardrobe photos, outfit history, and personal style data never leave your device. When Ollama is unavailable (e.g. deployed on Vercel), the app intelligently routes requests to Groq cloud as a transparent fallback — demonstrating smart edge-to-cloud model routing.
+Wearly is a **local-first, privacy-preserving AI wardrobe stylist** that runs Gemma 4 entirely on your own machine via [Ollama](https://ollama.com). Your wardrobe photos, outfit history, and personal style data never leave your device. When Ollama is unavailable (e.g. deployed to Vercel), the app intelligently routes requests to Groq cloud as a transparent fallback — demonstrating smart edge-to-cloud model routing.
 
 **Live demo:** https://wearly-dusky.vercel.app  
 **Source code:** https://github.com/harsaikron/Wearly
 
 ---
 
-## Why Wearly qualifies for the Special Technology Track
+## What Wearly Does — Ideal Scenarios
 
-| Prize | Qualification |
-|---|---|
-| **Ollama — $10,000** | Every AI feature (garment vision, outfit generation, wardrobe health, trip planner, eco styling) runs on **Gemma 4 (`gemma4:e4b`) via Ollama** locally. No cloud required when Ollama is running. |
-| **Cactus — $10,000** | Wearly is a **local-first mobile-ready progressive web app** with **intelligent task routing between models**: Gemma 4 / Ollama (on-device, private) → LLaMA / Groq (cloud fallback). Routing is automatic and transparent to the user. |
+Wearly is designed around the real moments where fashion decisions happen. Here are the core flows:
+
+### Morning — Outfit of the Day
+You wake up, open Wearly on your phone. The app checks live weather, local events, and your calendar — then Gemma 4 picks the perfect outfit from your own wardrobe. A voice announcement reads it aloud so you can get ready hands-free. No decisions to make. No scrolling. Just get dressed.
+
+### Getting Dressed — Smart Mirror
+Your old iPhone 7 is mounted inside your wardrobe (it's perfect for this — small, front-facing camera, always on). You tap the big circular button. The camera activates, Gemma 4 analyses what you're holding up, and the screen shows matching bottoms and accessories — instantly. The screen stays on automatically via Wake Lock so you never have to touch it mid-outfit.
+
+### Adding a New Item — Smart Camera Detection
+You photograph a new jacket. Gemma 4 recognises it — category, colour, occasion tags — and asks via voice: *"I spotted a navy blazer. This doesn't seem to be in your wardrobe yet. Would you like me to add it?"* Tap yes, it's catalogued. Done in seconds.
+
+### Planning a Trip — AI Travel Stylist
+You have a Bangkok trip in Google Calendar. Wearly reads it and builds a day-by-day outfit plan: specific places, activity types, complete outfits from your existing wardrobe — with green highlights for what you already own and suggestions for what to buy or rent for what you don't.
+
+### Building Good Habits — Wardrobe Health
+You haven't worn your camel coat in 70 days. Wearly notices. The Health tab gives your wardrobe a score, surfaces unused items, flags duplicate colours, and suggests outfit combos using clothes you've been ignoring. It's a nudge to wear more of what you already have.
+
+### Selling — Marketplace Listing
+You want to sell that blazer. Upload a photo, and Gemma 4 writes the listing title, description, and pricing suggestion for you. One tap to list it in the community marketplace.
+
+### Building the App Itself — AI Evolution
+Describe a feature in plain English. Gemma 4 reads the codebase, writes the implementation, and opens a GitHub Pull Request. This is how Wearly improves itself.
+
+---
+
+## How Smart Is Gemma 4 at Fashion?
+
+Gemma 4 (`gemma4:e4b`) runs all AI inference locally. Here's what the model understands:
+
+**Garment Recognition**
+- Identifies 50+ clothing categories: blazers, kurtas, saris, palazzo trousers, cheongsams, abayas, and more — including culturally specific garments
+- Returns structured output: category, colour (hex + descriptive name), occasion tags, and a suggested product name
+- Works from photos taken in poor lighting, cluttered backgrounds, or from partial angles
+
+**Colour and Styling Intelligence**
+- Understands colour theory: complementary, analogous, monochromatic pairings
+- Knows that navy + white = nautical chic, terracotta + sage = earthy warmth, blush + burgundy = romantic contrast
+- Adjusts for skin tone (warm/cool/neutral undertones) and occasion formality
+
+**Local and Cultural Context**
+- Built-in knowledge of Singapore's climate (tropical, 28–34°C year-round)
+- Aware of key cultural occasions: Hari Raya (baju kurung, baju melayu), CNY (qipao, mandarin collar), Deepavali (saree, kurta), National Day (red/white palette)
+- Understands dress codes: business formal, smart casual, resort wear, streetwear, athleisure
+
+**Sustainability Reasoning**
+- Knows typical garment lifespans by category and material
+- Estimates CO₂ impact per item type
+- Can tell you that a polyester T-shirt worn 5 times has a higher per-wear carbon cost than a linen shirt worn 40 times
+
+**Outfit Compatibility Scoring**
+- Rates outfit combinations on colour harmony, formality consistency, seasonal appropriateness, and occasion fit
+- Explains the reasoning in plain English: *"The chunky sole sneakers clash with the slim trousers — try a low-profile white trainer instead"*
+
+**Fine-Tuned Specialisation (when available)**
+The system supports three optional fine-tuned modules on top of the base Gemma 4 model:
+- `wearly-fashion-v1` — clothing vision classifier (higher accuracy on category + colour naming)
+- `wearly-outfit-v1` — outfit compatibility scorer
+- `wearly-makeup-v1` — beauty and grooming advisor (trained on YouMakeup + FFHQ datasets)
+
+When these fine-tuned models are present in Ollama, they are used automatically. If not, the base `gemma4:e4b` handles all tasks.
+
+---
+
+## Accessibility — Designed for Everyone
+
+Wearly is built to be usable regardless of visual ability, motor dexterity, or tech comfort.
+
+### Voice-First Interface
+Every key action in Wearly speaks aloud:
+- Morning OOTD announcement: *"Good morning! Today's outfit is the Coastal Casual. You'll be wearing a white linen shirt, navy chinos, and tan loafers. The light fabric keeps you cool in today's 31°C heat."*
+- Camera detection prompt: *"I spotted a caramel trench coat. This doesn't seem to be in your wardrobe yet. Would you like me to add it?"*
+- All voice output uses the Web Speech API — no third-party service, no internet required, works offline
+
+### Blind-Friendly and Low-Vision
+- All clothing items are stored with full descriptive metadata: colour name (not just hex), material, occasion tags
+- AI responses are written in conversational language, not visual jargon — *"warm earthy terracotta"* not *"#C57B57"*
+- Screen reader compatible: semantic HTML, proper ARIA labels, no information conveyed by colour alone
+- Color Blind Mode: toggle in the profile page to switch to a high-contrast, colour-safe palette
+
+### iPhone 7 — Accessibility Hardware
+The app is specifically optimised for iPhone 7 running Google Chrome 125. This matters because many accessibility users rely on older, affordable devices:
+- No backdrop-filter (GPU-safe on A10 chip)
+- Solid-colour navigation bar (always visible, no transparency tricks)
+- 64px minimum tap targets (exceeds WCAG 2.1 AA 44×44px requirement)
+- `touch-action: manipulation` globally (eliminates iOS 300ms tap delay)
+- `clip-path: inset(0)` used instead of `overflow: hidden` (fixes iOS touch-event cancellation)
+- Wake Lock API keeps the screen on when the phone is mounted as a wardrobe mirror
+
+### Physical and Motor Accessibility
+- Large circular "Start Mirror" button (160px diameter) for easy one-finger tap when phone is mounted
+- All critical actions reachable with one hand from the bottom navigation
+- PWA installed to home screen removes all browser chrome — pure full-screen app
+- No hover-dependent interactions — everything works by tap
+
+### Language and Literacy
+- Voice output rate is slightly slowed (0.93×) for easier comprehension
+- AI responses use plain English — no fashion jargon without explanation
+- Category labels use both text and icons throughout
 
 ---
 
 ## Features
 
-### 🧥 Wardrobe — Closet · Health · Plan
+### Home — Daily Intelligence
+- Live weather widget with animated icons
+- Outfit of the Day: AI-generated outfit based on weather, calendar, and wardrobe
+- Voice playback button — hear your outfit described aloud
+- Singapore cultural events calendar
+
+### Wardrobe — Closet · Health · Plan
 
 **Closet**
-- Photograph or upload any clothing item
-- Gemma 4 vision auto-detects: name, category, colour (hex + name), and occasion tags
-- Full-text search and category filter across your wardrobe
-- Item detail page: wear tracking, carbon footprint, AI style pairings with real product images, mark-worn today/tomorrow, favourite toggle, sell/rent CTAs, personal notes
+- Add items by photo or upload — Gemma 4 auto-detects name, category, colour, and occasion tags
+- Smart camera detection — voice prompt when a new item is spotted that isn't in your wardrobe
+- Full-text search and category filters
+- Item detail: wear tracking, carbon footprint, AI style pairings, mark-worn, favourite, sell/rent CTA
 
-**Health Score**
-- AI-generated closet audit powered by Gemma 4
-- Overall score (0–100) with grade (A–F)
-- Highlights overused items, unused items (>60 days), duplicate colours, missing essentials
-- Lifecycle predictions per item: keep, sell, seasonal peak, donate
-- AI-generated outfit combos from existing wardrobe
+**Health**
+- Wardrobe score (0–100) with grade (A–F)
+- Flags unused items (>60 days), overused items, colour duplicates, missing essentials
+- Lifecycle predictions: keep, sell, donate, seasonal peak
+- AI outfit combos from existing wardrobe only
 
 **Plan**
-- Monthly outfit calendar with drag-assign
-- Google Calendar OAuth integration — auto-detects upcoming travel events
-- **Day-by-day AI trip agenda**: specific place per day, activity type (beach / temple / city / night_market / hiking…), full outfit recommendation, items you already own (highlighted green) vs items to buy or rent, eco tip, shopping links
+- Monthly outfit calendar
+- Google Calendar OAuth — detects upcoming travel events
+- Day-by-day AI trip agenda with per-day places, activities, and outfit recommendations
+- Green highlight: items you already own vs items to buy/rent
 
-### ✨ Stylist — AI Stylist · Eco Mode
+### Smart Mirror
+- Designed for an iPhone 7 mounted inside a wardrobe
+- Camera activates on tap (iOS user-gesture requirement)
+- Gemma 4 identifies what you're holding — top, bottom, accessory, shoes
+- Suggests matching bottoms and accessories instantly
+- Wake Lock keeps screen on automatically
+
+### Stylist — AI Stylist · Eco Mode
 
 **Stylist**
-- Conversational AI stylist with context from Singapore weather, upcoming cultural events (CNY, Hari Raya, Deepavali, National Day…), and your wardrobe
-- Pick occasion and get a complete outfit with colour pairing rationale
-- Day-of-week planner with 7-day outfit scheduling
+- Conversational AI with context from weather, events, and your wardrobe
+- Pick occasion → complete outfit with colour rationale
+- 7-day outfit planner
 
 **Eco Mode**
-- Generates outfits exclusively from clothes you already own
-- Shows CO₂ carbon impact stats (92M tonnes textile waste/year)
-- AI weekly re-wear challenge
-- Links to Singapore second-hand platforms: Carousell, Refash, Style Theory
+- Outfits exclusively from what you already own
+- CO₂ stats and weekly re-wear challenges
+- Links to Singapore resale: Carousell, Refash, Style Theory
 
-### 🛍 Marketplace — Buy · Rent · Mine
-- AI-powered listing generator: upload a photo → Gemma 4 writes the title, description, and suggests a fair price
-- Browse community listings with distance, condition, and category filters
-- Sell or rent out your own items
+### Marketplace — Buy · Rent · Mine
+- AI-generated listing from a photo: title, description, fair price suggestion
+- Community listings with category and condition filters
+- Sell or rent your own items
 
-### ⚡ Evolve — AI Feature Builder
-- Describe a new feature in plain English
-- Gemma 4 generates the implementation plan and code
-- Automatically creates a GitHub Pull Request
-- Fully agentic: reads the codebase, writes production code, opens the PR
+### Evolve — AI Feature Builder
+- Describe a feature in plain English
+- Gemma 4 reads the codebase and writes the implementation
+- Automatically opens a GitHub Pull Request
 
 ---
 
@@ -81,25 +186,26 @@ User Request
      ├── GROQ_API_KEY set?
      │         YES ──► LLaMA 3.3 70B via Groq  ◄── cloud fallback
      │
-     └── NO ──► Error: AI offline (clear user message)
+     └── NO ──► Clear error message to user
 ```
 
-All 9 AI endpoints share a single `aiChat()` / `aiChatWithImage()` client in `src/lib/ai-client.ts`. Feature code never needs to know which backend is active — the router handles it transparently.
+All AI endpoints share a single `aiChat()` / `aiChatWithImage()` client in `src/lib/ai-client.ts`. Feature code never needs to know which backend is active.
 
 ### AI API Endpoints
 
-| Route | Gemma 4 task | Input |
+| Route | Task | Input |
 |---|---|---|
-| `POST /api/analyze-clothing` | Multimodal vision — classify garment | Base64 image |
-| `POST /api/ootd` | Text — outfit of the day | Weather + wardrobe |
-| `POST /api/stylist` | Text — conversational stylist | Chat history + wardrobe |
-| `POST /api/closet-health` | Text — wardrobe audit (JSON) | Full wardrobe metadata |
-| `POST /api/ai-listing` | Text — marketplace listing | Item details + condition |
-| `POST /api/pair-suggestions` | Text — outfit pairings | Single item + wardrobe |
-| `POST /api/trip-planner` | Text — day-by-day trip agenda | Destination + wardrobe |
-| `POST /api/sustainable` | Text — eco outfit builder | Occasion + wardrobe |
-| `POST /api/evolve` | Code generation + Git | Feature description |
-| `GET  /api/health` | Backend detection | — |
+| `POST /api/analyze-clothing` | Vision — classify garment | Base64 image |
+| `POST /api/ootd` | Outfit of the day | Weather + wardrobe |
+| `POST /api/stylist` | Conversational stylist | Chat history + wardrobe |
+| `POST /api/closet-health` | Wardrobe audit | Full wardrobe metadata |
+| `POST /api/ai-listing` | Marketplace listing writer | Item details + condition |
+| `POST /api/pair-suggestions` | Outfit pairings per item | Single item + wardrobe |
+| `POST /api/trip-planner` | Day-by-day trip agenda | Destination + wardrobe |
+| `POST /api/sustainable` | Eco outfit builder | Occasion + wardrobe |
+| `POST /api/mirror-voice` | Smart mirror analysis | Base64 image |
+| `POST /api/evolve` | Code generation + GitHub PR | Feature description |
+| `GET  /api/ai-status` | Backend detection | — |
 
 ---
 
@@ -110,174 +216,12 @@ All 9 AI endpoints share a single `aiChat()` / `aiChatWithImage()` client in `sr
 | **AI (local)** | Gemma 4 `gemma4:e4b` via [Ollama](https://ollama.com) |
 | **AI (cloud fallback)** | LLaMA 3.3 70B / LLaMA 4 Scout via Groq |
 | **Framework** | Next.js 15 · App Router · TypeScript |
-| **Styling** | Tailwind CSS v4 · CSS custom properties · 14 micro-interaction keyframes |
+| **Styling** | Tailwind CSS v4 · CSS custom properties |
 | **State** | Zustand with `localStorage` persistence (no database required) |
-| **Calendar** | Google Identity Services OAuth (read-only scope) |
-| **Deployment** | Vercel (production) |
-
----
-
-## Local Development
-
-### Prerequisites
-
-| Tool | Version | Purpose |
-|---|---|---|
-| Node.js | 20+ | Runtime |
-| [Ollama](https://ollama.com/download) | latest | Local AI inference |
-| Gemma 4 model | `gemma4:e4b` | The model |
-
-### Quick Start
-
-```bash
-# 1. Pull Gemma 4 via Ollama (one-time, ~5 GB download)
-ollama pull gemma4:e4b
-
-# 2. Clone the repo
-git clone https://github.com/harsaikron/Wearly.git
-cd Wearly
-
-# 3. Install dependencies
-npm install
-
-# 4. (Optional) configure environment
-cp .env.example .env.local
-# Edit .env.local with your keys (see table below)
-
-# 5. Run
-npm run dev
-```
-
-Open http://localhost:3000 — the app auto-detects Ollama and routes all AI requests to Gemma 4 locally.
-
-### Environment Variables
-
-Create `.env.local` in the project root:
-
-```bash
-# Cloud fallback (optional) — enables Groq when Ollama is unreachable
-GROQ_API_KEY=gsk_...
-
-# Ollama host (optional) — default: http://localhost:11434
-OLLAMA_HOST=http://localhost:11434
-
-# Default city for weather (optional)
-NEXT_PUBLIC_DEFAULT_CITY=Singapore
-
-# Evolve feature — creates real GitHub PRs (optional)
-GITHUB_TOKEN=ghp_...
-GITHUB_REPO=harsaikron/Wearly
-```
-
-None of these are required to run the app locally with Ollama.
-
-### Vercel Production Deployment
-
-```bash
-# Deploy
-npx vercel --prod
-
-# Required env vars on Vercel (Ollama not available in serverless):
-# GROQ_API_KEY — enables cloud AI for production
-# GITHUB_TOKEN — enables Evolve PR creation
-```
-
----
-
-## Project Structure
-
-```
-wearly/
-├── src/
-│   ├── app/
-│   │   ├── page.tsx                    # Home — weather, OOTD, Singapore events
-│   │   ├── wardrobe/
-│   │   │   ├── page.tsx                # Closet / Health / Plan (3 tabs)
-│   │   │   └── [id]/page.tsx           # Item detail — stats, pairings, carbon
-│   │   ├── stylist/page.tsx            # AI Stylist / Eco Mode (2 tabs)
-│   │   ├── marketplace/
-│   │   │   ├── page.tsx                # Buy / Rent / Mine (3 tabs)
-│   │   │   └── [id]/page.tsx           # Listing detail + contact
-│   │   ├── evolve/page.tsx             # AI feature builder → GitHub PR
-│   │   └── api/
-│   │       ├── analyze-clothing/       # Vision: garment classifier
-│   │       ├── ootd/                   # Outfit of the day
-│   │       ├── stylist/                # Conversational stylist
-│   │       ├── closet-health/          # Wardrobe health audit
-│   │       ├── ai-listing/             # Marketplace listing generator
-│   │       ├── pair-suggestions/       # Per-item outfit pairings
-│   │       ├── trip-planner/           # Day-by-day trip agenda
-│   │       ├── sustainable/            # Eco outfit builder
-│   │       ├── evolve/                 # Feature generator + GitHub PR
-│   │       └── health/                 # Backend detection (Ollama / Groq / none)
-│   ├── components/
-│   │   ├── Navbar.tsx                  # Top nav + mobile bottom tab bar
-│   │   ├── Camera.tsx                  # In-browser camera capture
-│   │   ├── UploadZone.tsx              # Drag-and-drop image upload
-│   │   └── WeatherWidget.tsx           # Real-time weather card
-│   ├── lib/
-│   │   ├── ai-client.ts                # ⭐ Smart Ollama → Groq router
-│   │   ├── singapore-events.ts         # Local events + cultural calendar
-│   │   └── image-utils.ts              # Image compression (client-side)
-│   ├── store/
-│   │   ├── wardrobe.ts                 # Zustand: items, outfits, history
-│   │   └── listings.ts                 # Zustand: marketplace listings
-│   └── types/index.ts                  # ClothingItem, Outfit, Listing types
-├── next.config.ts
-├── tailwind.config.ts
-└── README.md
-```
-
----
-
-## How Gemma 4 Powers Each Feature
-
-### Garment Vision Analysis
-Gemma 4's multimodal capability processes a photo of any clothing item and returns structured JSON:
-
-```typescript
-// Single call — identifies category, colour, and occasion tags
-const res = await ollama.chat({
-  model: 'gemma4:e4b',
-  messages: [{ role: 'user', content: prompt, images: [imageBase64] }],
-  format: 'json',
-  options: { temperature: 0.3 },
-});
-// Returns: { suggested_name, category, color_hex, color_name, tags }
-```
-
-### Wardrobe Health Score
-Analyses the full wardrobe (names, categories, colours, wear counts, last-worn dates) and returns a structured audit with score, grade, overused items, unused items, colour duplicates, missing essentials, lifecycle predictions, and outfit combos.
-
-### Day-by-Day Trip Planner
-Reads a Google Calendar travel event, then builds a realistic day-by-day itinerary:
-
-```json
-{
-  "destination": "Bangkok, Thailand",
-  "climate": "Hot & humid, 33–36°C",
-  "days": [
-    {
-      "day": 1,
-      "title": "Arrival & Street Food Night",
-      "place": "Khao San Road, Bangkok",
-      "activity_type": "night_market",
-      "outfit_name": "Casual Cool",
-      "items": ["White T-Shirt", "Dark Chinos", "White Sneakers"],
-      "from_wardrobe": ["White T-Shirt", "Dark Chinos"],
-      "need_to_buy": ["White Sneakers"],
-      "styling_note": "Light layers for the heat — the chinos are smarter than shorts for night markets",
-      "eco_tip": "Pack a reusable bag for street market shopping",
-      "buy_query": "white sneakers casual lightweight men",
-      "can_rent": false
-    }
-  ],
-  "packing_essentials": ["Sunscreen SPF50+", "Compact umbrella", ...]
-}
-```
-
-### AI Style Pairings
-For every wardrobe item, Gemma 4 suggests 4–6 complementary pieces, checking which ones the user already owns and providing shopping links for the rest.
+| **Voice** | Web Speech API — offline, no third-party |
+| **Calendar** | Google Identity Services OAuth (read-only) |
+| **PWA** | Web App Manifest + apple-mobile-web-app-capable |
+| **Deployment** | Vercel |
 
 ---
 
@@ -291,7 +235,7 @@ For every wardrobe item, Gemma 4 suggests 4–6 complementary pieces, checking w
 | AI prompts (Groq fallback) | Groq servers | Subject to Groq's privacy policy |
 | Wear history | Browser `localStorage` | You only |
 
-No account required. No analytics. No tracking.
+No account required. No analytics. No tracking. No cookies.
 
 ---
 
@@ -301,9 +245,9 @@ Wearly is built around one principle: **the most sustainable garment is the one 
 
 | Feature | Sustainability impact |
 |---|---|
-| Wear tracking + 30-wear goal | Reduces per-wear CO₂ cost; 30 wears = ~65% lower carbon vs 5 wears |
+| Wear tracking + 30-wear goal | Reduces per-wear CO₂; 30 wears = ~65% lower carbon vs 5 wears |
 | Closet health score | Surfaces unused items before you buy more |
-| Eco Mode | Styles complete outfits from existing wardrobe, zero new purchases |
+| Eco Mode | Complete outfits from existing wardrobe only — zero new purchases |
 | Marketplace | Extends garment life through peer-to-peer resale and rental |
 | Trip Planner | Maximises wardrobe reuse before buying travel-specific clothes |
 | Carbon estimates | Visualises real environmental cost per garment category |
@@ -315,7 +259,7 @@ Wearly is built around one principle: **the most sustainable garment is the one 
 | Field | Value |
 |---|---|
 | Competition | Gemma Hackathon on Kaggle |
-| Prize tracks | Ollama ($10,000) · Cactus ($10,000) |
+| Prize tracks | Ollama · Cactus |
 | Model | Gemma 4 (`gemma4:e4b`) via Ollama |
 | Framework | Next.js 15, TypeScript, Tailwind CSS v4 |
 | License | **CC-BY 4.0** (as required by competition rules) |
@@ -326,9 +270,7 @@ Wearly is built around one principle: **the most sustainable garment is the one 
 
 ## License
 
-This project is licensed under the **Creative Commons Attribution 4.0 International (CC-BY 4.0)** license, as required by the Kaggle competition rules.
-
-You are free to share, copy, redistribute, adapt, and build upon this work for any purpose (including commercial use), provided you give appropriate credit to the original author.
+Licensed under **Creative Commons Attribution 4.0 International (CC-BY 4.0)** as required by the Kaggle competition rules.
 
 See [LICENSE](./LICENSE) for the full text.
 
