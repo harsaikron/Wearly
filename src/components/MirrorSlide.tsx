@@ -208,7 +208,7 @@ export default function MirrorSlide({ isActive, weather }: Props) {
 
   // ── Main render ─────────────────────────────────────────────────────────
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100%', background: '#000', clipPath: 'inset(0)' }}>
+    <div style={{ position: 'relative', width: '100%', height: '100%', background: '#000' }}>
 
       {/* ── Video ── */}
       <video
