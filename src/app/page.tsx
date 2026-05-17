@@ -426,7 +426,7 @@ export default function HomePage() {
   return (
     <>
     {/* ── MOBILE FULL-PAGE SLIDER (hidden on md+) ────── */}
-    <div className="md:hidden flex flex-col" style={{ width: '100vw', height: '100dvh', overflow: 'hidden' }}>
+    <div className="md:hidden flex flex-col" style={{ width: '100vw', height: '100dvh' }}>
       <style>{`
         @keyframes chatDotBounce {
           0%,60%,100%{transform:translateY(0);opacity:0.45}
@@ -476,7 +476,7 @@ export default function HomePage() {
       </div>
 
       {/* ── Slide viewport ────────────────────────────── */}
-      <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
+      <div style={{ flex: 1, position: 'relative', clipPath: 'inset(0)' }}>
         {/* Slide track: 2 slides */}
         <div style={{
           display: 'flex', width: '200vw', height: '100%',
