@@ -52,11 +52,17 @@ function CameraUI({ onCapture, onClose }: Props) {
     }
   }, []);
 
-  // Clean up stream on unmount — do NOT call startCamera here (iOS blocks it outside user gesture)
+  // On desktop (≥640px) auto-start — no iOS gesture restriction on wide screens.
+  // On mobile, wait for user tap so iOS grants camera permission correctly.
   useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth >= 640) {
+      setStarted(true);
+      startCamera(facingMode);
+    }
     return () => {
       streamRef.current?.getTracks().forEach((t) => t.stop());
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function handleStartTap() {

@@ -1655,7 +1655,7 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end md:justify-center md:items-center"
       style={{ background:'rgba(0,0,0,0.40)', backdropFilter:'blur(16px)', WebkitBackdropFilter:'blur(16px)' }}>
-      <div className="w-full md:max-w-md rounded-t-3xl md:rounded-3xl overflow-hidden overflow-y-auto slide-up"
+      <div className="w-full md:max-w-md rounded-t-3xl md:rounded-3xl overflow-y-auto slide-up"
         style={{ background:'var(--card)', maxHeight:'92vh', boxShadow:'0 -8px 40px rgba(0,0,0,0.18)' }}>
         {/* Handle bar */}
         <div className="flex justify-center pt-3 pb-1 md:hidden">

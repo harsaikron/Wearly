@@ -227,7 +227,7 @@ export default function StylistPage() {
   return (
     <>
     <style>{`@keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}} @keyframes msgIn{from{opacity:0;transform:translateY(8px) scale(0.97)}to{opacity:1;transform:translateY(0) scale(1)}} @keyframes slideUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}`}</style>
-    <div className="fixed inset-0 z-10 flex flex-col overflow-hidden md:top-16" style={{ background: 'var(--background)' }}>
+    <div className="fixed inset-0 z-10 flex flex-col md:top-16" style={{ background: 'var(--background)' }}>
 
       {/* ── Header banner ── */}
       <div style={{ flexShrink: 0, background: 'linear-gradient(160deg,#2C4A1E 0%,#3A6028 55%,#4E7A35 100%)', padding: '20px 20px 28px' }}>
@@ -258,7 +258,7 @@ export default function StylistPage() {
       </div>
 
       {/* ── Content area ── */}
-      <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
 
       {/* ══ STYLIST TAB — clean chat ══ */}
       {tab === 'stylist' && (

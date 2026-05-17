@@ -127,7 +127,11 @@ export default function HomePage() {
   const [suggestion, setSuggestion]         = useState<AISuggestion | null>(null);
   const [loading, setLoading]               = useState(false);
   const [error, setError]                   = useState('');
-  const [weather, setWeather]               = useState<Weather | null>(null);
+  // Seed with Singapore defaults so OOTD loads immediately — real data overwrites when fetch completes
+  const [weather, setWeather]               = useState<Weather | null>({
+    temperature: 31, feels_like: 36, description: 'Warm and sunny',
+    humidity: 82, wind_speed: 12, city: 'Singapore', condition: 'warm', uv_index: 7,
+  });
   const [now, setNow]                       = useState(new Date());
   const [inspirationImgs, setInspirationImgs] = useState<InspirationImage[]>([]);
   const [imgLoading, setImgLoading]         = useState(false);
