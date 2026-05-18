@@ -660,6 +660,9 @@ export default function WardrobePage() {
         const d = await res.json();
         const detectedName: string = d.suggested_name ?? '';
         const detectedCategory: string = d.category ?? 'shirt';
+        const pattern: string = d.pattern ?? 'solid';
+        const material: string = d.material ?? '';
+        const secondaryColor: string = d.secondary_color ?? '';
         setForm({ name: detectedName, category: detectedCategory as ClothingCategory, color_hex: d.color_hex??'#FFFFFF', color_name: d.color_name??'White', tags: d.tags??[], spf: d.spf ? String(d.spf) : '', grooming_type: d.grooming_type??'' });
 
         // Check if this item already exists in the wardrobe
@@ -669,12 +672,19 @@ export default function WardrobePage() {
           normalise(detectedName).includes(normalise(w.name).split(' ')[0])
         );
 
+        // Build a rich voice description
         const firstName = (userName || 'there').split(' ')[0];
+        const patternDesc = pattern !== 'solid' ? `${pattern} ` : '';
+        const materialDesc = material && material !== 'unknown' ? `${material} ` : '';
+        const colorDesc = secondaryColor
+          ? `${d.color_name ?? ''} and ${secondaryColor}`
+          : d.color_name ?? 'this colour';
+
         if (!alreadyExists && detectedName) {
-          speak(`Got it, ${firstName}! I spotted a ${detectedName} in ${d.color_name ?? 'this colour'}. This isn't in your wardrobe yet — shall I add it for you?`);
+          speak(`Got it, ${firstName}! I can see a ${colorDesc} ${patternDesc}${materialDesc}item — looks like a ${categoryLabel(detectedCategory as ClothingCategory)}. This isn't in your wardrobe yet. Shall I add it?`);
           setConfirmAdd({ name: detectedName, category: detectedCategory });
         } else if (alreadyExists && detectedName) {
-          speak(`${firstName}, I can see a ${detectedName}. I've filled in the details — just review and save when you're ready.`);
+          speak(`${firstName}, I've identified your ${detectedName}. All the details are filled in — just review and save when you're ready.`);
         }
       }
     } catch { /* keep blank */ } finally { setAnalyzing(false); }

@@ -149,15 +149,65 @@ Reply ONLY with valid JSON — no markdown fences, no extra text.`;
 
 const SYSTEM_FULL = SYSTEM + '\n\n' + FASHION_KNOWLEDGE_COMPACT;
 
-const PROMPT = `Analyze this item precisely. Execute the 4-step color analysis, then return JSON with exactly these fields:
+const PROMPT = `Analyze this garment or product with expert precision. Follow ALL steps below.
+
+════ STEP 1 — IDENTIFY WHAT YOU SEE ════
+Look at the garment/item being worn or held. Ignore the background, skin, and accessories unless they ARE the item.
+
+════ STEP 2 — PATTERN DETECTION ════
+Identify the pattern exactly:
+  solid       = single flat color, no pattern
+  plaid       = criss-cross grid of multiple colors (flannel, tartan, check)
+  stripes     = horizontal, vertical, or diagonal lines
+  check       = small regular squares (gingham, windowpane)
+  floral      = flower or botanical print
+  graphic     = text, logo, or graphic artwork
+  animal      = animal print (leopard, zebra, snake)
+  geometric   = triangles, diamonds, abstract shapes
+  textured    = ribbed, cable-knit, quilted (no distinct print)
+
+For PLAID / CHECK / STRIPES → the dominant color is the BACKGROUND color that covers most area — not the lines.
+
+════ STEP 3 — FABRIC/MATERIAL HINTS ════
+Identify from visual texture:
+  flannel = soft brushed woven, often plaid, matte surface
+  denim   = diagonal twill weave, structured, indigo-range
+  linen   = visible weave texture, slightly wrinkled
+  cotton  = smooth woven, versatile
+  leather = shiny or matte thick material
+  wool    = textured knit or woven, heavier
+  silk    = highly reflective, smooth, drapes softly
+  knit    = ribbed or looped structure (sweaters, polos)
+  synthetic = polyester, nylon — smooth and uniform sheen
+
+════ STEP 4 — COLOR ANALYSIS (multi-color rule) ════
+For solid items: use 4-step color analysis (hue → saturation → lightness → name).
+For patterned items (plaid, stripes, check, floral):
+  - color_hex and color_name = the DOMINANT background color (largest area)
+  - secondary_color = second most visible color if significantly present
+
+════ STEP 5 — BUILD THE NAME ════
+Format: "[Color] [Pattern] [Material] [Category]"
+Examples:
+  Solid shirt      → "Navy Blue Slim Fit Oxford Shirt"
+  Plaid flannel    → "Dark Green Plaid Flannel Shirt"
+  Stripe tee       → "White and Navy Stripe Cotton Tee"
+  Graphic tee      → "Black Graphic Print Tee"
+  Plain sneakers   → "White Low-Top Canvas Sneakers"
+  Chain necklace   → "Silver Box Chain Necklace"
+
+Return ONLY valid JSON — no markdown, no extra text:
 {
-  "suggested_name": "specific descriptive name using CORRECT color (e.g. 'Sage Green Graphic Tee', 'SPF 50 Sunscreen', 'Silver Chain Necklace')",
+  "suggested_name": "descriptive name including color + pattern + material + category",
   "category": "one exact category from the guide",
-  "color_hex": "exact dominant color hex from the reference table",
-  "color_name": "exact color name from the reference table",
-  "tags": ["all applicable occasion tags — empty array [] for grooming/skincare items"],
-  "grooming_type": "ONLY for skincare/fragrance/grooming: one of sunscreen|moisturiser|serum|toner|cleanser|lip_balm|eye_cream|eau_de_parfum|eau_de_toilette|cologne|body_mist|hair_gel|face_wash|shaving|deodorant|body_lotion — omit for clothing/accessories",
-  "spf": "ONLY for sunscreen: the SPF number as integer — omit otherwise"
+  "color_hex": "dominant color hex from reference table",
+  "color_name": "dominant color name from reference table",
+  "secondary_color": "second color name if pattern has one — omit for solid",
+  "pattern": "solid|plaid|stripes|check|floral|graphic|animal|geometric|textured",
+  "material": "flannel|denim|linen|cotton|leather|wool|silk|knit|synthetic|unknown",
+  "tags": ["all applicable occasion tags — [] for grooming/skincare"],
+  "grooming_type": "ONLY for skincare/fragrance/grooming: sunscreen|moisturiser|serum|toner|cleanser|lip_balm|eye_cream|eau_de_parfum|eau_de_toilette|cologne|body_mist|hair_gel|face_wash|shaving|deodorant|body_lotion",
+  "spf": "ONLY for sunscreen: SPF number as integer"
 }`;
 
 export async function POST(request: NextRequest) {
