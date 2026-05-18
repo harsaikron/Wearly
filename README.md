@@ -10,6 +10,30 @@ Wearly is a **local-first, privacy-preserving AI wardrobe stylist** that runs Ge
 
 ---
 
+## Android App Available
+
+**Download:** `Wearly-v1.0.apk` (1.9 MB) — install directly on any Android phone.
+
+Wearly ships as a real Android APK built with **Trusted Web Activity (TWA)** technology. The app loads the live Vercel deployment inside a full-screen native Android shell — no browser chrome, no address bar, no toolbar. It looks and feels like a native app because it is one.
+
+| Detail | Value |
+|---|---|
+| Package ID | `com.wearly.app` |
+| Size | 1.9 MB |
+| Backed by | `wearly-dusky.vercel.app` (live Vercel deployment) |
+| Signed | Production keystore |
+| Build tools | Java 17 JDK · Android SDK build-tools 35.0.0 · bubblewrap/core · Gradle |
+
+**Install instructions:**
+1. Transfer `Wearly-v1.0.apk` to your Android phone (AirDrop, Google Drive, USB, or direct download)
+2. On the phone: Settings → Apps → Special app access → **Install unknown apps** → allow your file manager
+3. Tap the APK file → **Install**
+4. Open Wearly from the app drawer — full-screen, no browser
+
+Every feature works through the APK: camera capture, voice announcements, AI analysis, wardrobe management, Mirror mode. Judges can install and demo the app natively without opening a browser tab.
+
+---
+
 ## What Wearly Does — Ideal Scenarios
 
 Wearly is designed around the real moments where fashion decisions happen. Here are the core flows:
@@ -41,10 +65,21 @@ Describe a feature in plain English. Gemma 4 reads the codebase, writes the impl
 
 Gemma 4 (`gemma4:e4b`) runs all AI inference locally. Here's what the model understands:
 
-**Garment Recognition**
+**Garment Recognition — 5-Step Visual Analysis**
 - Identifies 50+ clothing categories: blazers, kurtas, saris, palazzo trousers, cheongsams, abayas, and more — including culturally specific garments
-- Returns structured output: category, colour (hex + descriptive name), occasion tags, and a suggested product name
+- Runs a structured 5-step analysis: Identify → Pattern → Material → Color → Name
+- Returns extended structured output: category, colour (hex + descriptive name), `pattern`, `material`, `secondary_color`, occasion tags, and a composed product name
+- Name formula: "[Color] [Pattern] [Material] [Category]" — e.g. "Dark Green Plaid Flannel Shirt", "Ivory Floral Chiffon Dress"
 - Works from photos taken in poor lighting, cluttered backgrounds, or from partial angles
+
+**Pattern and Fabric Detection**
+- Pattern recognition: solid, plaid, stripes, check, floral, graphic, animal print, geometric, textured, houndstooth, glen check, paisley, tie-dye, brocade, camouflage, and more
+- Multi-color rule: for plaid/stripes/check patterns, the dominant background color wins (not the grid lines) — so a green plaid flannel is correctly called "green", not "brown"
+- Fabric/material recognition from visual cues: flannel, denim, linen, silk, velvet, boucle, lace, chiffon, leather, tweed, seersucker, and more — identified by texture, drape, weave, and sheen
+
+**Cultural Garment Recognition**
+- Full SE Asian garment taxonomy: Baju Kurung, Baju Melayu, Kebaya, Cheongsam/Qipao, Batik, Saree, Salwar Kameez, Kurta, Dhoti, Hanbok, Yukata/Kimono, Ao Dai, Barong Tagalog, Abaya, Thobe/Kandura
+- Color disambiguation guide built in: khaki vs olive, burgundy vs maroon, army vs sage, camel vs beige — names are precise, not approximate
 
 **Colour and Styling Intelligence**
 - Understands colour theory: complementary, analogous, monochromatic pairings
@@ -84,6 +119,7 @@ Every key action in Wearly speaks aloud:
 - Morning OOTD announcement: *"Good morning! Today's outfit is the Coastal Casual. You'll be wearing a white linen shirt, navy chinos, and tan loafers. The light fabric keeps you cool in today's 31°C heat."*
 - Camera detection prompt: *"I spotted a caramel trench coat. This doesn't seem to be in your wardrobe yet. Would you like me to add it?"*
 - All voice output uses the Web Speech API — no third-party service, no internet required, works offline
+- **Desktop audio fix:** A two-phase audio unlock system (`AudioInit` component) registers capture-phase listeners on first page load. The first user interaction fires a silent utterance that unlocks Web Speech API for the entire session — so category picker greetings, AI analysis results, Mirror feedback, and OOTD announcements all speak correctly on Chrome, Firefox, and Safari desktop without any extra setup
 
 ### Blind-Friendly and Low-Vision
 - All clothing items are stored with full descriptive metadata: colour name (not just hex), material, occasion tags
@@ -119,6 +155,7 @@ The app is specifically optimised for Android devices running Google Chrome. Thi
 - Outfit of the Day: AI-generated outfit based on weather, calendar, and wardrobe
 - Voice playback button — hear your outfit described aloud
 - Singapore cultural events calendar
+- **About Wearly AI card** (desktop): dark green glassmorphism card showing the "Powered by Gemma 4" live badge with pulsing indicator, a 2×2 feature grid (Vision AI · Color Expert · Outfit Stylist · Cultural Aware), stats bar (60+ color shades · 25+ garment types · 10 occasions · Self Learning AI), and a "Meet Wearly AI →" button that opens the full intro modal
 
 ### Wardrobe — Closet · Health · Plan
 
@@ -220,6 +257,7 @@ All AI endpoints share a single `aiChat()` / `aiChatWithImage()` client in `src/
 | **Voice** | Web Speech API — offline, no third-party |
 | **Calendar** | Google Identity Services OAuth (read-only) |
 | **PWA** | Web App Manifest + apple-mobile-web-app-capable |
+| **Android APK** | Trusted Web Activity (TWA) · bubblewrap/core · Gradle · Java 17 · Android SDK 35 |
 | **Deployment** | Vercel |
 
 ---

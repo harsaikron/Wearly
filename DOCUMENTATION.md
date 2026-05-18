@@ -14,11 +14,12 @@
 5. [Feature Breakdown](#5-feature-breakdown)
 6. [AI Pipeline Deep Dive](#6-ai-pipeline-deep-dive)
 7. [Fine-tuning with Unsloth](#7-fine-tuning-with-unsloth)
-8. [Demo Guide](#8-demo-guide)
-9. [Local Setup](#9-local-setup)
-10. [Production Deployment](#10-production-deployment)
-11. [File Structure](#11-file-structure)
-12. [Prize Track Justification](#12-prize-track-justification)
+8. [Android App (TWA)](#8-android-app-twa)
+9. [Demo Guide](#9-demo-guide)
+10. [Local Setup](#10-local-setup)
+11. [Production Deployment](#11-production-deployment)
+12. [File Structure](#12-file-structure)
+13. [Prize Track Justification](#13-prize-track-justification)
 
 ---
 
@@ -74,6 +75,17 @@ Week 4 — Polish + Hackathon prep
   ✓ AI style pairings with real fashion images
   ✓ Unsloth fine-tuning pipeline (Module 1: clothing classifier)
   ✓ CC-BY 4.0 license, production README, competition documentation
+
+Week 5 — Final Polish
+  ✓ Android APK (Wearly-v1.0.apk, 1.9 MB) via Trusted Web Activity — installable on any Android device
+  ✓ Smarter Gemma 4 vision: 5-step analysis pipeline (Identify → Pattern → Material → Color → Name)
+  ✓ Pattern detection: plaid, stripes, check, floral, houndstooth, paisley, brocade, camouflage, and more
+  ✓ Fabric/material recognition from visual cues: flannel, denim, silk, velvet, boucle, chiffon, leather, etc.
+  ✓ Multi-color rule: dominant background color wins for plaid/stripes/check (not the grid lines)
+  ✓ New JSON fields: pattern, material, secondary_color; name formula: "[Color] [Pattern] [Material] [Category]"
+  ✓ Expanded FASHION_KNOWLEDGE_COMPACT: full SE Asian garment taxonomy, brand style signatures, occasion mapping
+  ✓ About Wearly AI card on desktop home — glassmorphism, Gemma 4 live badge, feature grid, stats bar
+  ✓ Desktop audio fix: two-phase Web Speech API unlock (AudioInit component) — voice works on all desktop browsers
 ```
 
 ### Development Principles
@@ -408,6 +420,39 @@ RESPONSE: Strictly typed JSON that maps directly to TypeScript interfaces
 
 Gemma 4 via Ollama uses `format: 'json'` to enforce JSON output at the model level. Groq uses `response_format: { type: 'json_object' }`. A `safeParseJSON()` helper strips any markdown fences before parsing.
 
+### Enhanced Vision Pipeline — 5-Step Analysis
+
+The `/api/analyze-clothing` endpoint now runs a structured 5-step analysis for every garment photo:
+
+```
+Step 1 — Identify:   What is the garment? (category, silhouette, cut)
+Step 2 — Pattern:    What is the surface pattern? (solid/plaid/stripes/check/floral/graphic/…)
+Step 3 — Material:   What fabric is this? (flannel/denim/linen/silk/velvet/boucle/chiffon/…)
+Step 4 — Color:      What is the dominant color? (with disambiguation for similar shades)
+Step 5 — Name:       Compose: "[Color] [Pattern] [Material] [Category]"
+```
+
+**Multi-color rule:** For plaid, stripes, and check patterns the dominant background color wins — not the grid or stripe lines. A green and brown plaid flannel is named "Dark Green Plaid Flannel Shirt", not "Brown Plaid Flannel Shirt".
+
+**New JSON output fields:**
+| Field | Example |
+|---|---|
+| `pattern` | `"plaid"` / `"solid"` / `"floral"` / `"houndstooth"` |
+| `material` | `"flannel"` / `"chiffon"` / `"denim"` / `"velvet"` |
+| `secondary_color` | `"brown"` (the grid lines in a green plaid) |
+| `name` | `"Dark Green Plaid Flannel Shirt"` |
+
+### Expanded Fashion Knowledge Base (FASHION_KNOWLEDGE_COMPACT)
+
+The system prompt embedded in the AI client was expanded to include:
+
+- **Global garment taxonomy** — all Western clothing types plus full SE Asian garment recognition: Baju Kurung, Baju Melayu, Kebaya, Cheongsam/Qipao, Batik, Saree, Salwar Kameez, Kurta, Dhoti, Hanbok, Yukata/Kimono, Ao Dai, Barong Tagalog, Abaya, Thobe/Kandura
+- **Fabric visual recognition cues** — what to look for in texture, drape, weave, and sheen to distinguish flannel from tweed, chiffon from satin, etc.
+- **Precise pattern identification rules** — houndstooth vs glen check, paisley vs brocade, tie-dye vs batik, camouflage variants
+- **Color disambiguation guide** — khaki vs olive, burgundy vs maroon, army vs sage, camel vs beige — model uses the precise name, not the nearest approximate
+- **Brand style signature reference** — provides AI context for recognising design aesthetics
+- **Occasion-to-garment quick mapping** — links garment types to their appropriate contexts at inference time
+
 ---
 
 ## 7. Fine-tuning with Unsloth
@@ -453,9 +498,67 @@ No manual configuration needed. If `wearly-fashion-v1` is in Ollama, it's used a
 
 ---
 
-## 8. Demo Guide
+## 8. Android App (TWA)
 
-### Recommended demo flow (10 minutes)
+### What it is
+
+`Wearly-v1.0.apk` (1.9 MB) is a real Android APK built with **Trusted Web Activity (TWA)** technology. It wraps the live Vercel deployment (`wearly-dusky.vercel.app`) in a full-screen native Android shell — no browser chrome, no address bar, no toolbar. To the user and to the OS, it is an installed app.
+
+| Detail | Value |
+|---|---|
+| Package ID | `com.wearly.app` |
+| APK size | 1.9 MB |
+| Target URL | `https://wearly-dusky.vercel.app` |
+| Signing | Production keystore |
+| Min Android | Android 8.0 (API 26) |
+| Build tools | Java 17 JDK · Android SDK build-tools 35.0.0 · bubblewrap/core · Gradle |
+
+### Why it matters
+
+A PWA bookmarked to the home screen still launches in a browser — the OS treats it as a website shortcut. A TWA APK is installed through the system package manager, appears in the app drawer, and receives the same native treatment as any app from the Play Store. For the hackathon demo:
+
+- **Judges can install it.** Hand someone the APK and they have the full Wearly experience in 30 seconds — no browser, no URL to type.
+- **It demonstrates production intent.** A signed APK with a real package ID shows the app is built to ship, not just to demo in a browser tab.
+- **All features work.** Camera access, Web Speech API, Wake Lock, localStorage — everything passes through the TWA shell to the live web app without restriction.
+
+### How it was built
+
+The APK project lives at `/Users/manoharan/wearly-apk/` (separate from the main Wearly repo). The build process uses Google's `@bubblewrap/core` library to generate a Gradle Android project from a TWA configuration, then compiles it with the Android SDK.
+
+```
+wearly-apk/
+├── build.mjs          # Node.js build script — configures TWA, runs Gradle
+├── android/           # Generated Gradle project
+│   └── app/
+│       └── build/
+│           └── outputs/apk/release/
+│               └── Wearly-v1.0.apk   ← output
+└── keystore/
+    └── wearly.keystore  # Production signing key
+```
+
+**Build command:**
+```bash
+export JAVA_HOME="/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home"
+export ANDROID_HOME="$HOME/Library/Android/sdk"
+node build.mjs
+# Output: Wearly-v1.0.apk (1.9 MB)
+```
+
+### Install instructions
+
+1. Transfer `Wearly-v1.0.apk` to the Android phone (AirDrop, Google Drive, USB, or direct download link)
+2. On the phone: Settings → Apps → Special app access → **Install unknown apps** → allow your file manager
+3. Tap the APK file → **Install**
+4. Open Wearly from the app drawer — full-screen, no browser chrome
+
+See [SETUP.md](./SETUP.md) for the complete build guide with prerequisites.
+
+---
+
+## 9. Demo Guide
+
+### Recommended demo flow (11 minutes)
 
 #### Part 1 — Local AI (2 min)
 **Show: Gemma 4 running privately on your Mac**
@@ -498,6 +601,13 @@ No manual configuration needed. If `wearly-fashion-v1` is in Ollama, it's used a
 4. Click **Create PR** → Gemma 4 writes the code, PR appears on GitHub
 5. Show the GitHub PR URL
 
+#### Part 6 — Android APK (1 min)
+**Show: Wearly installed as a native Android app**
+1. Hand the judge an Android phone with `Wearly-v1.0.apk` already installed
+2. Open Wearly from the app drawer — full-screen, no browser chrome
+3. Demonstrate: tap Mirror, hold a garment up to the camera, show AI analysis
+4. Key point: *"This is a 1.9 MB APK built with TWA technology. It's a real Android app — installed through the package manager, not a browser bookmark. Judges can keep it on their phone after the demo."*
+
 ---
 
 ### Key talking points for judges
@@ -516,7 +626,7 @@ No manual configuration needed. If `wearly-fashion-v1` is in Ollama, it's used a
 
 ---
 
-## 9. Local Setup
+## 10. Local Setup
 
 ### Step 1 — Install Ollama and pull Gemma 4
 
@@ -595,7 +705,7 @@ python 3_export.py --ollama
 
 ---
 
-## 10. Production Deployment
+## 11. Production Deployment
 
 ### Vercel (recommended)
 
@@ -624,7 +734,7 @@ https://wearly-dusky.vercel.app
 
 ---
 
-## 11. File Structure
+## 12. File Structure
 
 ```
 wearly/
@@ -717,7 +827,7 @@ wearly/
 
 ---
 
-## 12.Track Justification
+## 13. Track Justification
 
 ### Ollama
 

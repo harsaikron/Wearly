@@ -75,6 +75,58 @@ The green indicator in the top-right shows "Ollama · gemma4:e4b" when Gemma 4 i
 
 ---
 
+## Building the Android APK
+
+The `Wearly-v1.0.apk` is a **Trusted Web Activity (TWA)** — a real Android APK that wraps the live Vercel deployment in a full-screen native shell. The APK build project lives at `/Users/manoharan/wearly-apk/` (separate from the main repo).
+
+### Prerequisites
+
+```bash
+# Java 17 JDK
+brew install openjdk@17
+
+# bubblewrap CLI (TWA build tool from Google)
+npm install -g @bubblewrap/cli
+
+# Android SDK — install Android Studio or the command-line tools
+# Then install build-tools 35.0.0 via SDK Manager
+```
+
+Verify the Android SDK is available:
+```bash
+$ANDROID_HOME/build-tools/35.0.0/aapt version
+# Should print: Android Asset Packaging Tool, v0.2-...
+```
+
+### Build
+
+```bash
+# Navigate to the APK project (separate from the main Wearly repo)
+cd ~/wearly-apk
+
+# Set required environment variables
+export JAVA_HOME="/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home"
+export ANDROID_HOME="$HOME/Library/Android/sdk"
+
+# Build the APK
+node build.mjs
+
+# Output: Wearly-v1.0.apk (1.9 MB) — ready to sideload
+```
+
+The build generates the APK at `~/wearly-apk/android/app/build/outputs/apk/release/Wearly-v1.0.apk`.
+
+### Install on Android (sideloading)
+
+1. Transfer `Wearly-v1.0.apk` to your phone (AirDrop, Google Drive, USB cable, or a download link)
+2. On the phone: **Settings → Apps → Special app access → Install unknown apps** → allow your file manager
+3. Open the file manager, tap `Wearly-v1.0.apk` → **Install**
+4. Open Wearly from the app drawer — full-screen, no browser chrome
+
+All features work through the APK: camera, voice, AI analysis, wardrobe, Smart Mirror.
+
+---
+
 ## Running on Android (Wardrobe Mirror Mode)
 
 Wearly is optimised for an Android phone mounted inside a wardrobe as a smart mirror.
