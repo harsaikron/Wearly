@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import Link from 'next/link';
 import CameraCapture from '@/components/Camera';
@@ -1346,23 +1347,25 @@ export default function WardrobePage() {
         <Modal title="Add Clothing Item" onClose={() => { setShowAdd(false); setPreview(''); }}>
           {!preview && (
             <div className="flex gap-3 mb-5">
-              {/* Camera button — green, tall, good touch target */}
+              {/* Camera button */}
               <button
                 onClick={() => { setShowAdd(false); setShowCamera(true); }}
-                className="flex-1 flex flex-col items-center justify-center gap-2.5 rounded-2xl"
+                className="flex-1 flex flex-col items-center justify-center gap-3 rounded-2xl"
                 style={{
-                  minHeight: 96,
-                  background: 'linear-gradient(to bottom, var(--primary-mid), var(--primary))',
+                  minHeight: 120,
+                  background: 'linear-gradient(145deg, var(--primary-mid), var(--primary))',
                   color: '#fff',
-                  boxShadow: 'var(--shadow-btn), inset 0 1px 0 rgba(255,255,255,0.12)',
-                  border: '1px solid rgba(0,0,0,0.12)',
+                  boxShadow: 'var(--shadow-btn), inset 0 1px 0 rgba(255,255,255,0.14)',
+                  border: '1px solid rgba(0,0,0,0.10)',
                 }}
                 aria-label="Take photo with camera"
               >
-                <Camera size={26} strokeWidth={1.8}/>
-                <span className="text-sm font-bold">Camera</span>
+                <div style={{ width: 44, height: 44, borderRadius: 14, background: 'rgba(255,255,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Camera size={22} strokeWidth={1.8}/>
+                </div>
+                <span className="text-sm font-bold">Take Photo</span>
               </button>
-              <div className="flex-1"><UploadZone onFile={handleFile}/></div>
+              <div className="flex-1" style={{ minHeight: 120 }}><UploadZone onFile={handleFile}/></div>
             </div>
           )}
           {preview && (
@@ -1413,6 +1416,7 @@ export default function WardrobePage() {
           )}
 
           <div className="space-y-4">
+            <div className="grid md:grid-cols-2 gap-4">
             <Field label="Name">
               <input
                 className="w-full rounded-2xl outline-none"
@@ -1451,6 +1455,7 @@ export default function WardrobePage() {
                 </optgroup>
               </select>
             </Field>
+            </div>{/* end name+category grid */}
             {/* Grooming / Makeup specific fields */}
             {['skincare','fragrance','grooming','makeup'].includes(form.category) && (
               <div className="flex gap-3">
@@ -1565,7 +1570,8 @@ export default function WardrobePage() {
               </div>
             </Field>
           </div>
-          <button onClick={saveItem} className="w-full mt-4 py-3 rounded-xl text-sm font-semibold" style={{ background:'var(--accent)', color:'#fff' }}>
+          <button onClick={saveItem} className="w-full mt-5 rounded-2xl text-sm font-bold flex items-center justify-center gap-2" style={{ background:'linear-gradient(135deg, var(--primary-mid), var(--primary))', color:'#fff', padding:'15px 20px', boxShadow:'var(--shadow-btn)' }}>
+            <CheckCircle2 size={16}/>
             Save to Wardrobe
           </button>
         </Modal>
@@ -1652,25 +1658,36 @@ export default function WardrobePage() {
 
 // ── Shared UI helpers ──────────────────────────────────────────────────────────
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
-  return (
-    <div className="fixed inset-0 z-50 flex flex-col justify-end md:justify-center md:items-center"
-      style={{ background:'rgba(0,0,0,0.40)', backdropFilter:'blur(16px)', WebkitBackdropFilter:'blur(16px)' }}>
-      <div className="w-full md:max-w-md rounded-t-3xl md:rounded-3xl overflow-y-auto slide-up"
-        style={{ background:'var(--card)', maxHeight:'92vh', boxShadow:'0 -8px 40px rgba(0,0,0,0.18)' }}>
-        {/* Handle bar */}
-        <div className="flex justify-center pt-3 pb-1 md:hidden">
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+  if (!mounted) return null;
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[9999] flex flex-col justify-end md:justify-center md:items-center md:p-6"
+      style={{ background:'rgba(0,0,0,0.45)', backdropFilter:'blur(20px)', WebkitBackdropFilter:'blur(20px)' }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div
+        className="w-full md:max-w-xl rounded-t-3xl md:rounded-2xl overflow-hidden slide-up"
+        style={{ background:'var(--card)', maxHeight:'92dvh', display:'flex', flexDirection:'column', boxShadow:'0 -8px 40px rgba(0,0,0,0.22), 0 0 0 1px rgba(0,0,0,0.08)', marginTop: 'auto' }}
+      >
+        {/* Mobile drag handle */}
+        <div className="flex justify-center pt-3 pb-1 md:hidden" style={{ flexShrink: 0 }}>
           <div className="w-10 h-1 rounded-full" style={{ background:'var(--card-border)' }}/>
         </div>
-        <div className="flex items-center justify-between px-5 py-3.5 sticky top-0"
-          style={{ background:'rgba(255,255,255,0.90)', backdropFilter:'blur(16px)', WebkitBackdropFilter:'blur(16px)', borderBottom:'1px solid var(--card-border)' }}>
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 md:px-6 py-3.5 md:py-4" style={{ flexShrink: 0, background:'var(--card)', borderBottom:'1px solid var(--card-border)' }}>
           <p className="font-bold text-base" style={{ color:'var(--foreground)' }}>{title}</p>
-          <button onClick={onClose} className="btn-icon" style={{ width:34, height:34, borderRadius:'50%' }}>
-            <X size={15} style={{ color:'var(--muted)' }}/>
+          <button onClick={onClose} style={{ width:32, height:32, borderRadius:'50%', background:'var(--muted-bg)', border:'1px solid var(--card-border)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+            <X size={14} style={{ color:'var(--muted)' }}/>
           </button>
         </div>
-        <div className="px-5 py-4">{children}</div>
+        {/* Scrollable body */}
+        <div className="px-5 md:px-6 py-4 md:py-5 overflow-y-auto">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
