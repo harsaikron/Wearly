@@ -1779,6 +1779,107 @@ export default function HomePage() {
         </Link>
       </div>
 
+      {/* ── About Wearly AI — desktop card ───────────────────── */}
+      <div
+        className="rounded-2xl mt-5 overflow-hidden"
+        style={{
+          background: 'linear-gradient(135deg, #0D1F12 0%, #1A3A20 50%, #0F2A18 100%)',
+          border: '1px solid rgba(80,160,80,0.25)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.06)',
+        }}
+      >
+        {/* Top section */}
+        <div className="px-5 pt-5 pb-4">
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <div className="flex items-center gap-2 mb-1.5">
+                <div
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-full"
+                  style={{ background: 'rgba(80,200,100,0.15)', border: '1px solid rgba(80,200,100,0.3)' }}
+                >
+                  <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: '#4ade80' }} />
+                  <span style={{ fontSize: 10, fontWeight: 700, color: '#4ade80', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Powered by Gemma 4</span>
+                </div>
+              </div>
+              <h2 style={{ fontSize: 20, fontWeight: 800, color: '#fff', letterSpacing: '-0.02em', lineHeight: 1.2, margin: 0 }}>
+                Wearly AI
+              </h2>
+              <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', marginTop: 3 }}>
+                Your personal style intelligence, on-device
+              </p>
+            </div>
+            <div
+              className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
+              style={{ background: 'linear-gradient(135deg, rgba(74,222,128,0.2), rgba(34,197,94,0.1))', border: '1px solid rgba(74,222,128,0.25)' }}
+            >
+              <Sparkles size={22} style={{ color: '#4ade80' }} />
+            </div>
+          </div>
+
+          {/* Feature grid */}
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { icon: '👁️', label: 'Vision AI', desc: 'Identifies garments, patterns & fabrics from photos instantly' },
+              { icon: '🎨', label: 'Color Expert', desc: '95%+ accurate color detection with 60+ named shades' },
+              { icon: '✨', label: 'Outfit Stylist', desc: 'Generates complete outfits from your wardrobe daily' },
+              { icon: '🌏', label: 'Cultural Aware', desc: 'Knows Baju Kurung, Saree, Cheongsam, Barong & more' },
+            ].map(({ icon, label, desc }) => (
+              <div
+                key={label}
+                className="rounded-xl p-3"
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <span style={{ fontSize: 15 }}>{icon}</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.9)', letterSpacing: '-0.01em' }}>{label}</span>
+                </div>
+                <p style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.45)', lineHeight: 1.4, margin: 0 }}>{desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Stats bar */}
+        <div
+          className="flex items-center divide-x px-5 py-3"
+          style={{ borderTop: '1px solid rgba(255,255,255,0.07)', borderColor: 'rgba(255,255,255,0.07)' }}
+        >
+          {[
+            { value: '60+', label: 'Color shades' },
+            { value: '25+', label: 'Garment types' },
+            { value: '10', label: 'Occasions' },
+            { value: 'Self', label: 'Learning AI' },
+          ].map(({ value, label }, i) => (
+            <div key={label} className="flex-1 flex flex-col items-center" style={{ borderLeft: i > 0 ? '1px solid rgba(255,255,255,0.08)' : 'none' }}>
+              <span style={{ fontSize: 15, fontWeight: 800, color: '#4ade80', letterSpacing: '-0.02em' }}>{value}</span>
+              <span style={{ fontSize: 9.5, color: 'rgba(255,255,255,0.4)', marginTop: 1, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* CTA */}
+        <div className="px-5 pb-5 pt-3">
+          <button
+            onClick={() => setShowAbout(true)}
+            className="w-full rounded-xl py-2.5 text-sm font-bold transition-all"
+            style={{
+              background: 'linear-gradient(135deg, rgba(74,222,128,0.18) 0%, rgba(34,197,94,0.12) 100%)',
+              border: '1px solid rgba(74,222,128,0.3)',
+              color: '#4ade80',
+              letterSpacing: '-0.01em',
+            }}
+            onMouseEnter={e => {
+              (e.currentTarget as HTMLButtonElement).style.background = 'linear-gradient(135deg, rgba(74,222,128,0.28) 0%, rgba(34,197,94,0.20) 100%)';
+            }}
+            onMouseLeave={e => {
+              (e.currentTarget as HTMLButtonElement).style.background = 'linear-gradient(135deg, rgba(74,222,128,0.18) 0%, rgba(34,197,94,0.12) 100%)';
+            }}
+          >
+            Meet Wearly AI →
+          </button>
+        </div>
+      </div>
+
       {showCamera && (
         <CameraCapture onCapture={onCameraCapture} onClose={() => setShowCamera(false)} />
       )}

@@ -571,15 +571,157 @@ MEN — 25-PIECE CAPSULE FOR SINGAPORE:
  * Short version for routes where token budget is tight
  */
 export const FASHION_KNOWLEDGE_COMPACT = `
-KEY FASHION RULES (2024-2025):
-• Color rule: 60% dominant neutral, 30% secondary, 10% accent. Max 3 colors per outfit.
-• Complementary pairs: navy+camel, olive+rust, grey+burgundy, black+white, beige+terracotta.
-• SG heat: linen, bamboo, TENCEL, 100% cotton; avoid polyester; layers for AC (18-22°C offices).
-• Women 2025 silhouettes: wide-leg trousers, midi lengths, relaxed blazers, slip dress + layer.
-• Men 2025 silhouettes: straight/relaxed-leg trousers, oversized structured outerwear, tailored casual.
-• Accessories: one statement piece; match metal tones; shoes+belt match leather color.
-• Makeup 2025: clean skin, glossy lips, high blush placement, brown tones for eyes, full natural brows.
-• Skin tone makeup: warm/olive skin → golden/warm-toned products; cool skin → pink/cool products.
-• Outfit formula: anchor piece → neutral base → texture/color accent → accessories → check fit.
-• Festival SG: CNY=red/gold, Deepavali=jewel tones+gold, Hari Raya=pastels.
+════════════════════════════════════════════════════
+WEARLY VISION AI — EXTENDED STYLE KNOWLEDGE 2025
+════════════════════════════════════════════════════
+
+━━ GLOBAL GARMENT TAXONOMY (recognize these exactly) ━━
+WESTERN TOPS: t-shirt, polo, henley, tank top, crop top, tube top, bodysuit, bustier,
+  camisole, halter top, off-shoulder top, blouse, button-down shirt, Oxford shirt, flannel shirt,
+  denim shirt, linen shirt, chambray shirt, dress shirt (formal), turtleneck, mock neck, crewneck
+  sweatshirt, hoodie, zip-up hoodie, cardigan, sweater, vest top, athletic top, sports bra
+WESTERN BOTTOMS: chinos, khakis, trousers, dress pants, wide-leg pants, barrel-leg pants,
+  straight-leg jeans, slim jeans, bootcut jeans, flared jeans, mom jeans, boyfriend jeans,
+  joggers, sweatpants, leggings, cycling shorts, mini skirt, midi skirt, maxi skirt, A-line skirt,
+  pleated skirt, wrap skirt, pencil skirt, tennis skirt, cargo pants, cargo shorts, board shorts,
+  chino shorts, athletic shorts, basketball shorts
+WESTERN DRESSES: mini dress, midi dress, maxi dress, bodycon dress, wrap dress, shirt dress,
+  slip dress, sundress, cocktail dress, evening gown, blazer dress, co-ord set, jumpsuit, romper
+OUTERWEAR: bomber jacket, denim jacket, leather jacket, moto jacket, blazer, sport coat,
+  trench coat, parka, puffer jacket, windbreaker, rain jacket, overshirt, shacket (shirt-jacket),
+  fleece jacket, varsity jacket, coach jacket, peacoat, overcoat
+FOOTWEAR: sneakers (chunky, low-top, high-top), running shoes, training shoes, loafers,
+  penny loafers, monk strap shoes, Oxford shoes, Derby shoes, boat shoes, espadrilles,
+  Chelsea boots, combat boots, ankle boots, knee-high boots, mules, slides, flip flops,
+  sandals (flat, heeled), pumps, stilettos, block heels, kitten heels, platform shoes, ballet flats
+ACCESSORIES: baseball cap, bucket hat, fedora, beanie, dad hat, tote bag, backpack, clutch,
+  crossbody bag, shoulder bag, mini bag, belt bag/fanny pack, satchel, briefcase, duffel bag
+
+SOUTHEAST ASIAN / CULTURAL GARMENTS (identify precisely):
+• Baju Kurung: Malay women's traditional — long-sleeve blouse + long skirt; often in silk/satin
+  with embroidery; pastels, jewel tones; worn for Hari Raya, formal Malay occasions
+• Baju Melayu: Malay men's traditional — loose long-sleeve top + trousers in matching fabric;
+  paired with sampin (folded cloth over trousers); colors: pastels, neutrals, rich jewel tones
+• Kebaya: Fitted lace/embroidered blouse with batik sarong; Peranakan, Indonesian, Singaporean;
+  colors: jewel tones, pastels; intricate floral lacework on blouse
+• Cheongsam / Qipao: Chinese-origin form-fitting dress; Mandarin collar, side slits; silk/brocade;
+  CNY staple in red, gold, rose gold; also in navy, emerald, black for modern wear
+• Batik: Indonesian/Malaysian fabric — hand-stamped or printed wax-resist patterns; organic
+  swirling florals or geometric; earth tones, indigo, brown, terracotta, saffron
+• Saree: South Indian/Bangladeshi — 6-yard draped fabric over blouse + petticoat; silk, cotton,
+  chiffon; vivid jewel tones with gold zari border; heavy gold jewellery essential
+• Salwar Kameez: South Asian — tunic (kameez) + loose pants (salwar) + dupatta scarf; cotton,
+  chiffon, georgette; festive: embroidered in bright colors; casual: printed cotton
+• Kurta: Indian/Pakistani long tunic (men and women); linen/cotton for casual; silk/brocade formal;
+  Nehru collar or V-neck; paired with churidar or straight trousers
+• Dhoti: South Indian men's unstitched cotton wrap garment; white/cream; festive occasions
+• Hanbok: Korean traditional — jeogori (short jacket) + chima (full skirt for women) or baji pants
+  (men); vibrant jewel colors, often silk; worn at Chuseok, Seollal
+• Yukata / Kimono: Japanese; yukata = casual cotton; kimono = silk formal; wide obi belt;
+  floral prints, geometric patterns, solid muted tones
+• Ao Dai: Vietnamese national dress — fitted silk tunic slit at sides over wide-leg silk trousers;
+  pastel and jewel tones; form-fitting with mandarin collar
+• Barong Tagalog: Filipino men's formal dress shirt — sheer piña or jusi silk fabric with
+  embroidery; ivory/cream; worn for weddings and formal events
+• Abaya: Full-length outer garment worn in Islamic dress; black most common; also navy, grey;
+  embellished with embroidery for special occasions
+• Thobe/Kandura: Gulf Arab men's long white robe garment; also in cream, beige, light grey
+
+━━ FABRIC VISUAL RECOGNITION — KEY CUES ━━
+flannel:    soft brushed matte surface, usually plaid; warm and slightly fuzzy texture; medium weight
+denim:      diagonal twill weave (twill lines visible); structured body; indigo/blue-grey color family;
+            fading and whiskering patterns; rivets and double-stitched seams
+linen:      visible weave texture; slightly wrinkled/crinkled natural look; matte; breathable;
+            colors: natural cream, white, beige, sage, dusty blue — rarely dark
+chambray:   lighter than denim; plain weave; blue-white yarn mix gives heathered look; drapes softly
+Oxford cloth: basket weave giving slight texture; slightly thicker than chambray; button-down collar
+cotton:     smooth, matte; very versatile; can be shiny when tightly woven (sateen)
+silk:       very high sheen; fluid drape; catches light dramatically; colors appear richer/deeper;
+            smooth with slight ripple where it folds
+satin:      extremely glossy face, matte back; often used in eveningwear and lingerie
+velvet:     plush, pile texture; direction-dependent light reflection; rich, dense colors
+knit:       ribbed or looped texture visible; stretches; sweaters, tees, polo shirts
+boucle:     looped, textured woolen knit; bumpy surface; Chanel-style jackets
+leather:    thick, structured; shiny or matte; distinct grain pattern; black/brown/tan dominant
+suede:      leather with soft napped finish; matte, slightly fuzzy; earth tones common
+corduroy:   parallel ridged texture (wales); velvet-like pile; usually earth tones; autumn/winter
+tweed:      coarse, multicolor flecked wool; herringbone or plain weave; very textured surface
+wool:       heavier, textured weave; often herringbone or check pattern; matte
+cashmere:   ultra-soft fine knit; expensive appearance; light, drapes softly; neutral colors
+neoprene:   thick, smooth, slightly rubbery structured fabric; minimal texture; structured shapes
+technical/performance: very smooth or ribbed; lightweight; slight sheen; athletic; polyester/nylon look
+lace:       transparent open weave with floral or geometric patterns; delicate; feminine
+chiffon:    very light, sheer, slightly wrinkled; floaty drape; often layered
+organza:    stiff sheer fabric; holds shape; often used in statement sleeves and skirts
+
+━━ PATTERN VISUAL CUES — PRECISE IDENTIFICATION ━━
+plaid/tartan:  intersecting horizontal + vertical lines of multiple colors forming a grid;
+               background color is the DOMINANT (most area) color; grid lines are secondary
+check:         smaller, more uniform squares than plaid; gingham = 2-color (white + color);
+               windowpane = large, thin-lined, single color grid on solid background
+houndstooth:   small, broken check pattern — two colors, jagged/pointed edge on squares;
+               usually black+white or other 2-color combo
+glen check:    subtle small check pattern in muted tones; similar to Prince of Wales check
+stripes:       evaluate: thin/thick, even/uneven, horizontal/vertical/diagonal;
+               dominant color = color with widest or most frequent stripes
+pinstripe:     very fine, evenly spaced stripes on dark background; formal/suiting fabric
+floral:        identifiable flower shapes; can be small ditsy florals, large roses, abstract botanical
+paisley:       teardrop-shaped ornate curved design; Indian/Persian origin; often in warm jewel tones
+geometric:     triangles, diamonds, chevron, abstract shapes; repeating mathematical forms
+tie-dye:       circular swirling color bleeding; irregular; hippie/boho aesthetic
+leopard:       irregular spotted pattern with dark outlines; tan/golden base + dark brown/black spots
+zebra:         bold black+white irregular stripes; high contrast; no in-between color
+snake/python:  overlapping scale-like pattern; grey, brown, cream, or iridescent
+camouflage:    irregular blob shapes in 4+ earthy colors (olive, brown, tan, black); military origin
+color-block:   large sections of solid contrasting colors; sharp boundaries; minimal pattern
+ombre/gradient: gradual color fade from one hue to another; no sharp boundary
+embroidered:   raised thread work on fabric; floral, geometric, or figurative; visible dimension
+brocade:       woven raised pattern (flowers/geometric) usually in gold/silver on dark base; formal
+
+━━ PRECISE COLOR IDENTIFICATION RULES ━━
+• ALWAYS check undertone: warm (yellow/red tint) vs cool (blue/grey tint) vs neutral
+• DENIM WASHES: light wash=#A8C0D8, medium wash=#5F7FA8, dark wash=#2A3D5A, black denim=#252525
+• KHAKI vs OLIVE: khaki is sandy tan with minimal green (>50% tan); olive has dominant green tint
+• CAMEL vs BEIGE vs TAN: camel is warm golden-brown; beige is lighter/paler; tan is medium warm
+• OFF-WHITE shades: cream (warm yellow), ivory (cooler yellow), ecru (darker warm), pearl (cool grey)
+• BLUSH vs ROSE vs PINK: blush is very pale near-white; rose is medium pink; pink is vivid
+• BURGUNDY vs MAROON vs WINE: burgundy=red-purple dark; maroon=very dark red-brown; wine=red-purple medium
+• ARMY vs OLIVE vs SAGE: army=dark desaturated military green; olive=medium yellow-green; sage=light silvery green
+• MUSTARD vs YELLOW: mustard has strong brown/orange undertone; yellow is pure vivid
+• RUST vs TERRACOTTA vs BURNT ORANGE: rust=red-brown; terracotta=clay orange-brown; burnt orange=dark orange
+
+━━ BRAND STYLE SIGNATURES (for context, not labeling) ━━
+Minimalist/Quiet Luxury: Toteme, The Row, Lemaire, Cos, A.P.C., Jil Sander → neutral tones, clean cuts
+Streetwear: Supreme, Off-White, Palace, Stüssy → bold graphics, hoodies, cargo, sneakers
+Luxury Casual: Bottega Veneta, Loro Piana, Brunello Cucinelli → rich neutrals, quality textures
+Contemporary Smart: Ralph Lauren, Lacoste, Tommy Hilfiger → preppy, nautical, clean colors
+Luxury Heritage: Burberry (plaid/trench), Louis Vuitton (monogram), Gucci (floral/GG), Versace (baroque)
+Workwear/Utility: Dickies, Carhartt → heavy canvas/twill, khaki/brown/black, functional pockets
+Athleisure: Lululemon, Nike, Adidas, Gymshark → technical fabrics, ergonomic cuts, moisture-wicking
+Singapore Street: Cotton On, Charles & Keith, Love Bonito, Pomelo → accessible SG contemporary style
+
+━━ OCCASION-TO-GARMENT QUICK MAPPING ━━
+office:       button-down shirt, blouse, Oxford shirt, chinos, trousers, blazer, loafers, heels
+casual:       t-shirt, jeans, shorts, sneakers, sundress, polo, hoodie, joggers
+date_night:   fitted dress, dark jeans + smart shirt, heels, loafers, minimal accessories
+smart_casual: chinos + OCBD, blazer + dark jeans, midi dress + flats, culottes + blouse
+gym:          sports bra, athletic shorts, leggings, running shoes, performance tee
+festive_sg:   cheongsam, baju kurung, saree, kurta, barong, qipao — occasion = festive
+minimal:      monochrome neutral outfit, clean silhouettes, no logo, single color family
+luxury:       cashmere, silk, tailored suit, quality leather, understated expensive-looking
+
+━━ KEY FASHION COORDINATION RULES 2025 ━━
+• 60/30/10: 60% dominant neutral, 30% secondary color, 10% accent max
+• Neutrals: black, white, navy, grey, camel, beige, cream, olive, khaki — always safe base
+• Safe pairs: navy+camel, olive+rust, grey+burgundy, black+white, beige+terracotta, cream+brown
+• Pattern mixing allowed only if: different scales + share 1 color; OR 1 pattern + all solids
+• SG heat-approved fabrics: linen, 100% cotton, TENCEL, bamboo, Airism; avoid polyester outdoors
+• Metal rule: gold earrings → gold necklace + gold watch; never mix without intention
+• Shoe-belt match: leather colors must match (tan belt = tan shoes; black belt = black shoes)
+• Statement rule: ONE bold piece per outfit; rest understated
+• Tailoring rule: fit matters more than brand; well-fitted cheap beats baggy expensive
+• Women 2025: wide-leg trousers, midi lengths, relaxed blazers, slip dress + layer, balletcore pastels
+• Men 2025: straight/relaxed-leg trousers, oversized structured outerwear, tailored casual layering
+• Makeup 2025: clean skin, glossy lips, high blush (temples+nose), brown tones eyes, full natural brows
+• Singapore festivals: CNY=red/gold/cheongsam, Deepavali=jewel tones+gold/saree, Hari Raya=pastels/baju
 `;
