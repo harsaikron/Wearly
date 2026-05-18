@@ -4,6 +4,7 @@ import { Cormorant_Garamond } from 'next/font/google';
 import './globals.css';
 import Navbar from '@/components/Navbar';
 import ColorBlindProvider from '@/components/ColorBlindProvider';
+import AudioInit from '@/components/AudioInit';
 
 const geist = Geist({ variable: '--font-geist-sans', subsets: ['latin'] });
 const cormorant = Cormorant_Garamond({
@@ -45,6 +46,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         className="min-h-full flex flex-col"
         style={{ background: 'var(--background)', color: 'var(--foreground)' }}
       >
+        <AudioInit />
         <ColorBlindProvider />
         {/* Floating CBM indicator — only visible when data-cbm="1" */}
         <div className="cbm-indicator" aria-hidden="true">👁 Color Blind Mode</div>
