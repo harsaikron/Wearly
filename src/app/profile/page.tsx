@@ -255,6 +255,7 @@ export default function ProfilePage() {
   const [evolveLoading,  setEvolveLoading]  = useState(false);
   const [evolveResult,   setEvolveResult]   = useState<{ prUrl?: string; prNumber?: number; aiPlan?: string; prCreated?: boolean } | null>(null);
   const [evolveError,    setEvolveError]    = useState('');
+  const [deployStep,     setDeployStep]     = useState(0); // 0=none 1=received 2=building 3=live
   const [refreshing,     setRefreshing]     = useState(false);
   const [copied,         setCopied]         = useState<string | null>(null);
   const aiStatusRef = useRef<AIStatus | null>(null);
@@ -320,6 +321,14 @@ export default function ProfilePage() {
       setEvolveLoading(false);
     }
   }, [evolveTitle, evolveDesc, evolveCategory, evolve]);
+
+  useEffect(() => {
+    if (!evolveResult?.prCreated) { setDeployStep(0); return; }
+    setDeployStep(1);
+    const t1 = setTimeout(() => setDeployStep(2), 2000);
+    const t2 = setTimeout(() => setDeployStep(3), 9000);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [evolveResult]);
 
   const handleAvatarUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -1079,29 +1088,86 @@ export default function ProfilePage() {
 
             {/* Success result */}
             {evolveResult && (
-              <div style={{ marginTop: 16, padding: '16px', borderRadius: 16, background: 'linear-gradient(135deg, rgba(124,58,237,0.06), rgba(79,70,229,0.04))', border: '1px solid rgba(124,58,237,0.15)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                  <div style={{ width: 32, height: 32, borderRadius: 10, background: evolveResult.prCreated ? 'rgba(16,185,129,0.15)' : 'rgba(124,58,237,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ marginTop: 16, borderRadius: 16, background: 'linear-gradient(135deg, rgba(124,58,237,0.06), rgba(79,70,229,0.04))', border: '1px solid rgba(124,58,237,0.15)', overflow: 'hidden' }}>
+
+                {/* PR created row */}
+                <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 10, borderBottom: '1px solid rgba(124,58,237,0.10)' }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 10, background: evolveResult.prCreated ? 'rgba(16,185,129,0.15)' : 'rgba(124,58,237,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     {evolveResult.prCreated ? <GitPullRequest size={15} style={{ color: '#10b981' }} /> : <Brain size={15} style={{ color: '#7C3AED' }} />}
                   </div>
-                  <div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--foreground)', margin: 0 }}>
-                      {evolveResult.prCreated ? `✅ PR #${evolveResult.prNumber} created!` : '✅ AI plan generated'}
+                      {evolveResult.prCreated ? `PR #${evolveResult.prNumber} opened on GitHub` : 'AI plan generated'}
                     </p>
                     <p style={{ fontSize: 12, color: 'var(--muted)', margin: '1px 0 0' }}>
-                      {evolveResult.prCreated ? 'Draft PR opened on GitHub — ready for review' : 'Add GITHUB_TOKEN to .env.local to auto-open PRs'}
+                      {evolveResult.prCreated ? 'Gemma wrote the spec · Vercel picks it up automatically' : 'Add GITHUB_TOKEN to .env.local to auto-open PRs'}
                     </p>
                   </div>
+                  {evolveResult.prUrl && (
+                    <a href={evolveResult.prUrl} target="_blank" rel="noopener noreferrer"
+                      style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, borderRadius: 10, background: 'rgba(124,58,237,0.12)', color: '#7C3AED', textDecoration: 'none' }}>
+                      <ExternalLink size={14} />
+                    </a>
+                  )}
                 </div>
-                {evolveResult.prUrl && (
-                  <a href={evolveResult.prUrl} target="_blank" rel="noopener noreferrer"
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 12, background: 'rgba(124,58,237,0.12)', color: '#7C3AED', fontSize: 13, fontWeight: 700, textDecoration: 'none', marginBottom: 12 }}>
-                    <ExternalLink size={13} /> View PR on GitHub
-                  </a>
+
+                {/* Vercel deploy pipeline */}
+                {evolveResult.prCreated && deployStep >= 1 && (
+                  <div style={{ padding: '14px 16px', borderBottom: evolveResult.aiPlan ? '1px solid rgba(124,58,237,0.10)' : undefined }}>
+                    <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 10 }}>Vercel Deployment</p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+
+                      {/* Step 1 — received */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div style={{ width: 20, height: 20, borderRadius: '50%', background: 'rgba(16,185,129,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <Check size={11} style={{ color: '#10b981' }} />
+                        </div>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: '#10b981' }}>Push received by Vercel</span>
+                      </div>
+
+                      {/* Step 2 — building */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div style={{ width: 20, height: 20, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          background: deployStep >= 2 ? (deployStep >= 3 ? 'rgba(16,185,129,0.15)' : 'rgba(251,191,36,0.15)') : 'rgba(0,0,0,0.06)' }}>
+                          {deployStep >= 3
+                            ? <Check size={11} style={{ color: '#10b981' }} />
+                            : deployStep === 2
+                              ? <Loader size={11} style={{ color: '#f59e0b', animation: 'spin 1s linear infinite' }} />
+                              : <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'rgba(0,0,0,0.15)' }} />}
+                        </div>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: deployStep >= 2 ? (deployStep >= 3 ? '#10b981' : '#f59e0b') : 'var(--muted)' }}>
+                          {deployStep >= 3 ? 'Build complete' : deployStep === 2 ? 'Building…' : 'Waiting for build'}
+                        </span>
+                      </div>
+
+                      {/* Step 3 — live */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div style={{ width: 20, height: 20, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          background: deployStep >= 3 ? 'rgba(16,185,129,0.15)' : 'rgba(0,0,0,0.06)' }}>
+                          {deployStep >= 3
+                            ? <Check size={11} style={{ color: '#10b981' }} />
+                            : <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'rgba(0,0,0,0.15)' }} />}
+                        </div>
+                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: 13, fontWeight: 600, color: deployStep >= 3 ? '#10b981' : 'var(--muted)' }}>
+                            {deployStep >= 3 ? 'Deployed live' : 'Deploying…'}
+                          </span>
+                          {deployStep >= 3 && (
+                            <a href="https://wearly-dusky.vercel.app" target="_blank" rel="noopener noreferrer"
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, color: '#10b981', textDecoration: 'none', background: 'rgba(16,185,129,0.12)', padding: '3px 10px', borderRadius: 8 }}>
+                              <Globe size={11} /> wearly-dusky.vercel.app
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 )}
+
+                {/* AI plan collapsible */}
                 {evolveResult.aiPlan && (
-                  <details style={{ marginTop: 4 }}>
-                    <summary style={{ fontSize: 12, fontWeight: 600, color: '#7C3AED', cursor: 'pointer', marginBottom: 8 }}>View Gemma AI plan ▾</summary>
+                  <details style={{ padding: '4px 16px 14px' }}>
+                    <summary style={{ fontSize: 12, fontWeight: 600, color: '#7C3AED', cursor: 'pointer', marginBottom: 8, paddingTop: 10 }}>View Gemma AI plan ▾</summary>
                     <div style={{ fontSize: 12, color: 'var(--foreground-mid)', lineHeight: 1.7, whiteSpace: 'pre-wrap', background: 'rgba(0,0,0,0.03)', borderRadius: 10, padding: '10px 12px', maxHeight: 300, overflowY: 'auto', fontFamily: 'monospace' }}>
                       {evolveResult.aiPlan}
                     </div>

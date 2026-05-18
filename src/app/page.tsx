@@ -499,7 +499,7 @@ export default function HomePage() {
 
         {/* ── Slide 0: Mirror ─── */}
         <div style={{ width: '100vw', height: '100%', flexShrink: 0 }}>
-          <MirrorSlide ref={mirrorRef} isActive={activeSlide === 0} weather={weather} />
+          <MirrorSlide ref={mirrorRef} isActive={activeSlide === 0} weather={weather} onAddToWardrobe={() => { window.location.href = '/wardrobe'; }} />
         </div>
 
         {/* ── Slide 1: Today ─── */}

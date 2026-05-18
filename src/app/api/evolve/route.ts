@@ -78,7 +78,7 @@ async function commitFile(branch: string, path: string, content: string, msg: st
 async function createPR(branch: string, title: string, body: string): Promise<{ url: string; number: number }> {
   const res = await fetch(`${GH}/repos/${REPO}/pulls`, {
     method: 'POST', headers: ghHeaders(),
-    body: JSON.stringify({ title, body, head: branch, base: 'main', draft: true }),
+    body: JSON.stringify({ title, body, head: branch, base: 'main' }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({})) as Record<string, unknown>;

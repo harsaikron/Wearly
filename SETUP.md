@@ -75,24 +75,24 @@ The green indicator in the top-right shows "Ollama · gemma4:e4b" when Gemma 4 i
 
 ---
 
-## Running on iPhone 7 (Wardrobe Mirror Mode)
+## Running on Android (Wardrobe Mirror Mode)
 
-Wearly is optimised for an iPhone 7 mounted inside a wardrobe as a smart mirror.
+Wearly is optimised for an Android phone mounted inside a wardrobe as a smart mirror.
 
 **Install as a PWA (removes browser chrome):**
-1. Open Wearly in Google Chrome on your iPhone 7
-2. Tap the share icon → **Add to Home Screen**
+1. Open Wearly in Google Chrome on your Android phone
+2. Tap the three-dot menu → **Add to Home Screen**
 3. Tap **Add**
 4. Open Wearly from the home screen — it now runs full-screen
 
 **Wardrobe mirror setup:**
-1. Mount iPhone 7 inside the wardrobe with the front camera facing into the wardrobe
-2. Open Wearly → navigate to **Wardrobe** → scroll to the **Mirror** section
-3. Tap the large circular button to start the camera
+1. Mount your Android phone inside the wardrobe with the front camera facing into the wardrobe
+2. Open Wearly → tap the **Mirror** tab in the bottom navigation
+3. Tap the camera area to start — it activates immediately
 4. The screen stays on automatically (Wake Lock)
 5. Hold a garment up to the camera — Wearly identifies it and shows matching suggestions
 
-The app is specifically optimised for Chrome 125 on iPhone 7 (A10 chip): no backdrop-filter effects, solid navigation bar, 64px tap targets, and `touch-action: manipulation` to eliminate iOS 300ms tap delay.
+The app is optimised for Chrome on Android: no backdrop-filter effects, solid navigation bar, 64px tap targets, and `touch-action: manipulation` to eliminate tap delay.
 
 ---
 
@@ -171,18 +171,18 @@ Ollama cannot run in a serverless environment — Groq is the production AI back
 - Make sure the model is pulled: `ollama list` should show `gemma4:e4b`
 - Check OLLAMA_HOST in `.env.local` matches where Ollama is running
 
-**Camera not working on iPhone 7**
-- Wearly requires camera access — tap the big circular button (this is required on iOS for the camera permission to trigger correctly)
+**Camera not working on Android**
+- Wearly requires camera access — tap the Mirror tab to trigger the camera permission prompt
 - If denied, go to Chrome Settings → Site Settings → Camera → allow Wearly
-- The camera will not auto-start — this is intentional (iOS Safari/Chrome requires a user gesture)
+- The camera activates automatically when you switch to the Mirror tab
 
-**Bottom navigation not visible on iPhone 7**
+**Bottom navigation not visible**
 - Install Wearly as a PWA (Add to Home Screen) — this fixes safe-area inset handling
-- Make sure you're using Google Chrome, not Safari
+- Make sure you're using Google Chrome
 
-**Buttons not responding on iPhone 7**
+**Buttons not responding**
 - Hard reload the page (pull down in Chrome → release)
-- If on Safari, switch to Chrome — the app is optimised for Chrome on iOS
+- Make sure you're using Google Chrome for the best experience
 
 **Build errors**
 ```bash

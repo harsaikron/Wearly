@@ -58,7 +58,7 @@
 
 ### Mobile Requirements
 - [x] Responsive layout (mobile-first)
-- [x] iPhone 7 / Chrome 125 optimised
+- [x] Android phone / Chrome optimised
 - [x] PWA: Add to Home Screen (full-screen)
 - [x] Wake Lock (screen stays on when mounted as mirror)
 - [x] touch-action: manipulation (eliminates 300ms iOS tap delay)

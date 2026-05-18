@@ -18,7 +18,7 @@ Wearly is designed around the real moments where fashion decisions happen. Here 
 You wake up, open Wearly on your phone. The app checks live weather, local events, and your calendar — then Gemma 4 picks the perfect outfit from your own wardrobe. A voice announcement reads it aloud so you can get ready hands-free. No decisions to make. No scrolling. Just get dressed.
 
 ### Getting Dressed — Smart Mirror
-Your old iPhone 7 is mounted inside your wardrobe (it's perfect for this — small, front-facing camera, always on). You tap the big circular button. The camera activates, Gemma 4 analyses what you're holding up, and the screen shows matching bottoms and accessories — instantly. The screen stays on automatically via Wake Lock so you never have to touch it mid-outfit.
+Your Android phone is mounted inside your wardrobe (small, front-facing camera, always on). You tap Mirror. The camera activates immediately, Gemma 4 analyses what you're wearing, and the screen shows matching bottoms and accessories — instantly. The screen stays on automatically via Wake Lock so you never have to touch it mid-outfit.
 
 ### Adding a New Item — Smart Camera Detection
 You photograph a new jacket. Gemma 4 recognises it — category, colour, occasion tags — and asks via voice: *"I spotted a navy blazer. This doesn't seem to be in your wardrobe yet. Would you like me to add it?"* Tap yes, it's catalogued. Done in seconds.
@@ -91,13 +91,12 @@ Every key action in Wearly speaks aloud:
 - Screen reader compatible: semantic HTML, proper ARIA labels, no information conveyed by colour alone
 - Color Blind Mode: toggle in the profile page to switch to a high-contrast, colour-safe palette
 
-### iPhone 7 — Accessibility Hardware
-The app is specifically optimised for iPhone 7 running Google Chrome 125. This matters because many accessibility users rely on older, affordable devices:
-- No backdrop-filter (GPU-safe on A10 chip)
+### Android — Accessibility Hardware
+The app is specifically optimised for Android devices running Google Chrome. This matters because many accessibility users rely on affordable, widely available devices:
+- No backdrop-filter effects (GPU-safe across mid-range Android hardware)
 - Solid-colour navigation bar (always visible, no transparency tricks)
 - 64px minimum tap targets (exceeds WCAG 2.1 AA 44×44px requirement)
-- `touch-action: manipulation` globally (eliminates iOS 300ms tap delay)
-- `clip-path: inset(0)` used instead of `overflow: hidden` (fixes iOS touch-event cancellation)
+- `touch-action: manipulation` globally (eliminates tap delay on Android Chrome)
 - Wake Lock API keeps the screen on when the phone is mounted as a wardrobe mirror
 
 ### Physical and Motor Accessibility
@@ -142,8 +141,8 @@ The app is specifically optimised for iPhone 7 running Google Chrome 125. This m
 - Green highlight: items you already own vs items to buy/rent
 
 ### Smart Mirror
-- Designed for an iPhone 7 mounted inside a wardrobe
-- Camera activates on tap (iOS user-gesture requirement)
+- Designed for an Android phone mounted inside a wardrobe
+- Camera activates on tap (browser user-gesture requirement)
 - Gemma 4 identifies what you're holding — top, bottom, accessory, shoes
 - Suggests matching bottoms and accessories instantly
 - Wake Lock keeps screen on automatically

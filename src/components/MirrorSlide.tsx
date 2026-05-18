@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle } from 'react';
-import { Volume2, VolumeX, RefreshCw } from 'lucide-react';
+import { Volume2, VolumeX, RefreshCw, Plus } from 'lucide-react';
 import { useProfileStore } from '@/store/profile';
+import { useWardrobeStore } from '@/store/wardrobe';
 import { speak, stopSpeech } from '@/lib/speak';
 
 export interface MirrorHandle { start: () => void; }
@@ -17,12 +18,27 @@ interface MirrorResult {
 interface Props {
   isActive: boolean;
   weather?: { temperature?: number; description?: string; condition?: string; humidity?: number } | null;
+  onAddToWardrobe?: () => void;
 }
+
+const GARMENT_KEYWORDS: { keywords: string[]; label: string; categories: string[] }[] = [
+  { keywords: ['t-shirt', 'tshirt', 't shirt'], label: 't-shirt', categories: ['tshirt'] },
+  { keywords: ['shirt', 'button-up', 'polo'], label: 'shirt', categories: ['shirt', 'formal_shirt'] },
+  { keywords: ['jeans', 'denim'], label: 'jeans', categories: ['jeans'] },
+  { keywords: ['pants', 'trousers', 'chinos', 'slacks'], label: 'pants', categories: ['pants'] },
+  { keywords: ['jacket', 'blazer', 'coat'], label: 'jacket', categories: ['jacket'] },
+  { keywords: ['hoodie', 'sweater', 'jumper', 'cardigan', 'pullover'], label: 'sweater', categories: ['jacket'] },
+  { keywords: ['shorts'], label: 'shorts', categories: ['shorts'] },
+  { keywords: ['sneakers', 'trainers', 'runners'], label: 'sneakers', categories: ['sneakers', 'shoes'] },
+  { keywords: ['shoes', 'boots', 'loafers', 'sandals', 'heels', 'footwear'], label: 'shoes', categories: ['shoes', 'loafers', 'sneakers'] },
+  { keywords: ['dress', 'skirt', 'gown'], label: 'dress', categories: ['accessory'] },
+];
 
 const FALLBACK_WEATHER = { temperature: 31, description: 'Humid and sunny', condition: 'hot', humidity: 84 };
 
-const MirrorSlide = forwardRef<MirrorHandle, Props>(function MirrorSlide({ isActive, weather }, ref) {
-  const userName = useProfileStore((s) => s.name);
+const MirrorSlide = forwardRef<MirrorHandle, Props>(function MirrorSlide({ isActive, weather, onAddToWardrobe }, ref) {
+  const userName     = useProfileStore((s) => s.name);
+  const wardrobeItems = useWardrobeStore((s) => s.items);
 
   const videoRef    = useRef<HTMLVideoElement>(null);
   const streamRef   = useRef<MediaStream | null>(null);
@@ -30,11 +46,12 @@ const MirrorSlide = forwardRef<MirrorHandle, Props>(function MirrorSlide({ isAct
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const wakeLockRef = useRef<any>(null);
 
-  const [result,      setResult]      = useState<MirrorResult | null>(null);
-  const [loading,     setLoading]     = useState(false);
-  const [permDenied,  setPermDenied]  = useState(false);
-  const [cameraReady, setCameraReady] = useState(false); // stream live
-  const [muted,       setMuted]       = useState(false);
+  const [result,           setResult]           = useState<MirrorResult | null>(null);
+  const [loading,          setLoading]          = useState(false);
+  const [permDenied,       setPermDenied]       = useState(false);
+  const [cameraReady,      setCameraReady]      = useState(false);
+  const [muted,            setMuted]            = useState(false);
+  const [notInWardrobe,    setNotInWardrobe]    = useState<string | null>(null); // detected garment label if not in wardrobe
   const mutedRef = useRef(false);
   useEffect(() => { mutedRef.current = muted; }, [muted]);
 
@@ -90,13 +107,43 @@ const MirrorSlide = forwardRef<MirrorHandle, Props>(function MirrorSlide({ isAct
         }),
       });
       const data = await res.json() as MirrorResult & { error?: string };
-      if (!data.error && data.full_script) setResult(data);
+      if (!data.error && data.full_script) {
+        setResult(data);
+        checkWardrobeMatch(data.color_description);
+      }
     } catch {
       // silent
     } finally {
       setLoading(false);
     }
-  }, [weather, userName]);
+  }, [weather, userName]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function checkWardrobeMatch(description: string) {
+    const desc = description.toLowerCase();
+    let detected: { label: string; categories: string[] } | null = null;
+    for (const entry of GARMENT_KEYWORDS) {
+      if (entry.keywords.some((kw) => desc.includes(kw))) {
+        detected = entry;
+        break;
+      }
+    }
+    if (!detected) return;
+
+    const found = wardrobeItems.some(
+      (item) =>
+        detected!.categories.includes(item.category) ||
+        item.name.toLowerCase().includes(detected!.label),
+    );
+
+    if (!found) {
+      setNotInWardrobe(detected.label);
+      if (!mutedRef.current) {
+        speak(`I noticed you're wearing a ${detected.label} that's not in your wardrobe yet. Would you like to add it?`);
+      }
+    } else {
+      setNotInWardrobe(null);
+    }
+  }
 
   // ── Camera lifecycle ────────────────────────────────────────────────────
   // Called DIRECTLY from a user tap — iOS Safari requires getUserMedia
@@ -140,6 +187,7 @@ const MirrorSlide = forwardRef<MirrorHandle, Props>(function MirrorSlide({ isAct
     setCameraReady(false);
     setResult(null);
     setLoading(false);
+    setNotInWardrobe(null);
   }
 
   function toggleMute() {
@@ -309,6 +357,40 @@ const MirrorSlide = forwardRef<MirrorHandle, Props>(function MirrorSlide({ isAct
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* ── Not in wardrobe banner ── */}
+          {notInWardrobe && (
+            <div style={{
+              marginTop: 8,
+              background: 'linear-gradient(135deg, rgba(168,208,96,0.18), rgba(90,146,64,0.28))',
+              border: '1.5px solid rgba(168,208,96,0.45)',
+              borderRadius: 16, padding: '12px 14px',
+              display: 'flex', alignItems: 'center', gap: 12,
+            }}>
+              <div style={{ flex: 1 }}>
+                <p style={{ color: '#A8D060', fontWeight: 700, fontSize: 13, margin: 0 }}>
+                  Not in your wardrobe
+                </p>
+                <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12, margin: '3px 0 0', lineHeight: 1.5 }}>
+                  This {notInWardrobe} isn&apos;t catalogued yet. Add it?
+                </p>
+              </div>
+              <button
+                onClick={() => { setNotInWardrobe(null); onAddToWardrobe?.(); }}
+                style={{
+                  flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '9px 14px', borderRadius: 12,
+                  background: '#A8D060', border: 'none',
+                  color: '#0d1a09', fontSize: 13, fontWeight: 800,
+                  cursor: 'pointer', touchAction: 'manipulation',
+                  WebkitTapHighlightColor: 'transparent',
+                }}
+              >
+                <Plus size={14} strokeWidth={2.5} />
+                Add
+              </button>
             </div>
           )}
         </div>
