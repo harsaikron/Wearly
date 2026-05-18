@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 export type AddCategory = 'makeup' | 'fragrance' | 'grooming' | 'clothing' | 'accessories';
@@ -19,85 +20,127 @@ interface Props {
 }
 
 export default function CategoryPickerSheet({ open, onClose, onPick }: Props) {
+  const [mounted, setMounted] = useState(false);
   const [visible, setVisible] = useState(false);
+  const isDesktop = mounted && window.innerWidth >= 768;
+
+  useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
     if (open) {
-      requestAnimationFrame(() => requestAnimationFrame(() => setVisible(true)));
-    } else {
-      setVisible(false);
+      const t = setTimeout(() => setVisible(true), 20);
+      return () => clearTimeout(t);
     }
+    setVisible(false);
   }, [open]);
 
+  if (!mounted) return null;
   if (!open && !visible) return null;
 
-  return (
+  const content = (
     <div
       onClick={onClose}
       style={{
-        position: 'fixed', inset: 0, zIndex: 300,
-        background: visible ? 'rgba(10,8,20,0.55)' : 'rgba(10,8,20,0)',
-        backdropFilter: visible ? 'blur(5px)' : 'none',
-        WebkitBackdropFilter: visible ? 'blur(5px)' : 'none',
-        transition: 'background 0.35s ease',
+        position: 'fixed', inset: 0, zIndex: 9999,
+        background: visible ? 'rgba(10,8,20,0.50)' : 'rgba(10,8,20,0)',
+        backdropFilter: visible ? 'blur(16px)' : 'none',
+        WebkitBackdropFilter: visible ? 'blur(16px)' : 'none',
+        transition: 'background 0.3s ease, backdrop-filter 0.3s ease',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: isDesktop ? 'center' : undefined,
+        justifyContent: isDesktop ? 'center' : 'flex-end',
+        padding: isDesktop ? 24 : 0,
       }}
     >
       <div
         onClick={e => e.stopPropagation()}
         style={{
-          position: 'absolute', bottom: 0, left: 0, right: 0,
-          borderRadius: '28px 28px 0 0',
-          background: '#fff',
-          transform: visible ? 'translateY(0)' : 'translateY(100%)',
-          transition: 'transform 0.38s cubic-bezier(0.32,0.72,0,1)',
-          paddingBottom: 'env(safe-area-inset-bottom)',
+          width: '100%',
+          maxWidth: isDesktop ? 480 : undefined,
+          borderRadius: isDesktop ? 24 : '28px 28px 0 0',
+          background: 'var(--card)',
+          paddingBottom: isDesktop ? 0 : 'env(safe-area-inset-bottom)',
+          boxShadow: isDesktop
+            ? '0 24px 64px rgba(0,0,0,0.22), 0 0 0 1px rgba(0,0,0,0.06)'
+            : '0 -8px 40px rgba(0,0,0,0.14)',
+          transform: visible
+            ? 'none'
+            : isDesktop
+              ? 'scale(0.95) translateY(8px)'
+              : 'translateY(100%)',
+          opacity: visible ? 1 : 0,
+          transition: 'transform 0.3s cubic-bezier(0.32,0.72,0,1), opacity 0.25s ease',
         }}
       >
-        {/* Drag handle */}
-        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12, paddingBottom: 4 }}>
-          <div style={{ width: 44, height: 5, borderRadius: 3, background: 'rgba(0,0,0,0.13)' }} />
-        </div>
+        {/* Mobile drag handle */}
+        {!isDesktop && (
+          <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12, paddingBottom: 4 }}>
+            <div style={{ width: 44, height: 5, borderRadius: 3, background: 'rgba(0,0,0,0.13)' }} />
+          </div>
+        )}
 
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 18px 14px', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: isDesktop ? '20px 20px 16px' : '8px 18px 14px',
+          borderBottom: '1px solid var(--card-border)',
+        }}>
           <div>
-            <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--foreground)', letterSpacing: '-0.02em' }}>What are you adding?</div>
-            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>Choose a category to get started</div>
+            <div style={{ fontSize: isDesktop ? 18 : 17, fontWeight: 800, color: 'var(--foreground)', letterSpacing: '-0.02em' }}>
+              What are you adding?
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
+              Choose a category to get started
+            </div>
           </div>
-          <button onClick={onClose} style={{ width: 36, height: 36, borderRadius: 12, border: 'none', background: 'rgba(0,0,0,0.05)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <X size={16} style={{ color: 'var(--muted)' }} />
+          <button
+            onClick={onClose}
+            style={{ width: 34, height: 34, borderRadius: 10, border: 'none', background: 'var(--muted-bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            <X size={15} style={{ color: 'var(--muted)' }} />
           </button>
         </div>
 
         {/* Category list */}
-        <div style={{ padding: '12px 16px 20px', display: 'flex', flexDirection: 'column', gap: 9 }}>
+        <div style={{ padding: isDesktop ? '14px 20px 20px' : '12px 16px 20px', display: 'flex', flexDirection: 'column', gap: 8 }}>
           {CATEGORIES.map(({ id, emoji, label, desc, color }) => (
             <button
               key={id}
               onClick={() => { onPick(id); }}
               style={{
                 display: 'flex', alignItems: 'center', gap: 14,
-                padding: '14px 16px', borderRadius: 18,
-                border: '1.5px solid rgba(0,0,0,0.07)',
+                padding: '13px 16px', borderRadius: 16,
+                border: '1.5px solid',
+                borderColor: `${color}18`,
                 background: `${color}07`,
                 cursor: 'pointer', textAlign: 'left',
-                transition: 'all 0.15s cubic-bezier(0.34,1.56,0.64,1)',
+                transition: 'all 0.15s ease',
+                width: '100%',
               }}
-              onTouchStart={e => { (e.currentTarget as HTMLButtonElement).style.transform = 'scale(0.97)'; }}
-              onTouchEnd={e => { (e.currentTarget as HTMLButtonElement).style.transform = ''; }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLButtonElement).style.background = `${color}12`;
+                (e.currentTarget as HTMLButtonElement).style.borderColor = `${color}30`;
+                (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-1px)';
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLButtonElement).style.background = `${color}07`;
+                (e.currentTarget as HTMLButtonElement).style.borderColor = `${color}18`;
+                (e.currentTarget as HTMLButtonElement).style.transform = '';
+              }}
             >
-              {/* Icon circle */}
-              <div style={{ width: 48, height: 48, borderRadius: 16, background: `${color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <span style={{ fontSize: 24 }}>{emoji}</span>
+              {/* Icon */}
+              <div style={{ width: 44, height: 44, borderRadius: 14, background: `${color}16`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <span style={{ fontSize: 22 }}>{emoji}</span>
               </div>
               {/* Text */}
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--foreground)' }}>{label}</div>
-                <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{desc}</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--foreground)' }}>{label}</div>
+                <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 1 }}>{desc}</div>
               </div>
               {/* Arrow */}
-              <div style={{ width: 28, height: 28, borderRadius: 9, background: `${color}14`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <div style={{ width: 26, height: 26, borderRadius: 8, background: `${color}14`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
                   <path d="M4.5 2.5L8 6L4.5 9.5" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </div>
@@ -107,4 +150,6 @@ export default function CategoryPickerSheet({ open, onClose, onPick }: Props) {
       </div>
     </div>
   );
+
+  return createPortal(content, document.body);
 }

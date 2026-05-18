@@ -865,15 +865,15 @@ export default function WardrobePage() {
                 aria-label="Search wardrobe items"
               />
             </div>
-            {/* Desktop Add button — wrapper div ensures hidden/md:flex beats btn-primary specificity */}
+            {/* Desktop Add button */}
             <div className="hidden md:flex">
               <button
-                onClick={() => { setPreview(''); setShowAdd(true); }}
+                onClick={() => setShowCategoryPicker(true)}
                 className="btn-primary items-center gap-2"
                 style={{ padding: '0 20px', height: 52, borderRadius: 16, fontSize: 14, whiteSpace: 'nowrap' }}
-                aria-label="Add new clothing item"
+                aria-label="Add new item"
               >
-                <Plus size={16}/> Add Clothes
+                <Plus size={16}/> Add Item
               </button>
             </div>
           </div>
