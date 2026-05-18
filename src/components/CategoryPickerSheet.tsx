@@ -2,8 +2,17 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
+import { speak, stopSpeech } from '@/lib/speak';
 
 export type AddCategory = 'makeup' | 'fragrance' | 'grooming' | 'clothing' | 'accessories';
+
+const CATEGORY_VOICE: Record<AddCategory, string> = {
+  clothing:    "Great choice! Take a photo or upload an image and I'll detect the name, colour, and occasion tags instantly.",
+  accessories: "Perfect. I'll identify your accessory and suggest outfit pairings from your wardrobe.",
+  makeup:      "Let's add your makeup. I'll analyse the shade and help you build your look.",
+  fragrance:   "Adding a fragrance. I'll log the scent family and suggest the best occasions to wear it.",
+  grooming:    "Adding a grooming product. I'll track it as part of your daily routine.",
+};
 
 const CATEGORIES: { id: AddCategory; emoji: string; label: string; desc: string; color: string }[] = [
   { id: 'clothing',    emoji: '👕', label: 'Clothing',     desc: 'Shirts · Pants · Dresses · Shoes',  color: '#2C4A1E' },
@@ -29,8 +38,13 @@ export default function CategoryPickerSheet({ open, onClose, onPick }: Props) {
   useEffect(() => {
     if (open) {
       const t = setTimeout(() => setVisible(true), 20);
-      return () => clearTimeout(t);
+      // Greet after a short pause so the sheet is visible first
+      const s = setTimeout(() => speak(
+        "Hi! What would you like to add to your wardrobe today? I'll handle all the details automatically."
+      ), 350);
+      return () => { clearTimeout(t); clearTimeout(s); };
     }
+    stopSpeech();
     setVisible(false);
   }, [open]);
 
@@ -107,7 +121,7 @@ export default function CategoryPickerSheet({ open, onClose, onPick }: Props) {
           {CATEGORIES.map(({ id, emoji, label, desc, color }) => (
             <button
               key={id}
-              onClick={() => { onPick(id); }}
+              onClick={() => { speak(CATEGORY_VOICE[id]); onPick(id); }}
               style={{
                 display: 'flex', alignItems: 'center', gap: 14,
                 padding: '13px 16px', borderRadius: 16,

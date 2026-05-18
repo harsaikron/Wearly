@@ -669,11 +669,12 @@ export default function WardrobePage() {
           normalise(detectedName).includes(normalise(w.name).split(' ')[0])
         );
 
+        const firstName = (userName || 'there').split(' ')[0];
         if (!alreadyExists && detectedName) {
-          // Speak the discovery prompt
-          const firstName = (userName || 'there').split(' ')[0];
-          speak(`Hi ${firstName}! I spotted a ${detectedName}. This doesn't seem to be in your wardrobe yet. Would you like me to add it?`);
+          speak(`Got it, ${firstName}! I spotted a ${detectedName} in ${d.color_name ?? 'this colour'}. This isn't in your wardrobe yet — shall I add it for you?`);
           setConfirmAdd({ name: detectedName, category: detectedCategory });
+        } else if (alreadyExists && detectedName) {
+          speak(`${firstName}, I can see a ${detectedName}. I've filled in the details — just review and save when you're ready.`);
         }
       }
     } catch { /* keep blank */ } finally { setAnalyzing(false); }
@@ -707,6 +708,7 @@ export default function WardrobePage() {
     if (cat === 'fragrance') { setShowFragranceSheet(true); return; }
     if (cat === 'grooming')  { setShowGroomingSheet(true);  return; }
     setPreview(''); setShowAdd(true);
+    setTimeout(() => speak("Take a photo or upload an image. Gemma AI will detect the name, colour, and style tags for you — all in seconds."), 400);
   }
 
   // ── Specialized sheet save handlers ──────────────────────────────────────────
@@ -1398,7 +1400,7 @@ export default function WardrobePage() {
               </div>
               <div className="flex gap-2">
                 <button
-                  onClick={() => { saveItem(); setConfirmAdd(null); }}
+                  onClick={() => { speak("Perfect! Added to your wardrobe. I'll start tracking wear count and sustainability stats."); saveItem(); setConfirmAdd(null); }}
                   className="flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-bold"
                   style={{ background: 'var(--primary)', color: '#fff' }}
                 >
